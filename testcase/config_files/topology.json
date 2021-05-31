@@ -1,0 +1,9 @@
+{
+    "login": {
+    "target" :  ["107.111.150.69","root", "siso@123"],
+    "initiator" :  ["107.111.150.30","root", "siso@123"],
+    "tar_mlnx_ip" : "10.0.0.69",
+    "init_mlnx_ip" : "10.0.0.30",
+    "paths"  : {"pos_path": "/root/pos-0.8.2/ibofos"}
+    }
+}
