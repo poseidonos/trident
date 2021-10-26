@@ -3,18 +3,18 @@ import time
 import logger
 
 
-log= logger.get_logger(__name__)
+log = logger.get_logger(__name__)
 
 
 class ExecutionError(RuntimeError):
-    """Exception to signify an execution error
-    """
+    """Exception to signify an execution error"""
+
     pass
 
 
 class TimeOutError(ExecutionError):
-    """Exception to signify a time-out on the CLI
-    """
+    """Exception to signify a time-out on the CLI"""
+
     pass
 
 
@@ -35,7 +35,6 @@ class Proc(object):
 
         self.channel = channel
 
-
     def is_complete(self):
         """Checks if the process has completed execution
         RETURNS : True / False
@@ -45,7 +44,6 @@ class Proc(object):
 
         """
         return self.channel.exit_status_ready()
-
 
     def terminate(self):
         """Terminates the process and closes the interface
@@ -64,13 +62,12 @@ class Proc(object):
         c1.wait_for_completion()
         """
         attempts = 0
-        while(not self.is_complete() and attempts < tolerance):
+        while not self.is_complete() and attempts < tolerance:
             time.sleep(sleep)
             attempts += 1
 
         if attempts >= tolerance:
             raise TimeOutError("Timed out waiting for the process to complete")
-
 
     # TODO : Add support for large output
     def get_output(self):
@@ -81,7 +78,7 @@ class Proc(object):
          c1=Proc(channel)
         c1.get_output()
         """
-        buf = b''
+        buf = b""
         while self.channel.recv_ready():
             buf = self.channel.recv(6024)
 
