@@ -25,7 +25,7 @@ class Client:
         :param ssh_obj: ssh object needs to be passed created during starting of execution
         """
         self.ssh_obj = SSHclient(ip, username, password)
-        self.file_gen_path = "/root/output.txt"
+        #self.file_gen_path = "/root/output.txt"
 
     def close(self):
         """
@@ -630,7 +630,7 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_list(self, model_name="IBOF_VOLUME") -> (bool, list):
+    def nvme_list(self, model_name="POS_VOLUME") -> (bool, list):
         """
         Method to get the nvme list
         :param : model_name :

@@ -20,6 +20,7 @@ class Cli:
         self.pos_path = pos_path
         self.array_name = array_name
         self.new_cli_path = "/bin/poseidonos-cli"
+        self.cli_history = []
 
     def parse_out(
         self,
@@ -45,9 +46,9 @@ class Cli:
         logger.info(
             "DESCRIPTION reposonse from command {} is {}".format(command, description)
         )
-
+        parse_out = {}
         if "data" in out["Response"]["result"]:
-            return {
+            parse_out = {
                 "output": out,
                 "command": command,
                 "status_code": status_code,
@@ -56,54 +57,89 @@ class Cli:
                 "params": param,
             }
         else:
-            return {
+            parse_out = {
                 "output": out,
                 "command": command,
                 "status_code": status_code,
                 "description": description,
                 "params": param,
+                "data" : {}
             }
-
-    def run_cli_command(self, command: str, command_type="request") -> (bool, list):
+        logger.info(parse_out)    
+        self.add_cli_history(parse_out)
+        return parse_out
+    def add_cli_history(self, parse_out):
+        """
+        Method to get cli command history for debugging
+        """
+        if len(self.cli_history) > 100:
+            del self.cli_history[0]
+        self.cli_history.append(
+            [
+                parse_out["command"],
+                parse_out["status_code"],
+                parse_out["params"],
+                parse_out["data"],
+            ]
+        )
+        return True
+    def run_cli_command(
+        self, command: str, command_type="request", timeout=1800
+    ) -> (bool, list):
         """
         Method to Execute CLIT commands and return Response
         """
+
         try:
+            retry_cnt = 1
             cmd = "{}{} {} {} --json-res".format(
                 self.pos_path, self.new_cli_path, command_type, command
             )
             start_time = time.time()
-            out = self.ssh_obj.execute(cmd, get_pty=True)
-            logger.info(out)
-            elapsed_time_secs = time.time() - start_time
-            logger.info(
-                "command execution completed in  : {} secs ".format(
-                    timedelta(seconds=elapsed_time_secs)
+            run_end_time = start_time + timeout
+            while time.time() < run_end_time:
+                out = self.ssh_obj.execute(cmd, get_pty=True)
+                logger.info(out)
+                elapsed_time_secs = time.time() - start_time
+                logger.info(
+                    "command execution completed in  : {} secs ".format(
+                        timedelta(seconds=elapsed_time_secs)
+                    )
                 )
-            )
-            out = "".join(out)
-            logger.info("Raw output of the command {} is {}".format(command, out))
-            if "cannot connect to the PoseidonOS server" in out:
-                logger.warning("POSis not running! please start POS and try again!")
-                return False, out
-            elif "invalid data metric" in out:
-                logger.warning("invalid syntax passed to the command ")
-                return False, out
-            elif "invalid json file" in out:
-                logger.error("passed file contains invalid json data")
-                return False, out
-            elif "Receiving error" in out:
-                logger.error("ibof os crashed in between ! please check ibof logs")
-                return False, out
-            else:
-                if command != "start":
-                    parse_out = self.parse_out(out, command)
-                    return True, parse_out
+                out = "".join(out)
+                logger.info("Raw output of the command {} is {}".format(command, out))
+                if "cannot connect to the PoseidonOS server" in out:
+                    logger.warning("POSis not running! please start POS and try again!")
+                    return False, out
+                elif "invalid data metric" in out:
+                    logger.warning("invalid syntax passed to the command ")
+                    return False, out
+                elif "invalid json file" in out:
+                    logger.error("passed file contains invalid json data")
+                    return False, out
+                elif "Receiving error" in out:
+                    logger.error("ibof os crashed in between ! please check ibof logs")
+                    return False, out
                 else:
-                    return True, None
+                    parse_out = self.parse_out(out, command)
+                    if parse_out["status_code"] == 0:
+                        return True, parse_out
+                    elif parse_out["status_code"] == 1030:
+                        logger.info(
+                            "Poseidonos is in Busy state, status code is {}. Command retry count is {}".format(
+                                status_code, retry_cnt
+                            )
+                        )
+                        retry_cnt += 1
+                        time.sleep(5)
+                        continue
+                    else:
+                        return False, out
 
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
+            #out = self.ssh_obj.execute("pkill -9 pos")
+            self.core_dump()
             return False, None
 
     def start_pos(self) -> bool:
@@ -112,15 +148,10 @@ class Cli:
         """
         try:
             cli_error, jout = self.run_cli_command("start", "system")
-            """
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return jout
-                else:
-                    raise Exception(jout["description"])
+                    return True
             else:
                 raise Exception("CLI Error")
-            """
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
@@ -131,9 +162,9 @@ class Cli:
         try:
             array_dict = {}
             cmd = "list"
-            out = self.run_cli_command(cmd, command_type="array")
-            if out[0] is True:
-                out = out[1]["output"]["Response"]
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                out = jout["output"]["Response"]
                 if "There is no array" in out["result"]["data"]["arrayList"]:
                     logger.info("No arrays present in the config")
                     return True, out, array_dict
@@ -558,12 +589,11 @@ class Cli:
         Method to add nvmf listner
         """
         try:
-            transport = transport.lower()
-            if transport != "tcp" or "rdma":
-                raise Exception("invalid protocol mentioned")
 
-            cmd = "add-listener --subnqn --trtype {} --traddr {} --trsvcid {}".format(
-                nqn_name, transport, mellanox_interface, port
+            cmd = (
+                "add-listener --subnqn {} --trtype {} --traddr {} --trsvcid {}".format(
+                    nqn_name, transport, mellanox_interface, port
+                )
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="subsystem")
             if cli_error == True:
@@ -627,6 +657,7 @@ class Cli:
                     else:
                         logger.error("Disk type is unknown")
                         return (False, None)
+
             else:
                 logger.error("failed to execute list_array_device command")
                 return False, out[1]
@@ -635,7 +666,7 @@ class Cli:
             return False, None, None, None
         return (
             True,
-            out[1],
+            out[1]["data"],
             array_state,
             array_situation,
             data_dev,
@@ -910,3 +941,39 @@ class Cli:
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False, out[1]
+
+
+    def core_dump(self):
+        """
+        Method to collect core dump by giving different options depending on whether poseidonos is running
+        :return Bool
+        """
+        try:
+            logger.info(
+                "------------------------------------------ CLI HISTORY ------------------------------------------"
+            )
+            logger.info(self.cli_history)
+            for cli_cmd in self.cli_history:
+                logger.info(
+                    "CMD: {}, STATUS_CODE: {}, ".format(
+                        cli_cmd[0], cli_cmd[1]
+                    )
+                )
+            logger.info(
+                "-------------------------------------------------------------------------------------------------------"
+            )
+            command = "ps -aef | grep -i poseidonos"
+            out = self.ssh_obj.execute(command)
+            command = "pkill -11 poseidonos"
+            out = self.ssh_obj.execute(command)
+            logger.error("pkill -11 poseidonos for createing core dump file")
+            dump_type = "crashed"
+            command = "{}/tool/dump/trigger_core_dump.sh {}".format(
+                self.pos_path, dump_type
+            )
+            #out = self.ssh_obj.execute(command)
+            #logger.info("core dump file creation: {}".format(out))
+            return out
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False

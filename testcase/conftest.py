@@ -131,6 +131,7 @@ def start_pos():
         assert pos.cli.start_pos() == True
     except Exception as e:
         logger.error(e)
+        assert 0
     yield pos
     pos.cli.stop_pos(grace_shutdown=False)
 

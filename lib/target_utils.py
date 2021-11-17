@@ -33,7 +33,7 @@ class TargetUtils:
         """
         try:
             out = self.cli.get_array_info(array_name)
-            temp = self.convert_size(out[2]["capacity"]).split(" ")
+            temp = self.convert_size(out[1]["capacity"]).split(" ")
             if "TB" in temp:
                 size_params = int(float(temp[0]) * 1000)
                 size_per_vol = int(size_params / num_vols)
@@ -59,7 +59,7 @@ class TargetUtils:
             logger.info("creating first Nvmf Subsystem")
             return "{}:subsystem1".format(default_nqn_name)
         elif num is 0:
-            logger.error("No Subsystem information found, please verify ibof status")
+            logger.error("No Subsystem information found, please verify pos status")
             return None
         else:
             temp = list(out[1].keys())
