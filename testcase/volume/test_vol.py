@@ -23,8 +23,8 @@ def test_vol_mount_unmount_delete(vol_fixture):
         vols = []
         out = vol_fixture.cli.list_volume(array_name="POS_ARRAY1")
         for vol_data in out[2]:
-            assert vol_fixture.cli.unmount_volume(vol_data, "POS_ARRAY1") == True
-            assert vol_fixture.cli.delete_volume(vol_data, "POS_ARRAY1") == True
+            assert vol_fixture.cli.unmount_volume(vol_data, "POS_ARRAY1")[0] == True
+            assert vol_fixture.cli.delete_volume(vol_data, "POS_ARRAY1")[0] == True
     except Exception as e:
         logger.error("test case failed with exception {}".format(e))
         assert 0
@@ -35,7 +35,8 @@ def test_vol_create_diff_chars_length(mount_array, length):
     try:
         vol_name = "a" * length
         assert (
-            mount_array.cli.create_volume(vol_name, "1gb", array_name="POSARRAY1") == True
+            mount_array.cli.create_volume(vol_name, "1gb", array_name="POSARRAY1")[0]
+            == True
         )
     except Exception as e:
         logger.error("test case failed with exception {}".format(e))
@@ -47,7 +48,8 @@ def test_vol_create_diff_chars_length_invalid_length(mount_array, length):
     try:
         vol_name = "a" * length
         assert (
-            mount_array.cli.create_volume(vol_name, "1gb", array_name="POSARRAY1") == False
+            mount_array.cli.create_volume(vol_name, "1gb", array_name="POSARRAY1")[0]
+            == False
         )
     except Exception as e:
         logger.error("Testcase failed with exception {}".format(e))
@@ -59,7 +61,7 @@ def test_rename_vol_with_diff_char_length(mount_array, length):
     try:
         vol_name = "test_rename_" * length
         assert (
-            mount_array.cli.create_volume("temp_vol", "1gb", array_name="POSARRAY1")
+            mount_array.cli.create_volume("temp_vol", "1gb", array_name="POSARRAY1")[0]
             == True
         )
         mount_array.cli.rename_volume(

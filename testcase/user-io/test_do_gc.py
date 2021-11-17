@@ -14,7 +14,7 @@ def test_do_gc_diff_bs(user_io, bs):
         assert (
             user_io["client"].fio_generic_runner(
                 devices=dev_list, fio_user_data=fio_cmd
-            )
+            )[0]
             == True
         )
         assert user_io["target"].cli.wbt_do_gc(array_name="POS_ARRAY1") == True
@@ -33,7 +33,9 @@ def test_get_gc_status(user_io):
 
 def test_fetch_default_gc_values(user_io):
     try:
-        assert user_io["target"].cli.wbt_get_gc_threshold(array_name="POS_ARRAY1") == True
+        assert (
+            user_io["target"].cli.wbt_get_gc_threshold(array_name="POS_ARRAY1") == True
+        )
     except Exception as e:
         logger.error("Test case failed with exception {}".format(e))
         assert 0

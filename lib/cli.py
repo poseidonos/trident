@@ -63,11 +63,12 @@ class Cli:
                 "status_code": status_code,
                 "description": description,
                 "params": param,
-                "data" : {}
+                "data": {},
             }
-        logger.info(parse_out)    
+        logger.info(parse_out)
         self.add_cli_history(parse_out)
         return parse_out
+
     def add_cli_history(self, parse_out):
         """
         Method to get cli command history for debugging
@@ -83,6 +84,7 @@ class Cli:
             ]
         )
         return True
+
     def run_cli_command(
         self, command: str, command_type="request", timeout=1800
     ) -> (bool, list):
@@ -138,51 +140,25 @@ class Cli:
 
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
-            #out = self.ssh_obj.execute("pkill -9 pos")
+            # out = self.ssh_obj.execute("pkill -9 pos")
             self.core_dump()
             return False, None
 
-    def start_pos(self) -> bool:
+    #####################################################system################################
+    def start_system(self) -> bool:
         """
         Method to start pos
         """
         try:
             cli_error, jout = self.run_cli_command("start", "system")
             if cli_error == True:
-                    return True
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
-    def list_array(self) -> (bool, list, dict()):
-        """
-        Method to list array
-        """
-        try:
-            array_dict = {}
-            cmd = "list"
-            cli_error, jout = self.run_cli_command(cmd, command_type="array")
-            if cli_error == True:
-                out = jout["output"]["Response"]
-                if "There is no array" in out["result"]["data"]["arrayList"]:
-                    logger.info("No arrays present in the config")
-                    return True, out, array_dict
-                else:
-                    logger.info(out["result"]["data"]["arrayList"])
-                    for i in out["result"]["data"]["arrayList"]:
-                        a_name = i["name"]
-                        a_status = i["status"]
-                        array_dict[a_name] = a_status
-                    logger.info(array_dict)
-                    return True, out, array_dict
-            else:
-                raise Exception("list array command execution failed ")
-        except Exception as e:
-            logger.error("list array command failed with exception {}".format(e))
-            return False, out
-
-    def stop_pos(self, grace_shutdown=True, time_out=300) -> bool:
+    def stop_system(self, grace_shutdown=True, time_out=300) -> bool:
         """
         Method to stop poseidon
         """
@@ -235,6 +211,217 @@ class Cli:
             return False
         return True
 
+    ################################################array#######################################
+    def list_array(self) -> (bool, list, dict()):
+        """
+        Method to list array
+        """
+        try:
+            array_dict = {}
+            cmd = "list"
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                out = jout["output"]["Response"]
+                if "There is no array" in out["result"]["data"]["arrayList"]:
+                    logger.info("No arrays present in the config")
+                    return True, out, array_dict
+                else:
+                    logger.info(out["result"]["data"]["arrayList"])
+                    for i in out["result"]["data"]["arrayList"]:
+                        a_name = i["name"]
+                        a_status = i["status"]
+                        array_dict[a_name] = a_status
+                    logger.info(array_dict)
+                    return True, out, array_dict
+            else:
+                raise Exception("list array command execution failed ")
+        except Exception as e:
+            logger.error("list array command failed with exception {}".format(e))
+            return False, out
+
+    def create_array(
+        self,
+        write_buffer: str = "uram0",
+        data: str = "unvme-ns-0,unvme-ns-1,unvme-ns-2",
+        spare: str = "unvme-ns-3",
+        raid_type: str = "RAID5",
+        array_name: str = None,
+        npor=False,
+    ) -> dict():
+        """
+        Method to create array
+        """
+        try:
+            if array_name != None:
+                self.array_name = array_name
+            if npor == False:
+                out = self.reset_devel()
+            if spare:
+                cmd = "create -b {} -d {} -s {} -a {} --raid {}".format(
+                    write_buffer, data, spare, self.array_name, raid_type
+                )
+            else:
+                cmd = "create -b {} -d {} -a {} --raid {}".format(
+                    write_buffer, data, self.array_name, raid_type
+                )
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+
+    def mount_array(self, array_name: str = None) -> dict():
+        """
+        Method to mount array
+        """
+        try:
+            if array_name != None:
+                self.array_name = array_name
+            cmd = "mount -a {}".format(self.array_name)
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+
+    def unmount_array(self, array_name: str = None) -> dict():
+        """
+        Method to unmount array
+        """
+        try:
+            if array_name != None:
+                self.array_name = array_name
+            cmd = "unmount -a {} --force".format(self.array_name)
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False
+        return True
+
+    def reset_devel(self) -> bool:
+        """
+        Method to array reset
+        """
+        try:
+            cmd = "resetmbr"
+            cli_error, jout = self.run_cli_command(cmd, command_type="devel")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to  {}".format(e))
+
+    def delete_array(self, array_name=None) -> bool:
+        """
+        Method to delete array
+        """
+        try:
+            if array_name == None:
+                array_name = self.array_name
+            cmd = "delete -a {} --force".format(array_name)
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+
+    def info_array(self, array_name: str = None) -> (bool, list, list, str):
+        """
+        Method to get array information
+        """
+        spare_dev = []
+        data_dev = []
+        buffer_dev = []
+        try:
+            if array_name != None:
+                self.array_name = array_name
+            cmd = "list -a {}".format(self.array_name)
+            out = self.run_cli_command(cmd, command_type="array")
+            if out[0] == True:
+                if out[1]["output"]["Response"]["result"]["status"]["code"] == 0:
+                    flag = True
+                else:
+                    flag = False
+            else:
+                logger.error("list array device command execution failed")
+                return False, out[1]
+            if flag == True:
+                array_state = out[1]["data"]["state"]
+                array_situation = out[1]["data"]["situation"]
+                for dev in out[1]["data"]["devicelist"]:
+                    if dev["type"] == "DATA":
+                        data_dev.append(dev["name"])
+                    elif dev["type"] == "SPARE":
+                        spare_dev.append(dev["name"])
+                    elif dev["type"] == "BUFFER":
+                        buffer_dev.append(dev["name"])
+                    else:
+                        logger.error("Disk type is unknown")
+                        return (False, None)
+
+            else:
+                logger.error("failed to execute list_array_device command")
+                return False, out[1]
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False, None, None, None
+        return (
+            True,
+            out[1]["data"],
+            array_state,
+            array_situation,
+            data_dev,
+            spare_dev,
+            buffer_dev,
+        )
+
+    def addspare_array(self, device_name: str, array_name: str = None) -> (bool, list):
+        """
+        Method to add spare drive
+        """
+        try:
+            cmd = "addspare -s {} -a {}".format(device_name, array_name)
+            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                status_code = out["status_code"]
+                if status_code == 0:
+                    logger.info(out["description"])
+                    return True, out[1]
+                else:
+                    raise Exception(out["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False, out[1]
+
+    ########################################################device######################
     def scan_device(
         self,
     ) -> dict():
@@ -246,7 +433,28 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="device")
             if cli_error == True:
                 if jout["status_code"] == 0:
-                    return cli_error
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+
+    def create_device(
+        self, uram_name="uram0", bufer_size="16777216", strip_size="512"
+    ) -> bool:
+        """
+        Method to create malloc device
+        """
+        try:
+            cmd = 'create --device-name {} --num-blocks {} --block-size {} --device-type "uram"'.format(
+                uram_name, bufer_size, strip_size
+            )
+            cli_error, jout = self.run_cli_command(cmd, command_type="device")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
                 else:
                     raise Exception(jout["description"])
             else:
@@ -305,118 +513,7 @@ class Cli:
             logger.error("command execution failed with exception {}".format(e))
             return False, None, None, None, None
 
-    def create_array(
-        self,
-        write_buffer: str = "uram0",
-        data: str = "unvme-ns-0,unvme-ns-1,unvme-ns-2",
-        spare: str = "unvme-ns-3",
-        raid_type: str = "RAID5",
-        array_name: str = None,
-        npor=False,
-    ) -> dict():
-        """
-        Method to create array
-        """
-        try:
-            if array_name != None:
-                self.array_name = array_name
-            if npor == False:
-                out = self.reset_devel()
-            if spare:
-                cmd = "create -b {} -d {} -s {} -a {} --raid {}".format(
-                    write_buffer, data, spare, self.array_name, raid_type
-                )
-            else:
-                cmd = "create -b {} -d {} -a {} --raid {}".format(
-                    write_buffer, data, self.array_name, raid_type
-                )
-            cli_error, jout = self.run_cli_command(cmd, command_type="array")
-            if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error
-                else:
-                    raise Exception(jout["description"])
-            else:
-                raise Exception("CLI Error")
-        except Exception as e:
-            logger.error("failed due to {}".format(e))
-
-    def mount_array(self, array_name: str = None) -> dict():
-        """
-        Method to mount array
-        """
-        try:
-            if array_name != None:
-                self.array_name = array_name
-            cmd = "mount -a {}".format(self.array_name)
-            cli_error, jout = self.run_cli_command(cmd, command_type="array")
-            if cli_error == True:
-                if jout["status_code"] == 0:
-                    return True
-                else:
-                    raise Exception(jout["description"])
-            else:
-                raise Exception("CLI Error")
-        except Exception as e:
-            logger.error("failed due to {}".format(e))
-
-    def unmount_array(self, array_name: str = None) -> dict():
-        """
-        Method to unmount array
-        """
-        try:
-            if array_name != None:
-                self.array_name = array_name
-            cmd = "unmount -a {} --force".format(self.array_name)
-            cli_error, jout = self.run_cli_command(cmd, command_type="array")
-            if cli_error == True:
-                if jout["status_code"] == 0:
-                    return True
-                else:
-                    raise Exception(jout["description"])
-            else:
-                raise Exception("CLI Error")
-        except Exception as e:
-            logger.error("failed due to {}".format(e))
-            return False
-        return True
-
-    def reset_devel(self) -> bool:
-        """
-        Method to array reset
-        """
-        try:
-            cmd = "resetmbr"
-            cli_error, jout = self.run_cli_command(cmd, command_type="devel")
-            if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error
-                else:
-                    raise Exception(jout["description"])
-            else:
-                raise Exception("CLI Error")
-        except Exception as e:
-            logger.error("failed due to  {}".format(e))
-
-    def delete_array(self, array_name=None) -> bool:
-        """
-        Method to delete array
-        """
-        try:
-            if array_name == None:
-                array_name = self.array_name
-            cmd = "delete -a {} --force".format(array_name)
-            cli_error, jout = self.run_cli_command(cmd, command_type="array")
-            if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error
-                else:
-                    raise Exception(jout["description"])
-            else:
-                raise Exception("CLI Error")
-        except Exception as e:
-            logger.error("failed due to {}".format(e))
-
+    ###################################################volume#############################
     def list_volume(self, array_name=None) -> (bool, list, dict()):
         """
         Method to list volumes
@@ -448,27 +545,6 @@ class Cli:
             logger.error("list volume command failed with exception {}".format(e))
             return False
 
-    def create_device(
-        self, uram_name="uram0", bufer_size="16777216", strip_size="512"
-    ) -> bool:
-        """
-        Method to create malloc device
-        """
-        try:
-            cmd = 'create --device-name {} --num-blocks {} --block-size {} --device-type "uram"'.format(
-                uram_name, bufer_size, strip_size
-            )
-            cli_error, jout = self.run_cli_command(cmd, command_type="device")
-            if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error
-                else:
-                    raise Exception(jout["description"])
-            else:
-                raise Exception("CLI Error")
-        except Exception as e:
-            logger.error("failed due to {}".format(e))
-
     def create_volume(self, volumename, size, array_name=None, iops=0, bw=0):
         """
         Method to create volume
@@ -482,7 +558,7 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
-                    return cli_error
+                    return cli_error, jout
                 else:
                     raise Exception(jout["description"])
             else:
@@ -499,7 +575,7 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
-                    return cli_error
+                    return cli_error, jout
                 else:
                     raise Exception(jout["description"])
             else:
@@ -518,7 +594,7 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
-                    return cli_error
+                    return cli_error, jout
                 else:
                     raise Exception(jout["description"])
             else:
@@ -535,7 +611,7 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
-                    return cli_error
+                    return cli_error, jout
                 else:
                     raise Exception(jout["description"])
             else:
@@ -543,6 +619,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
+    #########################################subsystem#################
     def create_subsystem(
         self, nqn_name, ns_count=512, s="POS000000000001", d="POS_VOLUME"
     ) -> bool:
@@ -556,7 +633,7 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="subsystem")
             if cli_error == True:
                 if jout["status_code"] == 0:
-                    return cli_error
+                    return cli_error, jout
                 else:
                     raise Exception(jout["description"])
             else:
@@ -598,7 +675,7 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="subsystem")
             if cli_error == True:
                 if jout["status_code"] == 0:
-                    return cli_error
+                    return cli_error, jout
                 else:
                     raise Exception(jout["description"])
             else:
@@ -620,59 +697,11 @@ class Cli:
 
             if out[0] == True:
                 if out[1]["status_code"] == 0:
-                    return True
+                    return True, out
         except Exception as e:
             logger.error(e)
 
-    def info_array(self, array_name: str = None) -> (bool, list, list, str):
-        """
-        Method to get array information
-        """
-        spare_dev = []
-        data_dev = []
-        buffer_dev = []
-        try:
-            if array_name != None:
-                self.array_name = array_name
-            cmd = "list -a {}".format(self.array_name)
-            out = self.run_cli_command(cmd, command_type="array")
-            if out[0] == True:
-                if out[1]["output"]["Response"]["result"]["status"]["code"] == 0:
-                    flag = True
-                else:
-                    flag = False
-            else:
-                logger.error("list array device command execution failed")
-                return False, out[1]
-            if flag == True:
-                array_state = out[1]["data"]["state"]
-                array_situation = out[1]["data"]["situation"]
-                for dev in out[1]["data"]["devicelist"]:
-                    if dev["type"] == "DATA":
-                        data_dev.append(dev["name"])
-                    elif dev["type"] == "SPARE":
-                        spare_dev.append(dev["name"])
-                    elif dev["type"] == "BUFFER":
-                        buffer_dev.append(dev["name"])
-                    else:
-                        logger.error("Disk type is unknown")
-                        return (False, None)
-
-            else:
-                logger.error("failed to execute list_array_device command")
-                return False, out[1]
-        except Exception as e:
-            logger.error("Command Execution failed because of {}".format(e))
-            return False, None, None, None
-        return (
-            True,
-            out[1]["data"],
-            array_state,
-            array_situation,
-            data_dev,
-            spare_dev,
-            buffer_dev,
-        )
+    ######################################wbt#######################################
 
     def wbt_do_gc(self, array_name: str = None) -> bool:
         """
@@ -686,7 +715,7 @@ class Cli:
             if cli_error == True:
                 if jout["status_code"] == 0:
                     logger.info(jout["description"])
-                    return True
+                    return True, jout
                 else:
                     raise Exception(jout["description"])
             else:
@@ -793,7 +822,9 @@ class Cli:
             logger.error(e)
             return jout
 
-    def wbt_read_stripemap_entry(self, vsid: str, array_name: str = None) -> (bool, dict()):
+    def wbt_read_stripemap_entry(
+        self, vsid: str, array_name: str = None
+    ) -> (bool, dict()):
         """
         Method to read stripe map entry
         """
@@ -827,7 +858,9 @@ class Cli:
             logger.error("command execution failed because of {}".format(e))
             return False, None
 
-    def wbt_translate_device_lba(self, array_name, logical_stripe_id=0, logical_offset=10):
+    def wbt_translate_device_lba(
+        self, array_name, logical_stripe_id=0, logical_offset=10
+    ):
         """
         Method to translate device lba
         """
@@ -922,27 +955,6 @@ class Cli:
             logger.error("command execution failed because of  {}".format(e))
             return False, None
 
-    def addspare_array(self, device_name: str, array_name: str = None) -> (bool, list):
-        """
-        Method to add spare drive
-        """
-        try:
-            cmd = "addspare -s {} -a {}".format(device_name, array_name)
-            cli_error, out = self.run_cli_command(cmd, command_type="array")
-            if cli_error == True:
-                status_code = out["status_code"]
-                if status_code == 0:
-                    logger.info(out["description"])
-                    return True, out[1]
-                else:
-                    raise Exception(out["description"])
-            else:
-                raise Exception("CLI Error")
-        except Exception as e:
-            logger.error("command execution failed with exception {}".format(e))
-            return False, out[1]
-
-
     def core_dump(self):
         """
         Method to collect core dump by giving different options depending on whether poseidonos is running
@@ -954,11 +966,7 @@ class Cli:
             )
             logger.info(self.cli_history)
             for cli_cmd in self.cli_history:
-                logger.info(
-                    "CMD: {}, STATUS_CODE: {}, ".format(
-                        cli_cmd[0], cli_cmd[1]
-                    )
-                )
+                logger.info("CMD: {}, STATUS_CODE: {}, ".format(cli_cmd[0], cli_cmd[1]))
             logger.info(
                 "-------------------------------------------------------------------------------------------------------"
             )
@@ -971,8 +979,8 @@ class Cli:
             command = "{}/tool/dump/trigger_core_dump.sh {}".format(
                 self.pos_path, dump_type
             )
-            #out = self.ssh_obj.execute(command)
-            #logger.info("core dump file creation: {}".format(out))
+            # out = self.ssh_obj.execute(command)
+            # logger.info("core dump file creation: {}".format(out))
             return out
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))

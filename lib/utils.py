@@ -25,7 +25,7 @@ class Client:
         :param ssh_obj: ssh object needs to be passed created during starting of execution
         """
         self.ssh_obj = SSHclient(ip, username, password)
-        #self.file_gen_path = "/root/output.txt"
+        # self.file_gen_path = "/root/output.txt"
 
     def close(self):
         """

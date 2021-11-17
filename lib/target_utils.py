@@ -41,7 +41,9 @@ class TargetUtils:
 
             for numvol in range(num_vols):
                 volume_name = volname + str(numvol)
-                self.cli.create_volume(volume_name, d_size, array_name, iops=iops, bw=bw)
+                self.cli.create_volume(
+                    volume_name, d_size, array_name, iops=iops, bw=bw
+                )
                 self.cli.mount_volume(volume_name, array_name, nqn=nqn)
             return True
         except Exception as e:

@@ -33,7 +33,7 @@ def test_do_flush_diff_bs(user_io, bs, io_depth):
         assert (
             user_io["client"].fio_generic_runner(
                 devices=dev_list, fio_user_data=fio_cmd
-            )
+            )[0]
             == True
         )
         assert user_io["client"].nvme_flush(dev_list=dev_list) == True

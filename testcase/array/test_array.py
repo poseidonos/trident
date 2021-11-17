@@ -22,7 +22,7 @@ def test_array_rebuild(mount_array):
         else:
             raise Exception("Array is not in rebuilding state")
         mount_array.target_utils.check_rebuild_status()
-        assert mount_array.cli.unmount_array() == True
+        assert mount_array.cli.unmount_array()[0] == True
     except Exception as e:
         logger.error("Testcase failed due to {}".format(e))
         assert 0
@@ -30,7 +30,7 @@ def test_array_rebuild(mount_array):
 
 def test_unmount_pos_array(mount_array):
     try:
-        assert mount_array.cli.unmount_array() == True
+        assert mount_array.cli.unmount_array()[0] == True
     except Exception as e:
         logger.error("Testcase failed due to {}".format(e))
         assert 0
@@ -38,7 +38,7 @@ def test_unmount_pos_array(mount_array):
 
 def test_delete_array(array_management):
     try:
-        assert array_management.cli.delete_array() == True
+        assert array_management.cli.delete_array()[0] == True
     except Exception as e:
         logger.error("testcase failed due to {}".format(e))
         assert 0
@@ -46,14 +46,14 @@ def test_delete_array(array_management):
 
 def test_create_array_2_data_disks(scan_dev):
     try:
-        assert scan_dev.cli.create_array(data="unvme-ns-0,unvme-ns-1") == False
+        assert scan_dev.cli.create_array(data="unvme-ns-0,unvme-ns-1")[0] == False
     except Exception as e:
         logger.error("Testcase failed due to {}".format(e))
 
 
 def test_create_array_with_out_spare(scan_dev):
     try:
-        assert scan_dev.cli.create_array(spare=None) == True
+        assert scan_dev.cli.create_array(spare=None)[0] == True
     except Exception as e:
         logger.error("Testcase failed due to {}".format(e))
         assert 0

@@ -118,6 +118,7 @@ def init_client():
     )
     return client_obj
 
+
 @pytest.fixture(scope="module")
 def start_pos():
     try:
@@ -128,22 +129,22 @@ def start_pos():
             config_dict["login"]["target"]["password"],
             config_dict["login"]["paths"]["pos_path"],
         )
-        assert pos.cli.start_pos() == True
+        assert pos.cli.start_system()[0] == True
     except Exception as e:
         logger.error(e)
         assert 0
     yield pos
-    pos.cli.stop_pos(grace_shutdown=False)
+    pos.cli.stop_system(grace_shutdown=False)
 
 
 @pytest.fixture(scope="module")
 def scan_dev(start_pos):
     try:
         global nqn_name
-        assert pos.cli.create_device() == True
-        assert pos.cli.scan_device() == True
+        assert pos.cli.create_device()[0] == True
+        assert pos.cli.scan_device()[0] == True
         nqn_name = pos.target_utils.generate_nqn_name()
-        assert pos.cli.create_subsystem(nqn_name) == True
+        assert pos.cli.create_subsystem(nqn_name)[0] == True
 
     except Exception as e:
         logger.error(e)
@@ -154,8 +155,8 @@ def scan_dev(start_pos):
 @pytest.fixture(scope="module")
 def array_management(scan_dev):
     try:
-        assert pos.cli.reset_devel() == True
-        assert pos.cli.create_array() == True
+        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.create_array()[0] == True
     except Exception as e:
         logger.error(e)
         assert 0
@@ -165,7 +166,7 @@ def array_management(scan_dev):
 @pytest.fixture(scope="module")
 def mount_array(array_management):
     try:
-        assert pos.cli.mount_array() == True
+        assert pos.cli.mount_array()[0] == True
     except Exception as e:
         logger.error(e)
         assert 0
@@ -185,8 +186,10 @@ def vol_fixture(mount_array):
 @pytest.fixture(scope="module")
 def nvmf_transport(vol_fixture):
     try:
-        pos.cli.create_transport_subsystem()
-        pos.cli.add_listner_subsystem(nqn_name,config_dict["login"]["tar_mlnx_ip"],"1158")
+        pos.cli.create_transport_subsystem()[0]
+        pos.cli.add_listner_subsystem(
+            nqn_name, config_dict["login"]["tar_mlnx_ip"], "1158"
+        )[0]
     except Exception as e:
         logger.error(e)
         assert 0
