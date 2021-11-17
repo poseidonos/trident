@@ -9,13 +9,13 @@ def test_create_check(array_management):
 
 def test_array_rebuild(mount_array):
     try:
-        array_info = mount_array.cli.get_array_info()
+        array_info = mount_array.cli.info_array()
         data_drives = array_info[4]
         assert (
             mount_array.target_utils.device_hot_remove(device_list=[data_drives[0]])
             == True
         )
-        array_info = mount_array.cli.get_array_info()
+        array_info = mount_array.cli.info_array()
         array_state, array_situation = array_info[2], array_info[3]
         if array_state == "BUSY" and array_situation == "REBUILDING":
             logger.info("Array is in rebuilding state")

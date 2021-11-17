@@ -17,7 +17,7 @@ def test_do_gc_diff_bs(user_io, bs):
             )
             == True
         )
-        assert user_io["target"].cli.do_gc(array_name="POS_ARRAY1") == True
+        assert user_io["target"].cli.wbt_do_gc(array_name="POS_ARRAY1") == True
     except Exception as e:
         logger.error("test case failed with exception {}".format(e))
         assert 0
@@ -25,7 +25,7 @@ def test_do_gc_diff_bs(user_io, bs):
 
 def test_get_gc_status(user_io):
     try:
-        assert user_io["target"].cli.get_gc_status(array_name="POS_ARRAY1") == True
+        assert user_io["target"].cli.wbt_get_gc_status(array_name="POS_ARRAY1") == True
     except Exception as e:
         logger.error("test case failed with exception {}".format(e))
         assert 0
@@ -33,7 +33,7 @@ def test_get_gc_status(user_io):
 
 def test_fetch_default_gc_values(user_io):
     try:
-        assert user_io["target"].cli.get_gc_threshold(array_name="POS_ARRAY1") == True
+        assert user_io["target"].cli.wbt_get_gc_threshold(array_name="POS_ARRAY1") == True
     except Exception as e:
         logger.error("Test case failed with exception {}".format(e))
         assert 0
@@ -41,7 +41,7 @@ def test_fetch_default_gc_values(user_io):
 
 def test_set_verify_gc_values(user_io):
     try:
-        assert user_io["target"].cli.get_gc_status(array_name="POS_ARRAY1") == True
+        assert user_io["target"].cli.wbt_get_gc_status(array_name="POS_ARRAY1") == True
     except Exception as e:
         logger.error("test case failed with exception {}".format(e))
         assert 0

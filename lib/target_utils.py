@@ -32,7 +32,7 @@ class TargetUtils:
         Method to create and mount multiple volumes
         """
         try:
-            out = self.cli.get_array_info(array_name)
+            out = self.cli.info_array(array_name)
             temp = self.convert_size(out[1]["capacity"]).split(" ")
             if "TB" in temp:
                 size_params = int(float(temp[0]) * 1000)
@@ -41,8 +41,8 @@ class TargetUtils:
 
             for numvol in range(num_vols):
                 volume_name = volname + str(numvol)
-                self.cli.create_vol(volume_name, d_size, array_name, iops=iops, bw=bw)
-                self.cli.mount_vol(volume_name, array_name, nqn=nqn)
+                self.cli.create_volume(volume_name, d_size, array_name, iops=iops, bw=bw)
+                self.cli.mount_volume(volume_name, array_name, nqn=nqn)
             return True
         except Exception as e:
             logger.error(e)
@@ -51,7 +51,7 @@ class TargetUtils:
         """
         Method to generate nqn name
         """
-        out = self.cli.execute_nvmf_get_subsystems()
+        out = self.cli.list_subsystem()
         if out[0] is False:
             return None
         num = len(list(out[1].keys()))
@@ -92,7 +92,7 @@ class TargetUtils:
         """
         try:
             dev_bdf_map = {}
-            list_dev_out = self.cli.list_dev()
+            list_dev_out = self.cli.list_device()
             if len(list_dev_out) == 0:
                 raise Exception("No Devices found")
             for dev in list_dev_out[3]:
@@ -107,7 +107,7 @@ class TargetUtils:
         """
         Method to get devices
         """
-        dev_map = self.cli.list_dev()[3]
+        dev_map = self.cli.list_device()[3]
         devs = [k for k, v in dev_map.items() if prop.items() <= v.items()]
         return devs
 
@@ -487,7 +487,7 @@ class TargetUtils:
                 array_name = self.array_name
             info_status = 0
             while info_status <= 300:
-                get_pos_status = self.cli.get_array_info(array_name=array_name)
+                get_pos_status = self.cli.info_array(array_name=array_name)
                 if get_pos_status[0] == True and get_pos_status[3] == "NORMAL":
                     logger.info("rebuild status is updated in array info command")
                     break

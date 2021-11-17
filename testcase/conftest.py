@@ -116,7 +116,7 @@ def init_client():
         config_dict["login"]["initiator"]["username"],
         config_dict["login"]["initiator"]["password"],
     )
-
+    return client_obj
 
 @pytest.fixture(scope="module")
 def start_pos():
@@ -140,10 +140,10 @@ def start_pos():
 def scan_dev(start_pos):
     try:
         global nqn_name
-        assert pos.cli.construct_melloc_device() == True
-        assert pos.cli.scan_dev() == True
+        assert pos.cli.create_device() == True
+        assert pos.cli.scan_device() == True
         nqn_name = pos.target_utils.generate_nqn_name()
-        assert pos.cli.create_nvmf_subs(nqn_name) == True
+        assert pos.cli.create_subsystem(nqn_name) == True
 
     except Exception as e:
         logger.error(e)
@@ -154,7 +154,7 @@ def scan_dev(start_pos):
 @pytest.fixture(scope="module")
 def array_management(scan_dev):
     try:
-        assert pos.cli.array_reset() == True
+        assert pos.cli.reset_devel() == True
         assert pos.cli.create_array() == True
     except Exception as e:
         logger.error(e)
@@ -185,16 +185,18 @@ def vol_fixture(mount_array):
 @pytest.fixture(scope="module")
 def nvmf_transport(vol_fixture):
     try:
-        pos.cli.create_transport()
-        pos.cli.nvmf_add_listner(nqn_name=nqn_name)
+        pos.cli.create_transport_subsystem()
+        pos.cli.add_listner_subsystem(nqn_name,config_dict["login"]["tar_mlnx_ip"],"1158")
     except Exception as e:
         logger.error(e)
         assert 0
     yield vol_fixture
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def user_io(nvmf_transport):
-    connect_flag = False
-    if connect_flag:
-        init_client()
+    client = init_client()
+    client.nvme_connect(nqn_name, config_dict["login"]["tar_mlnx_ip"], "1158")
+    combo = {"client": client, "target": pos}
+    yield combo
+    client.nvme_disconnect()

@@ -33,10 +33,10 @@ def test_rebuild_io(user_io, io):
                 devices=dev_fs_list, fio_user_data=fio_cmd, IO_mode=False
             )
 
-        data_disks = user_io["target"].cli.get_array_info()[4]
+        data_disks = user_io["target"].cli.info_array()[4]
 
         user_io["target"].target_utils.device_hot_remove(device_list=[data_disks[0]])
-        array_info = user_io["target"].cli.get_array_info()
+        array_info = user_io["target"].cli.info_array()
         array_state, array_situation = array_info[2], array_info[3]
         if array_state == "BUSY" and array_situation == "REBUILDING":
             logger.info("array state is in rebuilding state")

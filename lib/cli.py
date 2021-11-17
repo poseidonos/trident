@@ -235,7 +235,7 @@ class Cli:
             return False
         return True
 
-    def scan_dev(
+    def scan_device(
         self,
     ) -> dict():
         """
@@ -254,7 +254,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
-    def list_dev(self) -> (bool, dict):
+    def list_device(self) -> (bool, dict):
         """
         Method to list devices
         """
@@ -321,7 +321,7 @@ class Cli:
             if array_name != None:
                 self.array_name = array_name
             if npor == False:
-                out = self.array_reset()
+                out = self.reset_devel()
             if spare:
                 cmd = "create -b {} -d {} -s {} -a {} --raid {}".format(
                     write_buffer, data, spare, self.array_name, raid_type
@@ -381,7 +381,7 @@ class Cli:
             return False
         return True
 
-    def array_reset(self) -> bool:
+    def reset_devel(self) -> bool:
         """
         Method to array reset
         """
@@ -417,7 +417,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
-    def list_vol(self, array_name=None) -> (bool, list, dict()):
+    def list_volume(self, array_name=None) -> (bool, list, dict()):
         """
         Method to list volumes
         """
@@ -448,7 +448,7 @@ class Cli:
             logger.error("list volume command failed with exception {}".format(e))
             return False
 
-    def construct_melloc_device(
+    def create_device(
         self, uram_name="uram0", bufer_size="16777216", strip_size="512"
     ) -> bool:
         """
@@ -469,7 +469,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
-    def create_vol(self, volumename, size, array_name=None, iops=0, bw=0):
+    def create_volume(self, volumename, size, array_name=None, iops=0, bw=0):
         """
         Method to create volume
         """
@@ -490,7 +490,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
-    def delete_vol(self, volumename, array_name) -> bool:
+    def delete_volume(self, volumename, array_name) -> bool:
         """
         Method to delete volume
         """
@@ -507,7 +507,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
-    def mount_vol(self, volumename, array_name, nqn=None) -> bool:
+    def mount_volume(self, volumename, array_name, nqn=None) -> bool:
         """
         Method to mount volume
         """
@@ -526,7 +526,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
-    def unmount_vol(self, volumename, array_name) -> bool:
+    def unmount_volume(self, volumename, array_name) -> bool:
         """
         Method to unmount volume
         """
@@ -543,7 +543,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
 
-    def create_nvmf_subs(
+    def create_subsystem(
         self, nqn_name, ns_count=512, s="POS000000000001", d="POS_VOLUME"
     ) -> bool:
         """
@@ -564,7 +564,7 @@ class Cli:
         except Exception as e:
             logger.error(e)
 
-    def execute_nvmf_get_subsystems(self) -> (bool, list):
+    def list_subsystem(self) -> (bool, list):
         """
         method executes nvmf_get_subsystems
         return bol, output
@@ -582,7 +582,7 @@ class Cli:
             logger.error("Get_nvmf_subsystem failed due to %s" % e)
             return (False, None)
 
-    def nvmf_add_listner(
+    def add_listner_subsystem(
         self, nqn_name, mellanox_interface, port, transport="TCP"
     ) -> bool:
         """
@@ -606,7 +606,7 @@ class Cli:
         except Exception as e:
             logger.error(e)
 
-    def create_transport(
+    def create_transport_subsystem(
         self, buf_cache_size=64, num_shared_buf=4096, transport_type="TCP"
     ) -> bool:
         """
@@ -624,7 +624,7 @@ class Cli:
         except Exception as e:
             logger.error(e)
 
-    def get_array_info(self, array_name: str = None) -> (bool, list, list, str):
+    def info_array(self, array_name: str = None) -> (bool, list, list, str):
         """
         Method to get array information
         """
@@ -674,7 +674,7 @@ class Cli:
             buffer_dev,
         )
 
-    def do_gc(self, array_name: str = None) -> bool:
+    def wbt_do_gc(self, array_name: str = None) -> bool:
         """
         Method to do gc
         """
@@ -694,7 +694,7 @@ class Cli:
         except Exception as e:
             logger.error(e)
 
-    def get_gc_status(self, array_name: str = None) -> bool:
+    def wbt_get_gc_status(self, array_name: str = None) -> bool:
         """
         Method to get gc status
         """
@@ -714,7 +714,7 @@ class Cli:
         except Exception as e:
             logger.error(e)
 
-    def get_gc_threshold(self, array_name: str = None) -> (bool, list):
+    def wbt_get_gc_threshold(self, array_name: str = None) -> (bool, list):
         """
         Method to get gc threshold
         """
@@ -735,14 +735,14 @@ class Cli:
             logger.error(e)
             return jout
 
-    def flush(self, array_name: str = None) -> (bool, list):
+    def wbt_flush(self, array_name: str = None) -> (bool, list):
         """
         Method to flush
         """
         try:
             if array_name == None:
                 array_name = self.array_name
-            cmd = "flsuh -a {}".format(array_name)
+            cmd = "flush -a {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -755,7 +755,7 @@ class Cli:
         except Exception as e:
             logger.error(e)
 
-    def read_vsamap_entry(
+    def wbt_read_vsamap_entry(
         self, volumename: str, rba: str, array_name: str = None
     ) -> (bool):
         """
@@ -793,7 +793,7 @@ class Cli:
             logger.error(e)
             return jout
 
-    def read_stripemap_entry(self, vsid: str, array_name: str = None) -> (bool, dict()):
+    def wbt_read_stripemap_entry(self, vsid: str, array_name: str = None) -> (bool, dict()):
         """
         Method to read stripe map entry
         """
@@ -827,7 +827,7 @@ class Cli:
             logger.error("command execution failed because of {}".format(e))
             return False, None
 
-    def translate_device_lba(self, array_name, logical_stripe_id=0, logical_offset=10):
+    def wbt_translate_device_lba(self, array_name, logical_stripe_id=0, logical_offset=10):
         """
         Method to translate device lba
         """
@@ -864,7 +864,7 @@ class Cli:
             logger.error("command execution failed because of {}".format(e))
             return False, None
 
-    def write_uncorrectable_lba(self, device_name, lba):
+    def wbt_write_uncorrectable_lba(self, device_name, lba):
         """
         Method to write uncorrectable lba
         """
@@ -894,7 +894,7 @@ class Cli:
             logger.error("command execution failed because  of {}".format(e))
             return False
 
-    def read_raw(self, dev, lba, count):
+    def wbt_read_raw(self, dev, lba, count):
         """
         Method to read raw
         """
@@ -922,7 +922,7 @@ class Cli:
             logger.error("command execution failed because of  {}".format(e))
             return False, None
 
-    def add_spare_drive(self, device_name: str, array_name: str = None) -> (bool, list):
+    def addspare_array(self, device_name: str, array_name: str = None) -> (bool, list):
         """
         Method to add spare drive
         """
