@@ -157,6 +157,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
 
     def stop_system(self, grace_shutdown=True, time_out=300) -> bool:
         """
@@ -274,6 +275,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
 
     def mount_array(self, array_name: str = None) -> dict():
         """
@@ -293,6 +295,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
 
     def unmount_array(self, array_name: str = None) -> dict():
         """
@@ -312,8 +315,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
-            return False
-        return True
+            return False, jout
 
     def reset_devel(self) -> bool:
         """
@@ -331,6 +333,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to  {}".format(e))
+            return False, jout
 
     def delete_array(self, array_name=None) -> bool:
         """
@@ -350,6 +353,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
 
     def info_array(self, array_name: str = None) -> (bool, list, list, str):
         """
@@ -440,6 +444,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
 
     def create_device(
         self, uram_name="uram0", bufer_size="16777216", strip_size="512"
@@ -461,6 +466,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
 
     def list_device(self) -> (bool, dict):
         """
@@ -543,7 +549,7 @@ class Cli:
             return True, list(vol_dict.keys()), vol_dict
         except Exception as e:
             logger.error("list volume command failed with exception {}".format(e))
-            return False
+            return False, out
 
     def create_volume(self, volumename, size, array_name=None, iops=0, bw=0):
         """
@@ -565,13 +571,14 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
 
     def delete_volume(self, volumename, array_name) -> bool:
         """
         Method to delete volume
         """
         try:
-            cmd = "delete -a {} -v {} ".format(array_name, volumename)
+            cmd = "delete -a {} -v {} --force ".format(array_name, volumename)
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -582,6 +589,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
 
     def mount_volume(self, volumename, array_name, nqn=None) -> bool:
         """
@@ -601,13 +609,13 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
-
-    def unmount_volume(self, volumename, array_name) -> bool:
+            return False, jout
+    def rename_volume(self, new_volname = None,volname = None, array_name = None) -> bool:
         """
         Method to unmount volume
         """
         try:
-            cmd = "unmount -v {} -a {}".format(volumename, array_name)
+            cmd = "rename --volume-name {} --array-name {} --new-volume-name {}".format(volname, array_name, new_volname)
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -618,6 +626,24 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
+            return False, jout
+    def unmount_volume(self, volumename, array_name) -> bool:
+        """
+        Method to unmount volume
+        """
+        try:
+            cmd = "unmount -v {} -a {} --force".format(volumename, array_name)
+            cli_error, jout = self.run_cli_command(cmd, command_type="volume")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
 
     #########################################subsystem#################
     def create_subsystem(
@@ -640,6 +666,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error(e)
+            return False, jout
 
     def list_subsystem(self) -> (bool, list):
         """
@@ -658,7 +685,6 @@ class Cli:
         except Exception as e:
             logger.error("Get_nvmf_subsystem failed due to %s" % e)
             return (False, None)
-
     def add_listner_subsystem(
         self, nqn_name, mellanox_interface, port, transport="TCP"
     ) -> bool:
@@ -682,6 +708,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error(e)
+            return False, jout
 
     def create_transport_subsystem(
         self, buf_cache_size=64, num_shared_buf=4096, transport_type="TCP"
@@ -700,6 +727,7 @@ class Cli:
                     return True, out
         except Exception as e:
             logger.error(e)
+            return False, out
 
     ######################################wbt#######################################
 
@@ -722,6 +750,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error(e)
+            return False, jout
 
     def wbt_get_gc_status(self, array_name: str = None) -> bool:
         """
@@ -742,6 +771,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error(e)
+            return False, jout
 
     def wbt_get_gc_threshold(self, array_name: str = None) -> (bool, list):
         """
@@ -762,7 +792,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error(e)
-            return jout
+            return False, jout
 
     def wbt_flush(self, array_name: str = None) -> (bool, list):
         """
@@ -783,6 +813,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error(e)
+            return False, jout
 
     def wbt_read_vsamap_entry(
         self, volumename: str, rba: str, array_name: str = None
@@ -820,7 +851,7 @@ class Cli:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error(e)
-            return jout
+            return False, jout
 
     def wbt_read_stripemap_entry(
         self, vsid: str, array_name: str = None
@@ -916,7 +947,7 @@ class Cli:
                             device_name, lba
                         )
                     )
-                    return True
+                    return True, out
                 else:
                     raise Exception(
                         "Failed to inject error to the device {} in lba {} ".format(
@@ -925,7 +956,7 @@ class Cli:
                     )
         except Exception as e:
             logger.error("command execution failed because  of {}".format(e))
-            return False
+            return False, out
 
     def wbt_read_raw(self, dev, lba, count):
         """

@@ -30,12 +30,12 @@ def test_vol_mount_unmount_delete(vol_fixture):
         assert 0
 
 
-@pytest.mark.parametrize("length", [2, 63, 255])
+@pytest.mark.parametrize("length", [3, 63, 255])
 def test_vol_create_diff_chars_length(mount_array, length):
     try:
         vol_name = "a" * length
         assert (
-            mount_array.cli.create_volume(vol_name, "1gb", array_name="POSARRAY1")[0]
+            mount_array.cli.create_volume(vol_name, "1gb", array_name="POS_ARRAY1")[0]
             == True
         )
     except Exception as e:
@@ -48,7 +48,7 @@ def test_vol_create_diff_chars_length_invalid_length(mount_array, length):
     try:
         vol_name = "a" * length
         assert (
-            mount_array.cli.create_volume(vol_name, "1gb", array_name="POSARRAY1")[0]
+            mount_array.cli.create_volume(vol_name, "1gb", array_name="POS_ARRAY1")[0]
             == False
         )
     except Exception as e:
@@ -56,16 +56,16 @@ def test_vol_create_diff_chars_length_invalid_length(mount_array, length):
         assert 0
 
 
-@pytest.mark.parametrize("length", [2, 63, 255])
+@pytest.mark.parametrize("length", [3, 63, 255])
 def test_rename_vol_with_diff_char_length(mount_array, length):
     try:
         vol_name = "test_rename_" * length
         assert (
-            mount_array.cli.create_volume("temp_vol", "1gb", array_name="POSARRAY1")[0]
+            mount_array.cli.create_volume("temp_vol", "1gb", array_name="POS_ARRAY1")[0]
             == True
         )
         mount_array.cli.rename_volume(
-            new_volname=vol_name, volname="temp_vol", array_name="POSARRAY1"
+            new_volname=vol_name, volname="temp_vol", array_name="POS_ARRAY1"
         )
     except Exception as e:
         logger.error("Testcase failed with exception {}".format(e))
@@ -75,13 +75,13 @@ def test_rename_vol_with_diff_char_length(mount_array, length):
 @pytest.mark.parametrize("length", [1, 256])
 def test_rename_vol_with_diff_char_length_invalid(mount_array, length):
     try:
-        vol_name = "test_rename_" * length
-        mount_array.cli.create_volume(vol_name, "1gb", array_name="POSARRAY1")
+        volume_name = "test_rename_"
+        mount_array.cli.create_volume(volume_name, "1gb", array_name="POS_ARRAY1")
         new_volume_name = "v" * length
         assert (
             mount_array.cli.rename_volume(
-                new_volume=new_volume_name, volname=vol_name, array_name="POSARRAY1"
-            )
+                new_volname=new_volume_name, volname=volume_name, array_name="POS_ARRAY1"
+            )[0]
             == False
         )
     except Exception as e:
@@ -93,7 +93,7 @@ def test_create_max_vol(mount_array):
     try:
         assert (
             mount_array.target_utils.create_mount_multiple(
-                num_vols=256, array_name="POSARRAY1"
+                num_vols=256, array_name="POS_ARRAY1"
             )
             == True
         )
