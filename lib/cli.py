@@ -145,7 +145,7 @@ class Cli:
             return False, None
 
     #####################################################system################################
-    def start_system(self) -> bool:
+    def start_system(self) -> (bool, list):
         """
         Method to start pos
         """
@@ -159,7 +159,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def stop_system(self, grace_shutdown=True, time_out=300) -> bool:
+    def stop_system(self, grace_shutdown=True, time_out=300) -> (bool, list):
         """
         Method to stop poseidon
         """
@@ -248,7 +248,7 @@ class Cli:
         raid_type: str = "RAID5",
         array_name: str = None,
         npor=False,
-    ) -> dict():
+    ) -> (bool, list):
         """
         Method to create array
         """
@@ -277,7 +277,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def mount_array(self, array_name: str = None) -> dict():
+    def mount_array(self, array_name: str = None) -> (bool, list):
         """
         Method to mount array
         """
@@ -297,7 +297,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def unmount_array(self, array_name: str = None) -> dict():
+    def unmount_array(self, array_name: str = None) -> (bool, list):
         """
         Method to unmount array
         """
@@ -317,7 +317,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def reset_devel(self) -> bool:
+    def reset_devel(self) -> (bool, list):
         """
         Method to array reset
         """
@@ -335,7 +335,7 @@ class Cli:
             logger.error("failed due to  {}".format(e))
             return False, jout
 
-    def delete_array(self, array_name=None) -> bool:
+    def delete_array(self, array_name=None) -> (bool, list):
         """
         Method to delete array
         """
@@ -428,7 +428,7 @@ class Cli:
     ########################################################device######################
     def scan_device(
         self,
-    ) -> dict():
+    ) -> (bool, list):
         """
         Method to scan devices
         """
@@ -448,7 +448,7 @@ class Cli:
 
     def create_device(
         self, uram_name="uram0", bufer_size="16777216", strip_size="512"
-    ) -> bool:
+    ) -> (bool, list):
         """
         Method to create malloc device
         """
@@ -468,7 +468,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def list_device(self) -> (bool, dict):
+    def list_device(self) -> (bool, dict()):
         """
         Method to list devices
         """
@@ -573,7 +573,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def delete_volume(self, volumename, array_name) -> bool:
+    def delete_volume(self, volumename, array_name) -> (bool, list):
         """
         Method to delete volume
         """
@@ -591,7 +591,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def mount_volume(self, volumename, array_name, nqn=None) -> bool:
+    def mount_volume(self, volumename, array_name, nqn=None) -> (bool, list):
         """
         Method to mount volume
         """
@@ -610,7 +610,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
-    def rename_volume(self, new_volname = None,volname = None, array_name = None) -> bool:
+    def rename_volume(self, new_volname = None,volname = None, array_name = None) -> (bool, list):
         """
         Method to unmount volume
         """
@@ -627,7 +627,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
-    def unmount_volume(self, volumename, array_name) -> bool:
+    def unmount_volume(self, volumename, array_name) -> (bool, list):
         """
         Method to unmount volume
         """
@@ -648,7 +648,7 @@ class Cli:
     #########################################subsystem#################
     def create_subsystem(
         self, nqn_name, ns_count=512, s="POS000000000001", d="POS_VOLUME"
-    ) -> bool:
+    ) -> (bool, list):
         """
         Method to create nvmf subsystem
         """
@@ -687,7 +687,7 @@ class Cli:
             return (False, None)
     def add_listner_subsystem(
         self, nqn_name, mellanox_interface, port, transport="TCP"
-    ) -> bool:
+    ) -> (bool, list):
         """
         Method to add nvmf listner
         """
@@ -712,7 +712,7 @@ class Cli:
 
     def create_transport_subsystem(
         self, buf_cache_size=64, num_shared_buf=4096, transport_type="TCP"
-    ) -> bool:
+    ) -> (bool, list):
         """
         Method to create transport
         """
@@ -731,7 +731,7 @@ class Cli:
 
     ######################################wbt#######################################
 
-    def wbt_do_gc(self, array_name: str = None) -> bool:
+    def wbt_do_gc(self, array_name: str = None) -> (bool, list):
         """
         Method to do gc
         """
@@ -752,7 +752,7 @@ class Cli:
             logger.error(e)
             return False, jout
 
-    def wbt_get_gc_status(self, array_name: str = None) -> bool:
+    def wbt_get_gc_status(self, array_name: str = None) -> (bool, list):
         """
         Method to get gc status
         """
