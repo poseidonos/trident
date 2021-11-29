@@ -212,6 +212,22 @@ class Cli:
             return False
         return True
 
+    def setposproperty_system(self, rebuild_impact: str):
+        """method to set the rebuild impact"""
+        try:
+            cmd = "set-property --rebuild-impact {}".format(rebuild_impact)
+            cli_error, jout = self.run_cli_command(cmd, command_type="system")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
     ################################################array#######################################
     def list_array(self) -> (bool, list, dict()):
         """
@@ -425,6 +441,51 @@ class Cli:
             logger.error("command execution failed with exception {}".format(e))
             return False, out[1]
 
+    def rmspare_array(self, device_name: str, array_name: str = None) -> (bool, list):
+        """
+        Method to remove spare drive
+        """
+        try:
+            cmd = "rmspare -s {} -a {}".format(device_name, array_name)
+            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                status_code = out["status_code"]
+                if status_code == 0:
+                    logger.info(out["description"])
+                    return True, out[1]
+                else:
+                    raise Exception(out["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False, out[1]
+
+    def autocreate_array(
+        self, array_name: str, num_buffer: str, num_data: str, num_spare: str, raid: str
+    ) -> (bool, list):
+        """
+        Method to autocreate array
+        """
+        try:
+            cmd = "autocreate --array-name {} --num-buffer {} --num-data-devs {} --num-spare {} --raid {}".format(
+                array_name, num_buffer, num_data, num_spare, raid
+            )
+
+            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                status_code = out["status_code"]
+                if status_code == 0:
+                    logger.info(out["description"])
+                    return True, out[1]
+                else:
+                    raise Exception(out["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False, out[1]
+
     ########################################################device######################
     def scan_device(
         self,
@@ -519,6 +580,174 @@ class Cli:
             logger.error("command execution failed with exception {}".format(e))
             return False, None, None, None, None
 
+    def smart_device(self, devicename):
+        """method to get smart details of a devce"""
+        try:
+            cmd = "smart-log -d {}".format(devicename)
+            cli_error, jout = self.run_cli_command(cmd, command_type="device")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    ################################################logger##############################
+    def set_log_level_logger(self, level):
+        """method to set the log level"""
+        try:
+            cmd = "set-level --level {}".format(level)
+            cli_error, jout = self.run_cli_command(cmd, command_type="logger")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    def get_log_level_logger(self):
+        """method to get the log level"""
+        try:
+            cmd = "get-level"
+            cli_error, jout = self.run_cli_command(cmd, command_type="logger")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    def apply_log_filter(self):
+        """method to set log filter"""
+        try:
+            cmd = "apply-filter"
+            cli_error, jout = self.run_cli_command(cmd, command_type="logger")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    def info_logger(self):
+        """method to get logger info"""
+        try:
+            cmd = "info"
+            cli_error, jout = self.run_cli_command(cmd, command_type="logger")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    ###################################################telemetry#########################
+
+    def start_telemetry(self):
+        """method to start telemetry"""
+        try:
+            cmd = "start"
+            cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    def stop_telemetry(self):
+        """method to stop telemetry"""
+        try:
+            cmd = "stop"
+            cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    ###################################################QOS##############################
+    def create_volume_policy_qos(
+        self, volumename, arrayname, maxiops, miniops, maxbw, minbw
+    ):
+        """method to create qos volume policy"""
+        try:
+            cmd = "create -v {} -a {} --maxiops {} --maxbw {} --miniops {} --minbw {}".format(
+                volumename, arrayname, maxiops, maxbw, miniops, minbw
+            )
+            cli_error, jout = self.run_cli_command(cmd, command_type="qos")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    def reset_volume_policy_qos(self, volumename, arrayname):
+        """method to reset volume policy"""
+        try:
+            cmd = "reset -v {} -a {}".format(volumename, arrayname)
+            cli_error, jout = self.run_cli_command(cmd, command_type="qos")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    def list_volume_policy_qos(self, volumename, arrayname):
+        """method to list volume policy"""
+        try:
+            cmd = "list -v {} -a {}".format(volumename, arrayname)
+            cli_error, jout = self.run_cli_command(cmd, command_type="qos")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
     ###################################################volume#############################
     def list_volume(self, array_name=None) -> (bool, list, dict()):
         """
@@ -610,12 +839,17 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
-    def rename_volume(self, new_volname = None,volname = None, array_name = None) -> (bool, list):
+
+    def rename_volume(
+        self, new_volname=None, volname=None, array_name=None
+    ) -> (bool, list):
         """
         Method to unmount volume
         """
         try:
-            cmd = "rename --volume-name {} --array-name {} --new-volume-name {}".format(volname, array_name, new_volname)
+            cmd = "rename --volume-name {} --array-name {} --new-volume-name {}".format(
+                volname, array_name, new_volname
+            )
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -627,12 +861,33 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
+
     def unmount_volume(self, volumename, array_name) -> (bool, list):
         """
         Method to unmount volume
         """
         try:
             cmd = "unmount -v {} -a {} --force".format(volumename, array_name)
+            cli_error, jout = self.run_cli_command(cmd, command_type="volume")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
+    def mount_with_subsystem_volume(self, volumename, nqn_name, array_name, ip, vcid):
+        """
+        method to mount volume with subsystem
+        """
+        try:
+            cmd = "mount-with-subsystem --volume-name {} --subnqn {} --array-name {} --trtype tcp --traddr {} --trsvcid {} --force".format(
+                volumename, nqn_name, array_name, ip, vcid
+            )
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -685,6 +940,7 @@ class Cli:
         except Exception as e:
             logger.error("Get_nvmf_subsystem failed due to %s" % e)
             return (False, None)
+
     def add_listner_subsystem(
         self, nqn_name, mellanox_interface, port, transport="TCP"
     ) -> (bool, list):
