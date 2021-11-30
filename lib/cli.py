@@ -129,7 +129,7 @@ class Cli:
                     elif parse_out["status_code"] == 1030:
                         logger.info(
                             "Poseidonos is in Busy state, status code is {}. Command retry count is {}".format(
-                                status_code, retry_cnt
+                                parse_out["status_code"], retry_cnt
                             )
                         )
                         retry_cnt += 1
@@ -697,13 +697,23 @@ class Cli:
 
     ###################################################QOS##############################
     def create_volume_policy_qos(
-        self, volumename, arrayname, maxiops, miniops, maxbw, minbw
+        self, volumename : str , arrayname :str, maxiops : str, maxbw : str ,miniops : str = None, minbw : str = None
     ):
         """method to create qos volume policy"""
         try:
-            cmd = "create -v {} -a {} --maxiops {} --maxbw {} --miniops {} --minbw {}".format(
-                volumename, arrayname, maxiops, maxbw, miniops, minbw
-            )
+            if miniops == None and minbw != None:
+                cmd = "create -v {} -a {} --maxiops {} --maxbw {} --minbw {}".format(
+                    volumename, arrayname, maxiops, maxbw, minbw
+                )
+            elif minbw == None and miniops != None:
+                cmd = "create -v {} -a {} --maxiops {} --maxbw {} --miniops {}".format(
+                    volumename, arrayname, maxiops, maxbw, miniops
+                )
+            else:
+                cmd = "create -v {} -a {} --maxiops {} --maxbw {}".format(
+                    volumename, arrayname, maxiops, maxbw
+                )
+
             cli_error, jout = self.run_cli_command(cmd, command_type="qos")
             if cli_error == True:
                 if jout["status_code"] == 0:
