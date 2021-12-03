@@ -101,7 +101,7 @@ class setup_config_tool:
             )
             self.summary.append(self.tar_ssh_summary)
         else:
-            self.tar_ssh_summary = "::::::: Successfully taken ssh for the target: {}  machine :::::::".format(
+            self.tar_ssh_summary = "Successfully taken ssh for the target: {}  machine".format(
                 self.tar_ip
             )
             self.summary.append(self.tar_ssh_summary)
@@ -137,7 +137,7 @@ class setup_config_tool:
             )
             self.summary.append(self.init_ssh_summary)
         else:
-            self.init_ssh_summary = ":::::::: Successfully taken ssh for the initiator : {}  machine ::::::::".format(
+            self.init_ssh_summary = "Successfully taken ssh for the initiator : {}  machine".format(
                 self.init_ip
             )
             self.summary.append(self.init_ssh_summary)
@@ -196,7 +196,7 @@ class setup_config_tool:
                 return False
         flag_4 = True
         if flag_1 and flag_3 and flag_4:
-            self.ssd_summary = "::::::::::: All the connected nvme devices satisfies the POS requirements :::::::::::::"
+            self.ssd_summary = "All the connected nvme devices satisfies the POS requirements"
             self.summary.append(self.ssd_summary)
 
     def verify_kernel_version(self):
@@ -239,7 +239,7 @@ class setup_config_tool:
                 lambda x, y: int(x) + int(y), target_kernel_version.split(".")[0:2]
             )
             if tar_version_sum >= config_ver_sum:
-                tar_krnl_msg = ":::::::: kernel version requirement satisfied on target machine {} ::::::::".format(
+                tar_krnl_msg = "kernel version requirement satisfied on target machine {}".format(
                     self.tar_ip
                 )
                 self.summary.append(tar_krnl_msg)
@@ -255,7 +255,7 @@ class setup_config_tool:
                 lambda x, y: int(x) + int(y), init_kernel_version.split(".")[0:2]
             )
             if init_version_sum >= config_ver_sum:
-                init_krnl_msg = "::::::::: kernel version requirement satisfied on initiator machine {} ::::::::".format(
+                init_krnl_msg = "kernel version requirement satisfied on initiator machine {}".format(
                     self.init_ip
                 )
                 self.summary.append(init_krnl_msg)
@@ -328,7 +328,7 @@ class setup_config_tool:
                     self.summary.append(tcp_ping_summary_1)
                     return False
                 if flag_1 and flag_2:
-                    tot_tcp_summary = ":::::::::::::::: TCP : data ip ping is successfull b/w initiator & target ::::::::::::::::"
+                    tot_tcp_summary = "TCP : data ip ping is successfull b/w initiator & target"
                     self.summary.append(tot_tcp_summary)
                     break
             elif choice in rdma:
@@ -363,7 +363,7 @@ class setup_config_tool:
                         flag_rdma = True
                 if flag_rdma:
                     tot_rdma_ping_summary = (
-                        ":::::::::: RDMA : rping is successfull :::::::::::::::::"
+                        "RDMA : rping is successfull"
                     )
                     self.summary.append(tot_rdma_ping_summary)
                     break
@@ -404,11 +404,8 @@ def main():
         flag = True
         ping_out = obj.verify_data_ip_ping()
     if flag == True:
-        print("###################################")
-        print("Summary of the result is #: ")
+        print(":::::::::::::::::Summary of the result is #:::::::::::: ")
         print(*obj.summary, sep="\n")
-        print("###################################")
-
-
+        print("::::::::::::::::::::::::::::::::::::::::::::::::::::::: ")
 if __name__ == "__main__":
     main()
