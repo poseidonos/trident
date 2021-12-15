@@ -1,0 +1,39 @@
+2021-12-03 11:00:36,978 node.py __init__ 166 DEBUG  :: SSHclient constructor
+2021-12-03 11:00:36,979 node.py connect 67 DEBUG  :: attempting to connect to: 107.111.150.69
+2021-12-03 11:00:37,036 node.py connect 69 DEBUG  :: successfully connected to: 107.111.150.69
+2021-12-03 11:00:37,036 node.py __init__ 166 DEBUG  :: SSHclient constructor
+2021-12-03 11:00:37,036 node.py connect 67 DEBUG  :: attempting to connect to: 107.111.150.69
+2021-12-03 11:00:37,078 node.py connect 69 DEBUG  :: successfully connected to: 107.111.150.69
+2021-12-03 11:00:37,078 node.py __init__ 166 DEBUG  :: SSHclient constructor
+2021-12-03 11:00:37,078 node.py connect 67 DEBUG  :: attempting to connect to: 107.111.150.69
+2021-12-03 11:00:37,121 node.py connect 69 DEBUG  :: successfully connected to: 107.111.150.69
+2021-12-03 11:00:37,122 node.py __init__ 166 DEBUG  :: SSHclient constructor
+2021-12-03 11:00:37,122 node.py connect 67 DEBUG  :: attempting to connect to: 107.111.150.69
+2021-12-03 11:00:37,166 node.py connect 69 DEBUG  :: successfully connected to: 107.111.150.69
+2021-12-03 11:00:37,167 node.py execute 205 DEBUG  :: Executing Command "uname -r " on host 107.111.150.69
+2021-12-03 11:00:37,857 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-03 11:00:37,859 node.py execute 205 DEBUG  :: Executing Command "uname -r " on host 107.111.150.69
+2021-12-03 11:00:37,909 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-03 11:00:37,910 node.py __init__ 166 DEBUG  :: SSHclient constructor
+2021-12-03 11:00:37,910 node.py connect 67 DEBUG  :: attempting to connect to: 107.111.150.69
+2021-12-03 11:00:37,954 node.py connect 69 DEBUG  :: successfully connected to: 107.111.150.69
+2021-12-03 11:00:37,954 node.py execute 205 DEBUG  :: Executing Command "lspci -D | grep 'Non-V' | awk '{print $1}'" on host 107.111.150.69
+2021-12-03 11:00:38,793 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-03 11:00:38,794 node.py execute 205 DEBUG  :: Executing Command "/root/0103/lib/spdk/scripts/setup.sh reset" on host 107.111.150.69
+2021-12-03 11:00:39,846 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-03 11:00:44,852 node.py execute 205 DEBUG  :: Executing Command "lsblk -o NAME,SIZE | grep 'nvme' |  awk '{print $2}'" on host 107.111.150.69
+2021-12-03 11:00:44,870 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-03 11:00:44,871 node.py execute 205 DEBUG  :: Executing Command "nvme list | grep 'nvme' | awk '{print $1}'" on host 107.111.150.69
+2021-12-03 11:00:44,883 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-03 11:00:44,883 node.py __init__ 166 DEBUG  :: SSHclient constructor
+2021-12-03 11:00:44,884 node.py connect 67 DEBUG  :: attempting to connect to: 107.111.150.69
+2021-12-03 11:00:44,933 node.py connect 69 DEBUG  :: successfully connected to: 107.111.150.69
+2021-12-03 11:00:44,934 node.py __init__ 166 DEBUG  :: SSHclient constructor
+2021-12-03 11:00:44,934 node.py connect 67 DEBUG  :: attempting to connect to: 107.111.150.69
+2021-12-03 11:00:44,981 node.py connect 69 DEBUG  :: successfully connected to: 107.111.150.69
+2021-12-03 11:00:55,341 node.py execute 205 DEBUG  :: Executing Command "ping -c 5 10.0.0.69 " on host 107.111.150.69
+2021-12-03 11:00:59,448 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-03 11:01:00,335 node.py execute 205 DEBUG  :: Executing Command "modprobe nvme_tcp" on host 107.111.150.69
+2021-12-03 11:01:00,347 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-03 11:01:00,348 node.py execute 205 DEBUG  :: Executing Command "ping -c 5 10.0.0.69 " on host 107.111.150.69
+2021-12-03 11:01:04,508 node.py execute 227 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
