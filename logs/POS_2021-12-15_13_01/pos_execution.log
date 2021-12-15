@@ -1,0 +1,61 @@
+2021-12-15 13:02:00,235 conftest.py <module> 45 INFO  :: {'login': {'target': {'ip': '127.0.0.1', 'username': 'root', 'password': 'siso@123'}, 'initiator': {'ip': '127.0.0.1', 'username': 'root', 'password': 'siso@123'}, 'tar_mlnx_ip': '127.0.0.1', 'init_mlnx_ip': '127.0.0.1', 'paths': {'pos_path': '/root/pos-0.10.5/ibofos'}}}
+2021-12-15 13:02:00,292 conftest.py pytest_sessionstart 53 INFO  :: Test Session Start Time : 12/15/2021, 13:02:00
+2021-12-15 13:02:00,314 conftest.py pytest_runtest_protocol 63 INFO  :: ======================== START OF test_create_check ========================
+2021-12-15 13:02:00,314 conftest.py pytest_runtest_protocol 66 INFO  :: Start Time : 12/15/2021, 13:02:00
+2021-12-15 13:02:00,315 node.py __init__ 197 DEBUG  :: SSHclient constructor
+2021-12-15 13:02:00,316 node.py connect 98 DEBUG  :: attempting to connect to: 127.0.0.1
+2021-12-15 13:02:00,439 node.py connect 100 DEBUG  :: successfully connected to: 127.0.0.1
+2021-12-15 13:02:00,440 node.py execute 236 DEBUG  :: Executing Command "/root/pos-0.10.5/ibofos/bin/poseidonos-cli system start --json-res" on host 127.0.0.1
+2021-12-15 13:02:01,256 node.py execute 258 DEBUG  :: expected_exit_code is 0 and  current exit code is 127
+2021-12-15 13:02:01,256 cli.py run_cli_command 136 INFO  :: ([], 'exit code: 127')
+2021-12-15 13:02:01,256 cli.py run_cli_command 140 INFO  :: command execution completed in  : 0:00:00.816166 secs 
+2021-12-15 13:02:01,257 cli.py run_cli_command 174 ERROR  :: Command Execution failed because of sequence item 0: expected str instance, list found
+2021-12-15 13:02:01,257 cli.py core_dump 1300 INFO  :: ------------------------------------------ CLI HISTORY ------------------------------------------
+2021-12-15 13:02:01,257 cli.py core_dump 1302 INFO  :: []
+2021-12-15 13:02:01,257 cli.py core_dump 1306 INFO  :: -------------------------------------------------------------------------------------------------------
+2021-12-15 13:02:01,257 node.py execute 236 DEBUG  :: Executing Command "ps -aef | grep -i poseidonos" on host 127.0.0.1
+2021-12-15 13:02:01,381 node.py execute 258 DEBUG  :: expected_exit_code is 0 and  current exit code is 0
+2021-12-15 13:02:01,382 node.py execute 236 DEBUG  :: Executing Command "pkill -11 poseidonos" on host 127.0.0.1
+2021-12-15 13:02:01,443 node.py execute 258 DEBUG  :: expected_exit_code is 0 and  current exit code is 1
+2021-12-15 13:02:01,443 cli.py core_dump 1312 ERROR  :: pkill -11 poseidonos for createing core dump file
+2021-12-15 13:02:01,443 cli.py start_system 191 ERROR  :: failed due to CLI Error
+2021-12-15 13:02:01,445 conftest.py start_pos 165 ERROR  :: assert False == True
+  +False
+  -True
+2021-12-15 13:02:01,493 conftest.py pytest_runtest_logreport 88 INFO  :: ======================== Test Status : FAIL ========================
+2021-12-15 13:02:01,493 conftest.py pytest_runtest_protocol 69 INFO  :: End Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,494 conftest.py pytest_runtest_protocol 74 INFO  :: Execution Time : 0 minutes 1 seconds
+2021-12-15 13:02:01,494 conftest.py pytest_runtest_protocol 78 INFO  :: ======================== END OF test_create_check ========================
+2021-12-15 13:02:01,494 conftest.py pytest_runtest_protocol 63 INFO  :: ======================== START OF test_unmount_pos_array ========================
+2021-12-15 13:02:01,494 conftest.py pytest_runtest_protocol 66 INFO  :: Start Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,503 conftest.py pytest_runtest_logreport 88 INFO  :: ======================== Test Status : FAIL ========================
+2021-12-15 13:02:01,503 conftest.py pytest_runtest_protocol 69 INFO  :: End Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,503 conftest.py pytest_runtest_protocol 74 INFO  :: Execution Time : 0 minutes 0 seconds
+2021-12-15 13:02:01,503 conftest.py pytest_runtest_protocol 78 INFO  :: ======================== END OF test_unmount_pos_array ========================
+2021-12-15 13:02:01,503 conftest.py pytest_runtest_protocol 63 INFO  :: ======================== START OF test_delete_array ========================
+2021-12-15 13:02:01,504 conftest.py pytest_runtest_protocol 66 INFO  :: Start Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,512 conftest.py pytest_runtest_logreport 88 INFO  :: ======================== Test Status : FAIL ========================
+2021-12-15 13:02:01,512 conftest.py pytest_runtest_protocol 69 INFO  :: End Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,513 conftest.py pytest_runtest_protocol 74 INFO  :: Execution Time : 0 minutes 0 seconds
+2021-12-15 13:02:01,513 conftest.py pytest_runtest_protocol 78 INFO  :: ======================== END OF test_delete_array ========================
+2021-12-15 13:02:01,513 conftest.py pytest_runtest_protocol 63 INFO  :: ======================== START OF test_create_array_with_out_spare ========================
+2021-12-15 13:02:01,513 conftest.py pytest_runtest_protocol 66 INFO  :: Start Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,521 conftest.py pytest_runtest_logreport 88 INFO  :: ======================== Test Status : FAIL ========================
+2021-12-15 13:02:01,521 conftest.py pytest_runtest_protocol 69 INFO  :: End Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,521 conftest.py pytest_runtest_protocol 74 INFO  :: Execution Time : 0 minutes 0 seconds
+2021-12-15 13:02:01,522 conftest.py pytest_runtest_protocol 78 INFO  :: ======================== END OF test_create_array_with_out_spare ========================
+2021-12-15 13:02:01,522 conftest.py pytest_runtest_protocol 63 INFO  :: ======================== START OF test_array_rebuild ========================
+2021-12-15 13:02:01,522 conftest.py pytest_runtest_protocol 66 INFO  :: Start Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,531 conftest.py pytest_runtest_logreport 88 INFO  :: ======================== Test Status : FAIL ========================
+2021-12-15 13:02:01,531 conftest.py pytest_runtest_protocol 69 INFO  :: End Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,531 conftest.py pytest_runtest_protocol 74 INFO  :: Execution Time : 0 minutes 0 seconds
+2021-12-15 13:02:01,531 conftest.py pytest_runtest_protocol 78 INFO  :: ======================== END OF test_array_rebuild ========================
+2021-12-15 13:02:01,531 conftest.py pytest_runtest_protocol 63 INFO  :: ======================== START OF test_create_array_2_data_disks ========================
+2021-12-15 13:02:01,532 conftest.py pytest_runtest_protocol 66 INFO  :: Start Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,540 conftest.py pytest_runtest_logreport 88 INFO  :: ======================== Test Status : FAIL ========================
+2021-12-15 13:02:01,540 conftest.py pytest_runtest_protocol 69 INFO  :: End Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,541 conftest.py pytest_runtest_protocol 74 INFO  :: Execution Time : 0 minutes 0 seconds
+2021-12-15 13:02:01,541 conftest.py pytest_runtest_protocol 78 INFO  :: ======================== END OF test_create_array_2_data_disks ========================
+2021-12-15 13:02:01,559 conftest.py pytest_sessionfinish 125 INFO  :: Test Session End Time : 12/15/2021, 13:02:01
+2021-12-15 13:02:01,559 conftest.py pytest_sessionfinish 132 INFO  :: Total Session Time : 0 minutes 1 seconds
+2021-12-15 13:02:01,559 conftest.py pytest_sessionfinish 136 INFO  :: Logs and Html report for executed TCs are present in /home/admin/trident/trident/logs/POS_2021-12-15_13_01
