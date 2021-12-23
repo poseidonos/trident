@@ -540,7 +540,7 @@ class Cli:
             return False, jout
 
     def create_device(
-        self, uram_name="uram0", bufer_size="16777216", strip_size="512"
+        self, uram_name :str ="uram0", bufer_size :str ="16777216", strip_size :str="512"
     ) -> (bool, list):
         """
         Method to create malloc device
@@ -612,7 +612,7 @@ class Cli:
             logger.error("command execution failed with exception {}".format(e))
             return False, None, None, None, None
 
-    def smart_device(self, devicename):
+    def smart_device(self, devicename: str) -> (bool,dict()):
         """method to get smart details of a devce"""
         try:
             cmd = "smart-log -d {}".format(devicename)
@@ -629,7 +629,7 @@ class Cli:
             return False, jout
 
     ################################################logger##############################
-    def set_log_level_logger(self, level):
+    def set_log_level_logger(self, level: str) -> (bool,dict()):
         """method to set the log level"""
         try:
             cmd = "set-level --level {}".format(level)
@@ -645,7 +645,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def get_log_level_logger(self):
+    def get_log_level_logger(self) -> (bool,dict()):
         """method to get the log level"""
         try:
             cmd = "get-level"
@@ -661,7 +661,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def apply_log_filter(self):
+    def apply_log_filter(self) -> (bool,dict()):
         """method to set log filter"""
         try:
             cmd = "apply-filter"
@@ -677,7 +677,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def info_logger(self):
+    def info_logger(self) -> (bool,dict()):
         """method to get logger info"""
         try:
             cmd = "info"
@@ -695,7 +695,7 @@ class Cli:
 
     ###################################################telemetry#########################
 
-    def start_telemetry(self):
+    def start_telemetry(self) -> (bool, dict()):
         """method to start telemetry"""
         try:
             cmd = "start"
@@ -736,7 +736,7 @@ class Cli:
         maxbw: str,
         miniops: str = None,
         minbw: str = None,
-    ):
+    ) -> (bool,dict()):
         """method to create qos volume policy"""
         try:
             if miniops == None and minbw != None:
@@ -764,7 +764,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def reset_volume_policy_qos(self, volumename, arrayname):
+    def reset_volume_policy_qos(self, volumename :str, arrayname:str) -> (bool,dict()):
         """method to reset volume policy"""
         try:
             cmd = "reset -v {} -a {}".format(volumename, arrayname)
@@ -780,7 +780,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def list_volume_policy_qos(self, volumename, arrayname):
+    def list_volume_policy_qos(self, volumename : str, arrayname: str) -> (bool,dict()):
         """method to list volume policy"""
         try:
             cmd = "list -v {} -a {}".format(volumename, arrayname)
@@ -797,7 +797,7 @@ class Cli:
             return False, jout
 
     ###################################################volume#############################
-    def list_volume(self, array_name=None) -> (bool, list, dict()):
+    def list_volume(self, array_name: str =None) -> (bool, list, dict()):
         """
         Method to list volumes
         """
@@ -828,7 +828,7 @@ class Cli:
             logger.error("list volume command failed with exception {}".format(e))
             return False, out
 
-    def create_volume(self, volumename, size, array_name=None, iops=0, bw=0):
+    def create_volume(self, volumename: str, size: str, array_name:str=None, iops:int =0, bw:int =0):
         """
         Method to create volume
         """
@@ -850,7 +850,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def delete_volume(self, volumename, array_name) -> (bool, list):
+    def delete_volume(self, volumename: str, array_name:str) -> (bool, list):
         """
         Method to delete volume
         """
@@ -868,7 +868,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def mount_volume(self, volumename, array_name, nqn=None) -> (bool, list):
+    def mount_volume(self, volumename:str, array_name:str, nqn:str=None) -> (bool, list):
         """
         Method to mount volume
         """
@@ -889,7 +889,7 @@ class Cli:
             return False, jout
 
     def rename_volume(
-        self, new_volname=None, volname=None, array_name=None
+        self, new_volname:str=None, volname:str=None, array_name:str=None
     ) -> (bool, list):
         """
         Method to unmount volume
@@ -910,7 +910,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def unmount_volume(self, volumename, array_name) -> (bool, list):
+    def unmount_volume(self, volumename:str, array_name:str) -> (bool, list):
         """
         Method to unmount volume
         """
@@ -928,7 +928,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def mount_with_subsystem_volume(self, volumename, nqn_name, array_name, ip, vcid):
+    def mount_with_subsystem_volume(self, volumename:str, nqn_name:str, array_name:str, ip:str, vcid:str):
         """
         method to mount volume with subsystem
         """
@@ -950,7 +950,7 @@ class Cli:
 
     #########################################subsystem#################
     def create_subsystem(
-        self, nqn_name, ns_count=512, s="POS000000000001", d="POS_VOLUME"
+        self, nqn_name:str, ns_count:int =512, s:str="POS000000000001", d:str="POS_VOLUME"
     ) -> (bool, list):
         """
         Method to create nvmf subsystem
@@ -974,7 +974,6 @@ class Cli:
     def list_subsystem(self) -> (bool, list):
         """
         method executes nvmf_get_subsystems
-        return bol, output
         """
         try:
             nvmf_out, temp = {}, {}
@@ -990,7 +989,7 @@ class Cli:
             return (False, None)
 
     def add_listner_subsystem(
-        self, nqn_name, mellanox_interface, port, transport="TCP"
+        self, nqn_name:str, mellanox_interface:str, port:str, transport:str="TCP"
     ) -> (bool, list):
         """
         Method to add nvmf listner
@@ -1015,7 +1014,7 @@ class Cli:
             return False, jout
 
     def create_transport_subsystem(
-        self, buf_cache_size=64, num_shared_buf=4096, transport_type="TCP"
+        self, buf_cache_size:str=64, num_shared_buf:str=4096, transport_type:str="TCP"
     ) -> (bool, list):
         """
         Method to create transport
@@ -1143,7 +1142,7 @@ class Cli:
                         raise Exception("output file not generated")
                     else:
                         logger.info("Output.txt file Generated!!!")
-                        flag, map_dict = pos.target_utils.wbt_parser(output_txt_path)
+                        flag, map_dict = self.wbt_parser(output_txt_path)
                         if flag == True:
                             logger.info(
                                 "Successfully data parsed from output.txt file "
@@ -1194,7 +1193,7 @@ class Cli:
             return False, None
 
     def wbt_translate_device_lba(
-        self, array_name, logical_stripe_id=0, logical_offset=10
+        self, array_name:str, logical_stripe_id:str=0, logical_offset:str=10
     ):
         """
         Method to translate device lba
@@ -1232,7 +1231,7 @@ class Cli:
             logger.error("command execution failed because of {}".format(e))
             return False, None
 
-    def wbt_write_uncorrectable_lba(self, device_name, lba):
+    def wbt_write_uncorrectable_lba(self, device_name:str, lba:str):
         """
         Method to write uncorrectable lba
         """
@@ -1262,12 +1261,12 @@ class Cli:
             logger.error("command execution failed because  of {}".format(e))
             return False, out
 
-    def wbt_read_raw(self, dev, lba, count):
+    def wbt_read_raw(self, dev:str, lba:str, count:str):
         """
         Method to read raw
         """
         try:
-            file_name = "/tmp/{}.bin".format(pos.target_utils.random_File_name())
+            file_name = "/tmp/{}.bin".format(self.random_File_name())
             wbt_cmd = "read_raw --dev {} --lba {} --count {}  --output {} ".format(
                 dev, lba, count, file_name
             )
@@ -1293,7 +1292,6 @@ class Cli:
     def core_dump(self):
         """
         Method to collect core dump by giving different options depending on whether poseidonos is running
-        :return Bool
         """
         try:
             logger.info(

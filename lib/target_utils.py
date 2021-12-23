@@ -256,7 +256,7 @@ class TargetUtils:
             return False, None
         return True, bdf_out
 
-    def pci_rescan(self):
+    def pci_rescan(self) -> bool:
         """
         Method to pci rescan
         """
