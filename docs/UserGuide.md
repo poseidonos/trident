@@ -52,7 +52,7 @@ Navigating to script folder and execute pkgdep.sh script downloads and installs 
 ### Pre-requisites for Trident Open source
 Test suite is primarily based on Python3 and pytest. It is important to check if Python3 is already installed. Pip3 (python3-pip) also need to be installed as it is used to install all requirements for the test framework. After installation, update pip3 by running below command
    
-`$pip3 install –upgrade pip`
+`$pip3 install --upgrade pip`
    
 To install the pre-requisites run following command:
    
@@ -61,7 +61,7 @@ To install the pre-requisites run following command:
 ## Directory structure of Trident
 Trident can be cloned from below git link
     
-`$git clone http://ssirgitlab.samsungds.net/root/open_ibot.git`
+`$git clone https://github.com/poseidonos/trident.git`
     
 ### Trident is organised in to following directories:
 #### Lib: 
