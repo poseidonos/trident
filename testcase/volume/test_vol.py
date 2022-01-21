@@ -82,7 +82,7 @@ def test_vol_create_diff_chars_length_invalid_length(mount_array, length):
             mount_array.cli.create_volume(vol_name, "1gb", array_name="POS_ARRAY1")[0]
             == False
         )
-        logger.info("as expected volume creaton with invalid char length failed")
+        logger.info("as expected volume creation with invalid char length failed")
     except Exception as e:
         logger.error("Testcase failed with exception {}".format(e))
         assert 0
@@ -118,7 +118,7 @@ def test_rename_vol_with_diff_char_length_invalid(mount_array, length):
             )[0]
             == False
         )
-        logger.info("as expected volume creaton with invalid char length failed")
+        logger.info("as expected volume creation with invalid char length failed")
     except Exception as e:
         logger.error("testcase failed with exception {}".format(e))
         assert 0
