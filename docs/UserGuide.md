@@ -47,7 +47,9 @@ Poseidon OS can be cloned from following link
     
 `$git clone https://github.com/poseidonos/poseidonos.git`
     
-Navigating to script folder and execute pkgdep.sh script downloads and installs all dependencies of the project. 
+Navigating to script folder and execute pkgdep.sh script downloads and installs all dependencies of the project.
+
+Please refer to https://github.com/poseidonos/poseidonos/blob/main/README.md for further details.
 
 ### Pre-requisites for Trident Open source
 Test suite is primarily based on Python3 and pytest. It is important to check if Python3 is already installed. Pip3 (python3-pip) also need to be installed as it is used to install all requirements for the test framework. After installation, update pip3 by running below command
