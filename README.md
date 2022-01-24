@@ -37,7 +37,7 @@ Test the system by executing setup tool from utils
 Please refer docs/UserGuide.md for details
 
 # Run Test cases
-`$python3 -m -v pytest -v  testcase/array/test_array.py::test_create_check`
+`$python3 -m pytest -v  testcase/array/test_array.py::test_create_check`
 
 Please refer docs/UserGuide.md for details
 
