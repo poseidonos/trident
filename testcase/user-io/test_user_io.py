@@ -1,39 +1,48 @@
+#
+#    BSD LICENSE
+#    Copyright (c) 2021 Samsung Electronics Corporation
+#    All rights reserved.
+# 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions
+#    are met:
+# 
+#      * Redistributions of source code must retain the above copyright
+#        notice, this list of conditions and the following disclaimer.
+#      * Redistributions in binary form must reproduce the above copyright
+#        notice, this list of conditions and the following disclaimer in
+#        the documentation and/or other materials provided with the
+#        distribution.
+#      * Neither the name of Samsung Electronics Corporation nor the names of
+#        its contributors may be used to endorse or promote products derived
+#        from this software without specific prior written permission.
+# 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+#    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 import logger, pytest
 
-logger= logger.get_logger(__name__)
+logger = logger.get_logger(__name__)
+
 
 @pytest.mark.parametrize("io_engine", ["posixaio", "sync", "libaio"])
-def test_run_block_io(user_io,io_engine):
+def test_run_block_io(user_io, io_engine):
     try:
-      dev_list = user_io["client_setup"].device_list
-      fio_cmd = "fio --name=S_W --runtime=5 --ioengine={} --iodepth=16 --rw=write --size=1g --bs=1m ".format(io_engine)
-      user_io["client_setup"].fio_generic_runner(devices  = dev_list, fio_data = fio_cmd)
-      if user_io["client_setup"].status['ret_code'] is "fail":
-         raise Exception (user_io["client_setup"].status['message'])
-    except Exception as e:
-        logger.error("test case failed with exception {}".format(e))
-        assert 0
+        dev_list = user_io["client"].nvme_list()[1]
 
-@pytest.mark.parametrize("fs_type", ["ext3","ext4","xfs"])
-@pytest.mark.parametrize("io_engine", ["posixaio", "sync", "libaio"])
-def test_run_file_io(user_io,fs_type,io_engine):
-    try:
-      dev_list = user_io["client_setup"].device_list
-      user_io["client_setup"].create_FS(dev_list = dev_list, format_type=fs_type)
-      if user_io["client_setup"].status['ret_code'] is "fail":
-         raise Exception (user_io["client_setup"].status['message'])
-
-      user_io["client_setup"].mount_FS(dev_list = dev_list)
-      if user_io["client_setup"].status['ret_code'] is "fail":
-         raise Exception (user_io["client_setup"].status['message'])
-      dev_fs_list = user_io["client_setup"].device_FS_list
-       
-      fio_cmd = "fio --name=S_W --runtime=5 --ioengine={} --iodepth=16 --rw=write --size=1g --bs=1m ".format(io_engine)
-      user_io["client_setup"].fio_generic_runner(devices  = dev_fs_list, fio_data = fio_cmd, io_mode = False)
-      if user_io["client_setup"].status['ret_code'] is "fail":
-         raise Exception (user_io["client_setup"].status['message'])
-      user_io["client_setup"].unmount_FS(unmount_dir = dev_fs_list)
+        fio_cmd = "fio --name=S_W --runtime=5 --ioengine={} --iodepth=16 --rw=write --size=1g --bs=1m ".format(
+            io_engine
+        )
+        user_io["client"].fio_generic_runner(devices=dev_list, fio_user_data=fio_cmd)
     except Exception as e:
-        logger.error("test case failed with exception {}".format(e))
-        user_io["client_setup"].unmount_FS(unmount_dir = dev_fs_list)
+        logger.error("Test case failed with exception {}".format(e))
         assert 0

@@ -1,114 +1,137 @@
-import logger 
-import random, pytest
+#
+#    BSD LICENSE
+#    Copyright (c) 2021 Samsung Electronics Corporation
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions
+#    are met:
+#
+#      * Redistributions of source code must retain the above copyright
+#        notice, this list of conditions and the following disclaimer.
+#      * Redistributions in binary form must reproduce the above copyright
+#        notice, this list of conditions and the following disclaimer in
+#        the documentation and/or other materials provided with the
+#        distribution.
+#      * Neither the name of Samsung Electronics Corporation nor the names of
+#        its contributors may be used to endorse or promote products derived
+#        from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+#    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+import logger
+import random
+import pytest
 
-logger= logger.get_logger(__name__)
-
-@pytest.fixture(scope = "module")
-
-def create_vol(vol_fixture):
-    vol_fixture.create_mount_multiple(volname = "test",num_vols = 5, size = "100gb",array_name = "POSARRAY1")
-    if vol_fixture.status['ret_code'] is "fail":
-       logger.error(vol_fixture.status['message'])
-       pytest.skip()
-    else:
-       logger.info(vol_fixture.status['message'])
+logger = logger.get_logger(__name__)
 
 
-def test_vol_create(vol_fixture):
+def test_create_vol(vol_fixture):
+    pass
+
+
+def test_vol_list(vol_fixture):
     try:
-      vol_fixture.get_pos_info_system()
-      if vol_fixture.status['ret_code'] is "fail":
-         raise Exception ("pos is not running!")
+        pos = vol_fixture
+        assert pos.cli.list_volume(array_name="POS_ARRAY1")[0] == True
+    except Exception as e:
+        logger.error("Testcase failed with exception {}".format(e))
+        assert 0
 
-      vol_fixture.get_array_info(array_name = "POSARRAY1")
-      if vol_fixture.status['ret_code'] is "fail":
-         raise Exception (vol_fixture.status['message'])
-      array_size = vol_fixture.array_status
-      remain_size = array_size["capacity"] - array_size["used"]
-      reamin_size_gb = (round(remain_size/(1024 * 1024 * 1024)))
-      vol_size_bytes = (reamin_size_gb - 1)* 1024 * 1024 * 1024
 
-      vol_fixture.create_vol(size = int(array_size["capacity"]),array_name = "POSARRAY1")
-      if vol_fixture.status['ret_code'] is "fail":
-         raise Exception (vol_fixture.status['message'])
-
-      vol_fixture.list_vol(array_name = "POSARRAY1")
-      if vol_fixture.status['ret_code'] is "fail":
-         raise Exception (vol_fixture.status['message'])
-      logger.info(vol_fixture.vols)
-
-      for vol in vol_fixture.vols:
-          vol_fixture.delete_vol(volname = vol, array_name = "POSARRAY1")
-          if vol_fixture.status['ret_code'] is "fail":
-             raise Exception (vol_fixture.status['message'])
+def test_vol_mount_unmount_delete(vol_fixture):
+    try:
+        vols = []
+        out = vol_fixture.cli.list_volume(array_name="POS_ARRAY1")
+        for vol_data in out[2]:
+            assert vol_fixture.cli.unmount_volume(vol_data, "POS_ARRAY1")[0] == True
+            assert vol_fixture.cli.delete_volume(vol_data, "POS_ARRAY1")[0] == True
     except Exception as e:
         logger.error("test case failed with exception {}".format(e))
         assert 0
 
-def test_vol_1ist(vol_fixture,create_vol):
+
+@pytest.mark.parametrize("length", [3, 63, 255])
+def test_vol_create_diff_chars_length(mount_array, length):
     try:
-      vol_fixture.list_vol(array_name = "POSARRAY1")
-      if vol_fixture.status['ret_code'] is "fail":
-         raise Exception (vol_fixture.status['message'])
-      logger.info(vol_fixture.vols)
+        vol_name = "a" * length
+        assert (
+            mount_array.cli.create_volume(vol_name, "1gb", array_name="POS_ARRAY1")[0]
+            == True
+        )
     except Exception as e:
         logger.error("test case failed with exception {}".format(e))
         assert 0
 
-def test_vol_mount_unmount_delete(vol_fixture,create_vol):
+
+@pytest.mark.parametrize("length", [1, 256])
+def test_vol_create_diff_chars_length_invalid_length(mount_array, length):
     try:
-      vols = []
-      vol_fixture.list_vol(array_name = "POSARRAY1")
-      if vol_fixture.status['ret_code'] is "fail":
-         raise Exception (vol_fixture.status['message'])
-      logger.info(vol_fixture.vol_dict)
-
-      for vol_data in vol_fixture.vol_dict:
-          if vol_data['status'] == "Unmounted":
-             vols.append(vol_data['name'])
-
-      if len(vols) != 0:
-         for vol in vols:
-             vol_fixture.mount_vol(volname = vol, array_name = "POSARRAY1")
-             if vol_fixture.status['ret_code'] is "fail":
-                raise Exception (vol_fixture.status['message'])
-            
-      for vol in vol_fixture.vols:
-          vol_fixture.unmount_vol(volname = vol, array_name = "POSARRAY1")
-          if vol_fixture.status['ret_code'] is "fail":
-             raise Exception (vol_fixture.status['message'])
-
-          vol_fixture.delete_vol(volname = vol, array_name = "POSARRAY1")
-          if vol_fixture.status['ret_code'] is "fail":
-             raise Exception (vol_fixture.status['message'])
+        vol_name = "a" * length
+        assert (
+            mount_array.cli.create_volume(vol_name, "1gb", array_name="POS_ARRAY1")[0]
+            == False
+        )
+        logger.info("as expected volume creation with invalid char length failed")
     except Exception as e:
-        logger.error("test case failed with exception {}".format(e))
+        logger.error("Testcase failed with exception {}".format(e))
         assert 0
 
-@pytest.mark.parametrize("length", [[1,"pass"],[2,"fail"],[63,"fail"],[255, "fail"]])
-def test_vol_create_diff_chars_length(vol_fixture,length):
-    try:
-      vol_name = "a"* length[0]
 
-      vol_fixture.create_vol(volname = vol_name, array_name = "POSARRAY1")
-      if vol_fixture.status['ret_code'] is length[1]:
-         raise Exception(vol_fixture.status['message'])
+@pytest.mark.parametrize("length", [3, 63, 255])
+def test_rename_vol_with_diff_char_length(mount_array, length):
+    try:
+        vol_name = "test_rename_" * length
+        assert (
+            mount_array.cli.create_volume("temp_vol", "1gb", array_name="POS_ARRAY1")[0]
+            == True
+        )
+        mount_array.cli.rename_volume(
+            new_volname=vol_name, volname="temp_vol", array_name="POS_ARRAY1"
+        )
     except Exception as e:
-        logger.error("test case failed with exception {}".format(e))
+        logger.error("Testcase failed with exception {}".format(e))
         assert 0
 
-def test_create_max_vol(vol_fixture):
-    try:
-      vol_fixture.list_vol(array_name = "POSARRAY1")
-      if vol_fixture.status['ret_code'] is "fail":
-         raise Exception (vol_fixture.status['message'])
-      logger.info(vol_fixture.vols)
 
-      size = "1{}".format(random.choice(["mb","gb"]))
-      vol_count = int(256 - len(vol_fixture.vols))
-      vol_fixture.create_mount_multiple(volname = "test_vol", size = size, num_vols = vol_count, array_name = "POSARRAY1")
-      if vol_fixture.status['ret_code'] is "fail":
-         raise Exception(vol_fixture.status['message'])
+@pytest.mark.parametrize("length", [1, 256])
+def test_rename_vol_with_diff_char_length_invalid(mount_array, length):
+    try:
+        volume_name = "test_rename_"
+        mount_array.cli.create_volume(volume_name, "1gb", array_name="POS_ARRAY1")
+        new_volume_name = "v" * length
+        assert (
+            mount_array.cli.rename_volume(
+                new_volname=new_volume_name,
+                volname=volume_name,
+                array_name="POS_ARRAY1",
+            )[0]
+            == False
+        )
+        logger.info("as expected volume creation with invalid char length failed")
+    except Exception as e:
+        logger.error("testcase failed with exception {}".format(e))
+        assert 0
+
+
+def test_create_max_vol(mount_array):
+    try:
+        assert (
+            mount_array.target_utils.create_mount_multiple(
+                num_vols=256, array_name="POS_ARRAY1"
+            )
+            == True
+        )
     except Exception as e:
         logger.error("test case failed with exception {}".format(e))
         assert 0

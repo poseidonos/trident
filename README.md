@@ -1,31 +1,46 @@
-#Trident open source 
+# Trident
+Trident is a framework to test and explore Poseidon OS (POS). It has python APIs for all the POS CLI commands, for user to develop their own test suite.
+It is built on top of pytest framework, The tool contains following test cases to cover base scenarios:
+- Array, Volume management (create, delete, rename)
+- User IO (Block, File IO, various IO types e.g. sync/async)
+- Array rebuild (SSD hot plug)
+- GC and flush
 
-Intro:
+A setup tool is developed to check if setup is ready for test execution.
 
-Trident is an open source NVMe-oF pytest cli based test framework which is 
-basically designed to test the basic Poseidon storage os features. It provides 
-API's and fixtures which enables to write their own tests easily.
+# Table of contents
+- [Download the Source Code](#download-the-source-code)
+- [Install Prerequisites](#install-prerequisites)
+- [Download and Build POS](#download-and-build-pos)
+- [Updating Trident config](#updating-trident-config)
+- [Run Test cases](#run-test-cases)
+- [Notes](#notes)
+# Download the Source Code
 
-Features:
-1. usage of Parametrization helps generate test combinations
-2. Automatic generation of Html report after test execution 
-3. Minimal usage of python internal modules 
-4. Extensive usage of conftest.py at test case level which helps with minimal 
-   code in test case 
-5. Supports all POS cli commands 
-6. Tests can be run on a single machine i.e; machine with 4 nvme drives can be 
-   used as Target, Initiator & Executor machine.
-7. With minimal changes test framework transport can be switched in tcp or rdma 
+`$git clone https://github.com/poseidonos/trident.git`
 
-Steps to Install pre-requisites:
-1. Ensure python3 is installed
-2. Install python3-pip package required to install python packages
-3. upgrade pip to the latest version (command : pip3 install --upgrade pip)
-4. Navigate to ibot directory and run requirements.txt file 
-   (command : pip3 install -r requirements.txt)
+# Install Prerequisites
+`$pip3 install --upgrade pip`
 
-Documentation:
-1. Documentation for test framework is generated using doxygen tool
-2. After clonning install doxygen and its dependencies 
-3. Navigate to docs/doxygen folder and run doxygen command which generated html
-   folder which will have required documentation for methods.
+`$pip3 install -r requirements.txt`
+
+# Download and Build POS
+Please refer to https://github.com/poseidonos/poseidonos/blob/main/README.md 
+
+# Updating Trident config
+Update testcases/config_files/topology.json with system details such as IP addresses and POS path
+
+Test the system by executing setup tool from utils
+
+`$python3 utils/setup_tool.py all`
+
+Please refer docs/UserGuide.md for details
+
+# Run Test cases
+`$python3 -m pytest -v  testcase/array/test_array.py::test_create_check`
+
+Please refer docs/UserGuide.md for details
+
+# Notes
+Trident currently supports 0.10.x version of Poseidon OS
+

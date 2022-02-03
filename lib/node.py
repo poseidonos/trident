@@ -1,4 +1,34 @@
-
+#
+#   BSD LICENSE
+#   Copyright (c) 2021 Samsung Electronics Corporation
+#   All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions
+#   are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in
+#       the documentation and/or other materials provided with the
+#       distribution.
+#     * Neither the name of Samsung Electronics Corporation nor the names of
+#       its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+#   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 import re
 import paramiko
 import socket
@@ -8,39 +38,39 @@ import logger
 import logger as logger_obj
 
 
-logger= logger.get_logger(__name__)
+logger = logger.get_logger(__name__)
 import sys
 
 
-
 class ConnectError(Exception):
-    """ connection error
-    """
+    """connection error"""
+
     pass
 
 
 class TimeOutError(ConnectError):
-    """ timeout error
-    """
+    """timeout error"""
+
     pass
 
 
 class NotAuthorizedError(ConnectError):
-    """ not authorized error
-    """
+    """not authorized error"""
+
     pass
 
 
 class UnknownHostError(ConnectError):
-    """ host unknown error
-    """
+    """host unknown error"""
+
     pass
 
 
 class ExecuteError(Exception):
-    """ execution error
-    """
+    """execution error"""
+
     pass
+
 
 def connect(hostname, username, password, timeout, set_missing_host_key_policy=False):
     """
@@ -65,25 +95,29 @@ def connect(hostname, username, password, timeout, set_missing_host_key_policy=F
         if set_missing_host_key_policy:
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        logger.debug('attempting to connect to: {}'.format(hostname))
+        logger.debug("attempting to connect to: {}".format(hostname))
         ssh.connect(hostname, username=username, password=password, timeout=timeout)
-        logger.debug('successfully connected to: {}'.format(hostname))
+        logger.debug("successfully connected to: {}".format(hostname))
         return ssh
 
     except socket.timeout:
-        message = 'error connecting to: {} timed out after {} seconds'.format(hostname, timeout)
+        message = "error connecting to: {} timed out after {} seconds".format(
+            hostname, timeout
+        )
         raise TimeOutError(message)
 
     except socket.gaierror:
-        message = 'error connecting to: {} host is unknown'.format(hostname)
+        message = "error connecting to: {} host is unknown".format(hostname)
         raise UnknownHostError(message)
 
     except paramiko.ssh_exception.AuthenticationException:
-        message = 'error connecting to: {} authentication error for user {} credentials'.format(hostname, username)
+        message = "error connecting to: {} authentication error for user {} credentials".format(
+            hostname, username
+        )
         raise NotAuthorizedError(message)
 
     except paramiko.ssh_exception.SSHException as exception:
-        message = 'error connecting to: {} : {}'.format(hostname, str(exception))
+        message = "error connecting to: {} : {}".format(hostname, str(exception))
         raise ConnectError(message)
 
 
@@ -99,16 +133,18 @@ def check_success_responses(contents, success_responses):
 
     """
     for success_response in success_responses:
-        if '{regex}' in str(success_response):
-            success_response_split = success_response.split('{regex}')
+        if "{regex}" in str(success_response):
+            success_response_split = success_response.split("{regex}")
             match = success_response_split[1]
-            logger.debug('checking regex {} in contents'.format(match))
+            logger.debug("checking regex {} in contents".format(match))
             if re.search(match, contents, re.DOTALL):
-                logger.debug('regex {} found in contents'.format(match))
+                logger.debug("regex {} found in contents".format(match))
                 return True
         else:
             if str(success_response) in contents:
-                logger.debug('success response {} found in contents'.format(success_response))
+                logger.debug(
+                    "success response {} found in contents".format(success_response)
+                )
                 return True
     return False
 
@@ -124,20 +160,18 @@ def _shell_receive(shell, lines):
 
     """
     while not shell.recv_ready():
-        sleep(.1)
+        sleep(0.1)
 
-    data = ''
+    data = ""
     while shell.recv_ready():
 
-          data += (shell.recv(16348)).decode("UTF-8")
-          #data +=(shell.recv(16348))
-          #logger.info("data = {}".format(data))
-    lines += re.split('["\r","\n","\t"]',data)
-
-
-
+        data += (shell.recv(16348)).decode("UTF-8")
+        # data +=(shell.recv(16348))
+        # logger.info("data = {}".format(data))
+    lines += re.split('["\r","\n","\t"]', data)
 
     return lines
+
 
 class SSHclient(object):
 
@@ -145,7 +179,14 @@ class SSHclient(object):
     SSH object to connect to remote host and run commands
     """
 
-    def __init__(self, hostname, username, password, set_missing_host_key_policy=True, timeout=None):
+    def __init__(
+        self,
+        hostname,
+        username,
+        password,
+        set_missing_host_key_policy=True,
+        timeout=None,
+    ):
         """
 
         :param hostname: hostname of client
@@ -153,19 +194,31 @@ class SSHclient(object):
         :param password: password of client
         :param timeout: ssh timeout interval
         """
-        logger.debug('SSHclient constructor')
-        self.hostname=hostname
-        self.username=username
-        self.password=password
-        self.timeout=timeout
+        logger.debug("SSHclient constructor")
+        self.hostname = hostname
+        self.username = username
+        self.password = password
+        self.timeout = timeout
 
         if not timeout:
             timeout = 10
 
-        self.ssh = connect(self.hostname, self.username, self.password, timeout,
-                           set_missing_host_key_policy=set_missing_host_key_policy)
+        self.ssh = connect(
+            self.hostname,
+            self.username,
+            self.password,
+            timeout,
+            set_missing_host_key_policy=set_missing_host_key_policy,
+        )
 
-    def execute(self, command, success_responses=None, expected_exit_code=None,get_pty=False, m_type = None):
+    def execute(
+        self,
+        command,
+        success_responses=None,
+        expected_exit_code=None,
+        get_pty=False,
+        m_type=None,
+    ):
         """
         :param command: command to be executed
         :param success_responses: response in content to be verified
@@ -181,33 +234,39 @@ class SSHclient(object):
         if not expected_exit_code:
             expected_exit_code = 0
         logger.debug('Executing Command "{}" on host {}'.format(command, self.hostname))
-        if get_pty==True:
-           stdin, stdout, stderr = self.ssh.exec_command(command,get_pty=True)
+        if get_pty == True:
+            stdin, stdout, stderr = self.ssh.exec_command(command, get_pty=True)
         else:
-           stdin, stdout, stderr = self.ssh.exec_command(command)
+            stdin, stdout, stderr = self.ssh.exec_command(command)
 
-           
         stdoutlines = stdout.readlines()
-        stdout_contents = ''.join(line.strip("\n\r\t") for line in stdoutlines)
-        #logger.debug('\r\n{}'.format(stdout_contents))
-        #logger.debug(stdoutlines)
+        stdout_contents = "".join(line.strip("\n\r\t") for line in stdoutlines)
+        # logger.debug('\r\n{}'.format(stdout_contents))
+        # logger.debug(stdoutlines)
         if success_responses:
-            logger.info('checking stdout for success responses "{}"'.format(success_responses))
+            logger.info(
+                'checking stdout for success responses "{}"'.format(success_responses)
+            )
             if check_success_responses(stdout_contents, success_responses):
                 return stdoutlines
 
-            raise ExecuteError('success responses not found in stdout')
-        
-        
+            raise ExecuteError("success responses not found in stdout")
+
         exit_code = stdout.channel.recv_exit_status()
-        logger.debug('expected_exit_code is {} and  current exit code is {}'.format(expected_exit_code,exit_code))
+        logger.debug(
+            "expected_exit_code is {} and  current exit code is {}".format(
+                expected_exit_code, exit_code
+            )
+        )
         if exit_code != expected_exit_code:
-            error =  stderr.readlines() , 'exit code: {}'.format(exit_code)
-            return (error)
+            error = stderr.readlines(), "exit code: {}".format(exit_code)
+            return error
 
         return stdoutlines
 
-    def shell_execute(self, command, send_inputs, wait=0,success_responses=None,expected_code=True):
+    def shell_execute(
+        self, command, send_inputs, wait=0, success_responses=None, expected_code=True
+    ):
         """
 
         :param command: command to be executed
@@ -223,38 +282,39 @@ class SSHclient(object):
 
         """
         stdoutlines = []
-        logger.debug('executing shell command "{}" on host {}'.format(command, self.hostname))
+        logger.debug(
+            'executing shell command "{}" on host {}'.format(command, self.hostname)
+        )
 
         shell = self.ssh.invoke_shell()
         _shell_receive(shell, stdoutlines)
 
-        shell.send(command + '\n')
+        shell.send(command + "\n")
         _shell_receive(shell, stdoutlines)
 
         for send_input in send_inputs:
-            shell.send(send_input + '\n')
-            sleep(wait) 
+            shell.send(send_input + "\n")
+            sleep(wait)
             _shell_receive(shell, stdoutlines)
             sleep(wait)
-#        logger.info("Exit code status ={}".format(shell.recv_exit_status()))i
-        
+        #        logger.info("Exit code status ={}".format(shell.recv_exit_status()))i
 
         shell.close()
 
-
-        stdout_contents = ''.join(line.strip("\n\r\t") for line in stdoutlines)
+        stdout_contents = "".join(line.strip("\n\r\t") for line in stdoutlines)
 
         if success_responses:
-            logger.debug('checking stdout for success responses "{}"'.format(success_responses))
+            logger.debug(
+                'checking stdout for success responses "{}"'.format(success_responses)
+            )
             if check_success_responses(stdout_contents, success_responses):
                 return stdoutlines
 
-            raise ExecuteError('success responses not found in stdout')
-
+            raise ExecuteError("success responses not found in stdout")
 
         return stdoutlines
 
-    def file_transfer(self, src, destination,move_to_local="yes"):
+    def file_transfer(self, src, destination, move_to_local="yes"):
         """
 
         :param src: src file
@@ -270,11 +330,15 @@ class SSHclient(object):
 
         """
         logger.info("move_local_flag={}".format(move_to_local))
-        if move_to_local=="yes":
+        if move_to_local == "yes":
             try:
                 sftp = self.ssh.open_sftp()
                 sftp.get(src, destination)
-                logger.info("{} file moved sucessfully from  destination  to source ".format(src))                
+                logger.info(
+                    "{} file moved sucessfully from  destination  to source ".format(
+                        src
+                    )
+                )
                 return True
             except Exception as e:
                 logger.info("test move to local")
@@ -286,7 +350,11 @@ class SSHclient(object):
             try:
                 sftp = self.ssh.open_sftp()
                 sftp.put(src, destination)
-                logger.info("{} file moved sucessfully from source to destination system ".format(src))
+                logger.info(
+                    "{} file moved sucessfully from source to destination system ".format(
+                        src
+                    )
+                )
                 return True
             except Exception as e:
                 logger.info("test move to  destination")
@@ -305,7 +373,7 @@ class SSHclient(object):
         c1=SSHClient(hostname,username,password)
         c1.run_async(cmd)
         """
-        
+
         logger.info("Creating a new async process for : \n" + cmd)
 
         # Create a new channel and set it to non-blocking mode
@@ -321,7 +389,7 @@ class SSHclient(object):
         channel.exec_command(cmd)
 
         process = Proc(channel=channel)
-        
+
         return process
 
     def get_node_status(self):
@@ -337,16 +405,12 @@ class SSHclient(object):
         c1.get_node_status()
         """
         try:
-            self.ssh.exec_command('ls', timeout=5)
+            self.ssh.exec_command("ls", timeout=5)
             logger.info("Node is active")
             return True
         except Exception as e:
             logger.info("Node is inactive")
             return False
-
-
-
-
 
     def close(self):
         """
@@ -360,11 +424,10 @@ class SSHclient(object):
         c1.close()
         """
         try:
-           self.ssh.close()
-           logger.info("ssh connection close")
+            self.ssh.close()
+            logger.info("ssh connection close")
         except Exception as e:
-           logger.error("ssh connection close failed")    
-
+            logger.error("ssh connection close failed")
 
 
 """
