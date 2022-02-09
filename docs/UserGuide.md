@@ -19,7 +19,7 @@ However, test cases are developed using pytest framework. The software architect
 Since it is developed on top of free and open technologies, Trident is both open and extensible.
 
 ### Open. 
-Source code is available open for anyone to explore at following link http://ssirgitlab.samsungds.net/root/open_ibot.git. 
+Source code is available for anyone to explore at following link https://github.com/poseidonos/trident.git. 
 User can develop their own test cases utilising framework independent python libraries. 
 As the framework for test cases is based on pytest, all advantages of pytest can be utilised by user to have efficient test cases.
 
