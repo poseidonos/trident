@@ -1,0 +1,59 @@
+{
+
+    "system" :
+    {"phase" :  "true"},
+
+    "device" :
+    {"phase" : "true"},
+
+    
+    "array" :
+    {
+        "phase" : "true",
+        "num_array" :  1,
+        "array_name" :  "Trident_POS_Array",
+        "array1_data_count" : 4,
+        "array1_spare_count": 1,
+        "array1_raid_type" : "RAID5",
+        "array2_spare_count" : 1,
+        "array2_data_count" : 4,
+        "array2_raid_type" : "RAID5"
+
+      },
+    "volume" :
+    {"Trident_POS_Array_1" :
+    {
+        "phase" : "true",
+        "num_vol": 1,
+        "size": "1GB",
+        "qos" : {"maxbw": 100000,
+        "minbw": 1000,
+        "maxiops": 10000000,
+        "miniops": 1000}
+    },
+    "Trident_POS_Array_2" :
+    {
+        "phase" : "true",
+        "num_vol": 1,
+        "size": "1GB",
+        "qos" : {
+        "maxbw": 100000,
+        "minbw": 1000,
+        "maxiops": 10000000,
+        "miniops": 1000}
+
+    }
+
+    },
+    "subsystem" :
+    {
+        "phase" : "true",
+        "Trident_POS_Array_1" :  1,
+        "Trident_POS_Array_2" :  1
+    },
+    "array_states" :
+    {
+        "runtime" :30
+    }
+
+}
