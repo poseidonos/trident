@@ -6,7 +6,7 @@
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
 #   are met:
-#   
+#
 #     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright
@@ -16,7 +16,7 @@
 #      * Neither the name of Samsung Electronics Corporation nor the names of
 #        its contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
-#    
+#
 #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 #    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -29,61 +29,49 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-import json, time, math, re, string, random
 
+import time
+import re
+import helper
 import logger
-from utils import Client
 from cli import Cli
-from datetime import datetime, timedelta
 
 logger = logger.get_logger(__name__)
 
 
 class TargetUtils:
+    """
+    The Class objects will contain supporting methods to configure POS
+    Args:
+        ssh_obj : ssh obj of the Target
+        pos_path (str) : path of the pos Source
+        array_name (str) : name of the POS array | (default = POS_ARRAY1)
+
+    """
+
     def __init__(
         self,
-        ssh_obj: "ssh_obj of host",
-        pos_path: "path of POS code",
-        array_name: str = "POS_ARRAY1",
-    ):
-        self.cli = Cli(ssh_obj, pos_path, array_name)
-        self.ssh_obj = ssh_obj
-        self.array_name = array_name
-
-    def create_mount_multiple(
-        self,
+        ssh_obj,
+        pos_path,
         array_name="POS_ARRAY1",
-        size=None,
-        volname="pos_vol",
-        num_vols=10,
-        iops=1000000,
-        bw=10000,
-        nqn=None,
-    ) -> bool:
-        """
-        Method to create and mount multiple volumes
-        """
-        try:
-            out = self.cli.info_array(array_name)
-            temp = self.convert_size(out[1]["capacity"]).split(" ")
-            if "TB" in temp:
-                size_params = int(float(temp[0]) * 1000)
-                size_per_vol = int(size_params / num_vols)
-                d_size = str(size_per_vol) + "GB"
+    ):
+        self.ssh_obj = ssh_obj
+        self.cli = Cli(ssh_obj, pos_path, array_name)
+        self.array = array_name
+        self.helper = helper.Helper(ssh_obj)
+        self.static_dict = {}
+        self.hard_swap = False
+        self.udev_rule = False
+        self.pmu_bdf_dict = dict()
+        self.total_required = 0
 
-            for numvol in range(num_vols):
-                volume_name = volname + str(numvol)
-                self.cli.create_volume(
-                    volume_name, d_size, array_name, iops=iops, bw=bw
-                )
-                self.cli.mount_volume(volume_name, array_name, nqn=nqn)
-            return True
-        except Exception as e:
-            logger.error(e)
-
-    def generate_nqn_name(self, default_nqn_name: str = "nqn.2021-10.pos") -> str:
+    def generate_nqn_name(self, default_nqn_name="nqn.2022-10.pos"):
         """
         Method to generate nqn name
+        Args:
+            default_nqn_name (str) : name of the subsystem
+        Returns:
+            str
         """
         out = self.cli.list_subsystem()
         if out[0] is False:
@@ -107,22 +95,11 @@ class TargetUtils:
             logger.info("subsystem name is {}".format(new_ss_name))
         return new_ss_name
 
-    def convert_size(self, size_bytes: int) -> str:
-        """
-        Method to convert size
-        """
-        if size_bytes == 0:
-            return "0B"
-
-        size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-        i = int(math.floor(math.log(size_bytes, 1024)))
-        p = math.pow(1024, i)
-        s = round(size_bytes / p, 2)
-        return "{} {}".format(s, size_name[i])
-
-    def dev_bdf_map(self) -> (bool, dict()):
+    def dev_bdf_map(self):
         """
         Method to get device address
+        Returns:
+            bools, dict
         """
         try:
             dev_bdf_map = {}
@@ -131,23 +108,31 @@ class TargetUtils:
                 raise Exception("No Devices found")
             for dev in list_dev_out[3]:
                 dev_bdf_map[dev] = list_dev_out[3][dev]["addr"]
-                logger.info(dev_bdf_map)
+            logger.info(dev_bdf_map)
         except Exception as e:
             logger.error("Execution failed with exception {}".format(e))
             return False, None
         return True, dev_bdf_map
 
-    def get_devs(self, prop={"type": "SSD"}) -> (bool, dict()):
+    def get_devs(self, prop={"type": "SSD"}):
         """
         Method to get devices
+        Args:
+            prop (dict) : device type (Optional)
+        Returns:
+            list()
         """
         dev_map = self.cli.list_device()[3]
         devs = [k for k, v in dev_map.items() if prop.items() <= v.items()]
         return devs
 
-    def device_hot_remove(self, device_list: list) -> (bool):
+    def device_hot_remove(self, device_list):
         """
         Method to hot remove devices
+        Args:
+            device_list : list of devices to be removed
+        Returns:
+            bool
         """
         try:
             self.dev_addr = []
@@ -188,9 +173,9 @@ class TargetUtils:
                             dev
                         )
                     )
-                    out = self.list_dev()
+                    out = self.cli.list_device()
                     if dev in out[3]:
-                        logger.error("failed to remove devie")
+                        logger.error("failed to remove device")
                         return False
                 else:
                     logger.info("Successfully removed the device {} ".format(dev))
@@ -202,6 +187,10 @@ class TargetUtils:
     def device_hot_remove_by_bdf(self, bdf_addr_list: list) -> bool:
         """
         Method to remove device using bdf address
+        Args:
+            bdf_add_list (list) : list of bdf to be removed
+        Returns:
+            bool
         """
         try:
             self.dev_addr = bdf_addr_list
@@ -242,9 +231,11 @@ class TargetUtils:
             return False
         return True
 
-    def get_nvme_bdf(self) -> (bool, list):
+    def get_nvme_bdf(self):
         """
         Method to get nvme bdf address
+        Returns:
+            bool, list
         """
         try:
             logger.info("feteching the nvme device bdf")
@@ -256,9 +247,11 @@ class TargetUtils:
             return False, None
         return True, bdf_out
 
-    def pci_rescan(self) -> bool:
+    def pci_rescan(self):
         """
         Method to pci rescan
+        Returns:
+            bool
         """
         try:
             logger.info("Executing list dev command before rescan")
@@ -268,16 +261,14 @@ class TargetUtils:
                     len(list_dev_out_bfr_rescan[1])
                 )
             )
-            logger.info("running pci rescan command ")
+
             re_scan_cmd = "echo 1 > /sys/bus/pci/rescan "
             self.ssh_obj.execute(re_scan_cmd)
-            logger.info("verifying whether the removed device is attached back or not")
+
             logger.info("scanning the devices after rescan")
             time.sleep(5)  # Adding 5 sec sleep for the sys to get back in normal state
-            scan_out = self.scan_dev()
-            if scan_out[0] == False:
-                logger.error("after pci rescan scan_dev command failed ")
-                return False
+            assert  self.cli.scan_device()[0] == True
+            
             list_dev_out_aftr_rescan = self.dev_bdf_map()
             if list_dev_out_aftr_rescan[0] == False:
                 logger.error("failed to get the device and bdf map after pci rescan")
@@ -297,172 +288,15 @@ class TargetUtils:
             return False
         return True
 
-    def set_MTU_mel(self, MTU: str = "9000") -> bool:
-        """
-        Method to mellanox interface ip
-        """
-        self.get_mellanox_interface_ip()
-        if len(self.cnctd_mlx_inter) is 0:
-            logger.error("No interfaces found")
-            return False
-
-        cmd = "ifconfig {} mtu {}".format(self.cnctd_mlx_inter[0].strip(), MTU)
-        self.ssh_obj.execute(cmd)
-
-        v_cmd = "ifconfig {} | grep mtu".format(self.cnctd_mlx_inter[0].strip())
-        out = self.ssh_obj.execute(v_cmd)
-
-        if "{}".format(MTU) in out[0]:
-            logger.info(
-                "MTU {} set for {}".format(MTU, self.cnctd_mlx_inter[0].strip())
-            )
-            return True
-        else:
-            logger.error("failed to set MTU ")
-            return False
-
-    def set_eth_speed(self, Speed: str = 1000) -> bool:
-        """
-        Method to set ethool speed
-        """
-        try:
-            self.get_mellanox_interface_ip()
-            if len(self.cnctd_mlx_inter) is 0:
-                logger.error("No interfaces found")
-                return False
-
-            v_cmd = "ethtool {} | grep Speed".format(self.cnctd_mlx_inter[0].strip())
-            out = self.ssh_obj.execute(v_cmd)
-            reg = "[0-9]+"
-            se = re.search(reg, out[0])
-            speed = se.group()
-            logger.info(
-                "Speed of {} is {}MB/s".format(
-                    self.cnctd_mlx_inter[0].strip(), str(speed)
-                )
-            )
-            if int(str(speed)) == Speed:
-                logger.info("Speed already set to {}".format(Speed))
-                return True
-            else:
-                logger.info(str(Speed))
-                cmd = "ethtool -s {} speed {} autoneg off".format(
-                    self.cnctd_mlx_inter[0].strip(), str(Speed)
-                )
-                out = self.ssh_obj.execute(cmd)
-                out = self.ssh_obj.execute(v_cmd)
-                se = re.search(reg, out[0])
-                speed = se.group()
-
-                if int(speed) is Speed:
-                    return True
-
-        except Exception as e:
-            logger.error("Not able to set the speed due to {}".format(e))
-            return False, None
-
-    def ping_test(self, mlx_ip: str) -> bool:
-        """
-        Method to test pinging the ip
-        """
-        try:
-            cmd = "ping -M do -s 8972 -c 5 {}".format(mlx_ip)
-            out = self.ssh_obj.execute(cmd, get_pty=True, expected_exit_code=0)
-            Packet_loss = int(
-                [i for i in out if "transmitted" in i and "packet loss" in i][0]
-                .split(" ")[5]
-                .strip()
-                .split("%")[0]
-            )
-            if Packet_loss >= 1:
-                logger.error("Packet loss during Ping")
-                return False
-            else:
-                return True
-        except Exception as e:
-            logger.error(" error ocured due to {}".format(e))
-            return False
-
-    def get_mellanox_interface_ip(self) -> str:
-        """
-        Method to get mellanox interface ip
-        """
-        try:
-            mlx_inter = []
-
-            self.cnctd_mlx_inter = []
-
-            ip_addr = []
-
-            cmd = "ls /sys/class/net"
-
-            out = self.ssh_obj.execute(cmd)
-
-            for inter in out:
-                if inter.strip() != "lo":
-                    cmd = "ethtool -i {} | grep  driver:".format(inter.strip())
-                    mlx_out = self.ssh_obj.execute(cmd)
-                    if "mlx" in str(mlx_out[0]):
-                        mlx_inter.append(inter)
-                        status_cmd = "cat /sys/class/net/{}/operstate".format(
-                            inter.strip()
-                        )
-                        port_status = self.ssh_obj.execute(status_cmd)
-                        if port_status[0].strip() == "up":
-                            self.cnctd_mlx_inter.append(inter.strip())
-
-            for c_iner in self.cnctd_mlx_inter:
-                cmd = "ifconfig {} | grep inet".format(c_iner.strip())
-                try:
-                    inet_out = self.ssh_obj.execute(cmd.strip())
-                    ip_address = re.search(
-                        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", inet_out[0]
-                    ).group()
-                    if ip_address:
-                        ip_addr.append(ip_address)
-                except:
-                    logger.warn(
-                        "IP is not assigned to the connected mellanox interface {} ".format(
-                            c_iner.strip()
-                        )
-                    )
-            logger.info("Mellanox interfaces are {} ".format(mlx_inter))
-            logger.info(
-                "Connected Mellanox interfaces are {} ".format(self.cnctd_mlx_inter)
-            )
-            if len(ip_addr) == 0:
-                raise Exception("Ip is not assigned to any of the Mellanox")
-        except Exception as e:
-            logger.error("Get_mel_IP failed due to {}".format(e))
-            return (False, None)
-        return (True, ip_addr)
-
-    def port_up_down(self, port_list: list, action: str) -> bool:
-        """
-        Method to port up or down
-        """
-        try:
-
-            if "up" in action or "down" in action:
-                for port in port_list:
-                    cmd = "ifconfig {} {}".format(port, action)
-                    self.ssh_obj.execute(cmd)
-                return True
-            else:
-                raise Exception(
-                    "No required action mentioned. Please specify Up or down"
-                )
-        except Exception as e:
-            logger.error("Port manipulation failed due to {}".format(e))
-            return False
-
     def udev_install(self) -> bool:
         """
         Method to udev install
+        Returns:
+            bool
         """
         try:
             logger.info("Running udev_install command")
-            cmd = "cd {} ; make udev_install ".format(self.pos_path)
+            cmd = "cd {} ; make udev_install ".format(self.cli.pos_path)
             udev_install_out = self.ssh_obj.execute(cmd)
             out = "".join(udev_install_out)
             logger.info(out)
@@ -481,12 +315,14 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    def setup_env_pos(self) -> bool:
+    def setup_env_pos(self):
         """
         Method to setup poseidon envoirment
+        Returns:
+            bool
         """
         try:
-            cmd = "{}/script/setup_env.sh".format(self.pos_path)
+            cmd = "{}/script/setup_env.sh".format(self.cli.pos_path)
             out = self.ssh_obj.execute(cmd)
             if "Setup env. done" in out[-1]:
                 logger.info("Bringing drives from kernel mode to user mode successfull")
@@ -495,15 +331,19 @@ class TargetUtils:
             logger.error("Execution  failed because of {}".format(e))
             return False
 
-    def spor_prep(self) -> bool:
+    def spor_prep(self):
         """
         Method to spor preparation
+        Returns:
+            bool
         """
         try:
-            self.wbt_flush_gcov()
-            self.stop_pos()
+            assert self.cli.wbt_flush()[0] == True
+            assert self.cli.stop_system()[0] == True
             self.ssh_obj.execute(
-                "{}/script/backup_latest_hugepages_for_uram.sh".format(self.pos_path),
+                "{}/script/backup_latest_hugepages_for_uram.sh".format(
+                    self.cli.pos_path
+                ),
                 get_pty=True,
             )
             self.ssh_obj.execute("rm -fr /dev/shm/ibof*", get_pty=True)
@@ -512,15 +352,19 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def check_rebuild_status(self, array_name: str = None) -> (bool):
+    def check_rebuild_status(self, array_name=None):
         """
         Method to check rebuild status
+        Args:
+            array_name (str) "name of the array" (optional)
+        Returns:
+            bool
         """
         try:
             if array_name == None:
-                array_name = self.array_name
+                array_name = self.array
             info_status = 0
-            while info_status <= 300:
+            while info_status <= 2300:
                 get_pos_status = self.cli.info_array(array_name=array_name)
                 if get_pos_status[0] == True and get_pos_status[3] == "NORMAL":
                     logger.info("rebuild status is updated in array info command")
@@ -536,33 +380,553 @@ class TargetUtils:
             return False
         return True
 
-    def wbt_parser(self, file_name: str) -> (bool, dict()):
+    def create_volume_multiple(
+        self,
+        array_name: str,
+        num_vol: int,
+        vol_name: str = "PoS_VoL",
+        size: str = "100GB",
+        maxiops: int = 100000,
+        bw: int = 1000,
+    ):
         """
-        Method to wbt parser
+        method to create_multiple_volumes
+        Args:
+            array_name (str) :name of the array
+            num_vol (int) number of volumes to be created
+            vol_name (str) : name of the volume to be created
+            size (str) : size in GB/TB
+            maxiops (int) : max iops supported
+            bw (int) : bandwidth of volume
+            #TODO add support for other QOS params
+        Returns:
+            bool
+        """
+
+        if size == None:
+            out = self.cli.info_array(array_name)
+            temp = self.helper.convert_size(out[1]["capacity"]).split(" ")
+            if "TB" in temp:
+                size_params = int(float(temp[0]) * 1000)
+                size_per_vol = int(size_params / num_vol)
+                d_size = str(size_per_vol) + "GB"
+        else:
+            d_size = size
+        for i in range(num_vol):
+            volume_name = f"{array_name}_{vol_name}_{str(i)}"
+            assert (
+                self.cli.create_volume(
+                    volume_name, d_size, array_name, iops=maxiops, bw=bw
+                )[0]
+                == True
+            )
+        return True
+
+    def mount_volume_multiple(self, array_name, volume_list, nqn_list):
+        """
+        mount volumes to the SS
+        Args:
+            array_name (str) : name of the array
+            volume_list (list) : list of the volumes to be mounted
+            nqn_list (list) : list of Subsystems to be mounted
+        Returns:
+            bool
+        """
+
+        num_ss = len(nqn_list)
+        num_vol = len(volume_list)
+        temp, num = 0, 0
+        for num in range(num_vol):
+            ss = nqn_list[temp] if len(nqn_list) > 1 else nqn_list[0]
+            assert self.cli.mount_volume(volume_list[num], array_name, ss)[0] == True
+            temp += 1
+            if temp == num_ss - 1:
+                temp = 0
+        return True
+
+    def create_subsystems_multiple(self, ss_count):
+
+        """
+        method to create more than one SS
+        Args:
+            ss_count (int) : number of SS to be created
+        Returns:
+            bool
         """
         try:
-            logger.info("parsing Output")
-            parse_cmd = "cat %s" % file_name
-            out = self.ssh_obj.execute(parse_cmd)
-            map_dict, temp = {}, []
-            for par in out:
-                if ":" in par:
-                    temp = par.split(":")
-                    temp_name = temp[0].lower()
-                    temp_name.replace(" ", "_")
-                    map_dict[temp_name] = temp[1].strip()
-            return True, map_dict
+            for i in range(ss_count):
+                ss_name = self.generate_nqn_name()
+                assert self.cli.create_subsystem(ss_name)[0] == True
+            return True
         except Exception as e:
-            logger.error("Failed due to the following error : {}".format(e))
             return False
 
-    def random_File_name(self) -> str:
+    def get_subsystems_list(self):
         """
-        Method to generate random file name
+        method to list all the avaliable SS and pop dicovery subsystem
+        ss_temp_list (class varaible) | (list) : has the list of subsystems created
+        Returns :
+            bool
         """
-        letters = string.ascii_lowercase
-        Name = "".join(random.choice(letters) for i in range(15))
-        datetime_object = datetime.now()
-        date = (str(datetime_object).replace(" ", "-")).split(".")[0].replace(":", "-")
+        try:
+            out = self.cli.list_subsystem()
+            self.ss_temp_list = list(out[1].keys())
+            self.ss_temp_list.remove("nqn.2014-08.org.nvmexpress.discovery")
 
-        return Name + "_" + date
+            return True
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    def get_disk_info(self):
+        """
+        method to get all info about all SSDs connected
+        disk_info (class variable) | (dict) : has info regarding System and array disks
+        Returns:
+            bool
+        """
+        try:
+            assert self.cli.list_device()[0] == True
+            assert self.cli.list_array()[0] == True
+            array_list = list(self.cli.array_dict.keys())
+            self.mbr_dict = {}
+            if len(array_list) == 0:
+                logger.info("No Array found in the System")
+                return False
+
+            for array in list(self.cli.array_dict.keys()):
+                self.cli.info_array(array_name=array)[0] == True
+                self.mbr_dict[array] = [
+                    self.cli.array_info[array]["data_list"],
+                    [self.cli.array_info[array]["spare_list"]],
+                ]
+                self.mbr_dict[array] = [
+                    disk for sublist in self.mbr_dict[array] for disk in sublist
+                ]
+
+            self.disk_info = {
+                "system_disks": self.cli.system_disks,
+                "mbr_disks": self.mbr_dict,
+            }
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    def pos_bring_up(
+        self, config_dict = None, json_path="../testcase/config_files/pos_config.json"
+    ):
+        """
+        method to perform the pos_bringup_sequence ../testcase/config_files/pos_config.json
+        Args:
+            config_dict (dict) : configuration details for POS | Sample Refer ./testcase/config_files/pos_config.json
+            json_path (str) : path of JSON defined config
+
+        Returns:
+            bool
+
+        """
+
+        try:
+
+            static_dict = dict()
+            if config_dict:
+                self.static_dict = config_dict
+                static_dict = self.static_dict
+            else:
+                logger.info("Reading config from JSON")
+                assert self.helper.json_reader(json_path) == True
+                static_dict = self.helper.static_dict
+
+            assert self.helper.get_mellanox_interface_ip()[0] == True
+
+            ###system config
+
+            if static_dict["system"]["phase"] == "true":
+                assert self.cli.start_system()[0] == True
+                assert self.cli.create_transport_subsystem()[0] == True
+
+            if static_dict["device"]["phase"] == "true":
+                assert self.cli.create_device(uram_name="uram0")[0] == True
+            if (
+                static_dict["array"]["num_array"] == 2
+                and static_dict["device"]["phase"] == "true"
+            ):
+                assert self.cli.create_device(uram_name="uram1")[0] == True
+                assert self.cli.create_device(uram_name="uram2")[0] == True
+            assert self.cli.scan_device()[0] == True
+            if static_dict["subsystem"]["phase"] == "true":
+                assert (
+                    self.create_subsystems_multiple(
+                        static_dict["subsystem"]["Trident_POS_Array_1"]
+                    )
+                    == True
+                )
+                if static_dict["array"]["num_array"] == 2:
+                    assert (
+                        self.create_subsystems_multiple(
+                            static_dict["subsystem"]["Trident_POS_Array_2"]
+                        )
+                        == True
+                    )
+
+                assert self.get_subsystems_list() == True
+
+                for subsystem in self.ss_temp_list:
+                    assert (
+                        self.cli.add_listner_subsystem(
+                            subsystem, self.helper.ip_addr[0], "1158"
+                        )[0]
+                        == True
+                    )
+            #######array_config
+            assert self.cli.list_device()[0] == True
+            if static_dict["array"]["phase"] == "true":
+                assert self.cli.reset_devel()[0] == True
+
+                num_array = static_dict["array"]["num_array"]
+                array_name = static_dict["array"]["array_name"]
+                array1_data_count = static_dict["array"]["array1_data_count"]
+                array2_data_count = static_dict["array"]["array2_data_count"]
+
+                array1_spare_count = static_dict["array"]["array1_spare_count"]
+                array2_spare_count = static_dict["array"]["array2_spare_count"]
+
+                array1_raid_type = static_dict["array"]["array1_raid_type"]
+                array2_raid_type = static_dict["array"]["array2_raid_type"]
+                self.total_required = array1_data_count + array2_data_count
+                if num_array == 2:
+                    self.total_required += array2_spare_count + array1_spare_count
+
+                write_buffer = self.cli.dev_type["NVRAM"]
+                data_disks = self.cli.system_disks
+                if len(data_disks) < self.total_required:
+                    raise Exception("not Enough drives to start test")
+                assert (
+                    self.cli.create_array(
+                        write_buffer=write_buffer[0],
+                        data=data_disks[:array1_data_count:],
+                        spare=data_disks[-(array1_spare_count):],
+                        raid_type=array1_raid_type,
+                        array_name=f"{array_name}_1",
+                    )[0]
+                    == True
+                )
+                self.array_list = []
+                self.array_list.append(f"{array_name}_1")
+                if num_array == 2:
+                    assert (
+                        self.cli.autocreate_array(
+                            array_name=f"{array_name}_2",
+                            buffer_name=write_buffer[1],
+                            num_data=str(array2_data_count),
+                            num_spare=str(array2_spare_count),
+                            raid=array2_raid_type,
+                        )[0]
+                        == True
+                    )
+                    self.array_list.append(f"{array_name}_2")
+                for array_name in self.array_list:
+                    assert self.cli.mount_array(array_name=array_name)[0] == True
+            #####volume config
+            assert self.get_subsystems_list() == True
+            if static_dict["volume"]["Trident_POS_Array_1"]["phase"] == "true":
+                array_name = "Trident_POS_Array_1"
+                num_vol_array1 = static_dict["volume"]["Trident_POS_Array_1"]["num_vol"]
+                ss_list_array1 = self.ss_temp_list[
+                    : static_dict["subsystem"]["Trident_POS_Array_1"] :
+                ]
+                if num_vol_array1 > 0:
+                    vol_size = (
+                        None
+                        if static_dict["volume"]["Trident_POS_Array_1"]["size"]
+                        == "None"
+                        else static_dict["volume"]["Trident_POS_Array_1"]["size"]
+                    )
+                    assert (
+                        self.create_volume_multiple(
+                            array_name, num_vol_array1, vol_name="posvol", size=vol_size
+                        )
+                        == True
+                    )
+                    assert self.cli.list_volume(array_name)[0] == True
+                    assert (
+                        self.mount_volume_multiple(
+                            array_name, self.cli.vols, ss_list_array1
+                        )
+                        == True
+                    )
+
+                if static_dict["volume"]["Trident_POS_Array_2"]["phase"] == "true":
+                    num_vol_array2 = static_dict["volume"]["Trident_POS_Array_2"][
+                        "num_vol"
+                    ]
+                    ss_list_array2 = self.ss_temp_list[
+                        -(static_dict["subsystem"]["Trident_POS_Array_2"]) :
+                    ]
+                    if num_vol_array2 > 0:
+                        array_name = "Trident_POS_Array_2"
+                        vol_size = (
+                            None
+                            if static_dict["volume"]["Trident_POS_Array_2"]["size"]
+                            == "None"
+                            else static_dict["volume"]["Trident_POS_Array_2"]["size"]
+                        )
+                        assert (
+                            self.create_volume_multiple(
+                                array_name,
+                                num_vol_array2,
+                                vol_name="pos_vol",
+                                size=vol_size,
+                            )
+                            == True
+                        )
+                        assert self.cli.list_volume(array_name)
+                        assert self.mount_volume_multiple(
+                            array_name, self.cli.vols, ss_list_array2
+                        )
+
+            return True
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    def setup_env_ibof(
+        self, hugepages, rd_nr="2", rd_size="4194304", max_part="0", driver_load=False
+    ):
+        """
+        Method : runs Setup_sh scripts in SPDK
+        Args:
+            hugepages : Num Hugepages
+            SPDK_version SPDK version
+            rd_nr = rd_nr value to load driver
+            rd_size : rd size to load driver
+            max_part : maz part to load driver
+            driver_load : Default false
+        Returns:
+            bool
+
+        """
+        try:
+            if driver_load == True:
+                driver_load_cmd = "modprobe brd rd_nr=%s rd_size=%s max_part=%s" % (
+                    rd_nr,
+                    rd_size,
+                    max_part,
+                )
+                out = self.ssh_obj.execute(driver_load_cmd)
+                if not out:
+                    logger.error("Failed to execute '%s'" % driver_load_cmd)
+                    return False
+
+            drop_caches_cmd = "echo 3 > /proc/sys/vm/drop_caches"
+            self.ssh_obj.execute(drop_caches_cmd)
+
+            setup_env_cmd = (
+                self.cli.pos_path + "/lib/spdk/scripts" + "/setup.sh" + " reset"
+            )
+            out = self.ssh_obj.execute(setup_env_cmd)
+            if not out:
+                logger.error("Failed to execute '{}'".format(setup_env_cmd))
+                return False
+            else:
+                out_cmd = "".join(out)
+
+            huge_page_cmd = "sudo HUGE_EVEN_ALLOC=yes NRHUGE=%s %s" % (
+                hugepages,
+                self.cli.pos_path + "/lib/spdk/scripts" + "/setup.sh",
+            )
+            out = self.ssh_obj.execute(huge_page_cmd)
+            if not out:
+                logger.error("Failed to execute '%s'" % huge_page_cmd)
+                return False
+            else:
+                out_cmd = "".join(out)
+                logger.info(out_cmd)
+
+            assert self.setup_core_dump() == True
+            assert self.setup_max_map_count() == True
+            return True
+        except Exception as e:
+            logger.error("Execution  failed because of {}".format(e))
+            return False
+
+    def setup_core_dump(self):
+        """
+        method to setup core dump
+        Returns:
+            bool
+        """
+        try:
+
+            logger.info("set core size to unlimit")
+            cmd = "ulimit -c unlimited"
+            assert self.run_shell_command(cmd) == True
+            logger.info("disable apport service")
+            cmd = "systemctl disable apport.service"
+            assert self.run_shell_command(cmd) == True
+            cmd = "mkdir -p /etc/pos/core"
+            assert self.run_shell_command(cmd) == True
+            cmd = 'echo "/etc/pos/core/%E.core" > /proc/sys/kernel/core_pattern'
+            assert self.run_shell_command(cmd) == True
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+    def setup_max_map_count(self):
+        """
+        method to set max map count
+        Returns:
+            bool
+        """
+        try:
+
+            max_map_count = 65535
+            cmd = "echo 3 > /proc/sys/vm/drop_caches"
+            assert self.run_shell_command(cmd) == True
+            cmd = "cat /proc/sys/vm/max_map_count"
+            assert self.run_shell_command(cmd) == True
+            current_max_map_count = int("".join(self.shell_out))
+            logger.info(
+                "Current maximum # of memory map areas per process is {}.".format(
+                    current_max_map_count
+                )
+            )
+            if current_max_map_count < max_map_count:
+                logger.info(
+                    "Setting maximum # of memory map areas per process to {}.".format(
+                        max_map_count
+                    )
+                )
+                cmd = "sudo sysctl -w vm.max_map_count={}".format(max_map_count)
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+    def run_shell_command(self, command, expected_exit_code=0):
+        """method to run shell commands
+        Args:
+            command (str) : command to be executed
+            expected_exit_code (int) : exit_code
+        Returns:
+            bool
+        """
+        try:
+            out = self.ssh_obj.execute(
+                command=command, expected_exit_code=expected_exit_code
+            )
+
+            self.shell_out = out
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+   
+
+    def get_dir_list(self, dir_path=None):
+        """
+        method to get file content using cat command
+        """
+        try:
+            if dir_path is None:
+                return False
+            cmd = "ls {}".format(dir_path)
+            out = self.run_shell_command(cmd)
+            content = None
+            if out is True:
+                content = self.shell_out
+            return out, content
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+    def get_file_content(self, file_path=None):
+        """
+        method to get file content using cat command
+        """
+        try:
+            if file_path is None:
+                return False
+            cmd = "cat {}".format(file_path)
+            out = self.run_shell_command(cmd)
+            content = None
+            if out is True:
+                content = self.shell_out
+            return out, content
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+   
+
+    def check_udev_rule(self):
+        """
+        Method to check if the udev rule is applied
+        Returns:
+            bool
+
+        """
+        udev_file_path = "/etc/udev/rules.d/99-custom-nvme.rules"
+        udev_dir = "/".join(udev_file_path.split("/")[:-1])
+        udev_file_name = udev_file_path.split("/")[-1]
+        out, content = self.get_dir_list(dir_path=udev_dir)
+        if out is True:
+            if udev_file_name in " ".join(content):
+                self.udev_rule = True
+                logger.info(
+                    "The udev rule is applied(udev_rule = {})".format(self.udev_rule)
+                )
+            else:
+                self.udev_rule = False
+                logger.info(
+                    "The udev rule is not applied(udev_rule = {})".format(
+                        self.udev_rule
+                    )
+                )
+        return True
+
+    def get_pos(self):
+        """
+        method to dump all the get commmands o/p from POS CLI
+        Returns:
+            bool
+        """
+        logger.info("=============================SYSTEM==========================")
+        assert self.cli.info_system()[0] == True
+        logger.info("=============================ARRAY==========================")
+        assert self.cli.info_array()[0] == True
+        array_list = list(self.cli.array_dict.keys())
+        if len(array_list) != 0:
+            for array in array_list:
+                assert self.cli.info_array(array_name=array)[0] == True
+
+        logger.info("=============================VOLUME==========================")
+        if len(array_list) != 0:
+            for array in array_list:
+                assert self.cli.list_volume(array_name=array)[0] == True
+
+        logger.info("=============================DEVICE==========================")
+        assert self.cli.list_device()[0] == True
+        logger.info("=============================QOS============================")
+        if len(array_list) != 0:
+            for array in array_list:
+                assert self.cli.list_volume(array_name=array)[0] == True
+                if len(self.cli.vols) != 0:
+                    for vol in self.cli.vols:
+                        assert (
+                            self.cli.list_volume_policy_qos(
+                                volumename=vol, arrayname=array
+                            )[0]
+                            == True
+                        )
+
+        logger.info("=============================LOGGER==========================")
+        assert self.cli.info_logger()[0] == True
+
+        logger.info("=============================SUBSYSTEM==========================")
+        assert self.cli.list_subsystem()[0] == True
+        return True
