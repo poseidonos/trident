@@ -44,28 +44,24 @@ class TargetUtils:
     The Class objects will contain supporting methods to configure POS
     Args:
         ssh_obj : ssh obj of the Target
-        pos_path (str) : path of the pos Source
+        data_dict (dict) : path for POS config
+        pos_path : path of pos source
         array_name (str) : name of the POS array | (default = POS_ARRAY1)
 
     """
 
     def __init__(
-        self,
-        ssh_obj,
-        pos_path,
-        array_name="POS_ARRAY1",
+        self, ssh_obj, data_dict: dict, pos_path: str, array_name="POS_ARRAY1"
     ):
         self.ssh_obj = ssh_obj
-        self.cli = Cli(ssh_obj, pos_path, array_name)
+        self.static_dict = data_dict
+        self.cli = Cli(ssh_obj, self.static_dict, pos_path)
         self.array = array_name
         self.helper = helper.Helper(ssh_obj)
-        self.static_dict = {}
-        self.hard_swap = False
         self.udev_rule = False
-        self.pmu_bdf_dict = dict()
         self.total_required = 0
 
-    def generate_nqn_name(self, default_nqn_name="nqn.2022-10.pos"):
+    def generate_nqn_name(self, default_nqn_name: str = "nqn.2022-10.pos") -> str:
         """
         Method to generate nqn name
         Args:
@@ -95,7 +91,7 @@ class TargetUtils:
             logger.info("subsystem name is {}".format(new_ss_name))
         return new_ss_name
 
-    def dev_bdf_map(self):
+    def dev_bdf_map(self) -> (bool, dict()):
         """
         Method to get device address
         Returns:
@@ -103,30 +99,18 @@ class TargetUtils:
         """
         try:
             dev_bdf_map = {}
-            list_dev_out = self.cli.list_device()
-            if len(list_dev_out) == 0:
+            self.cli.list_device()
+            if len(self.cli.dev_type["SSD"]) == 0:
                 raise Exception("No Devices found")
-            for dev in list_dev_out[3]:
-                dev_bdf_map[dev] = list_dev_out[3][dev]["addr"]
-            logger.info(dev_bdf_map)
+            for dev in list(self.cli.NVMe_BDF.keys()):
+                dev_bdf_map[dev] = self.cli.NVMe_BDF[dev]["addr"]
+
         except Exception as e:
             logger.error("Execution failed with exception {}".format(e))
             return False, None
         return True, dev_bdf_map
 
-    def get_devs(self, prop={"type": "SSD"}):
-        """
-        Method to get devices
-        Args:
-            prop (dict) : device type (Optional)
-        Returns:
-            list()
-        """
-        dev_map = self.cli.list_device()[3]
-        devs = [k for k, v in dev_map.items() if prop.items() <= v.items()]
-        return devs
-
-    def device_hot_remove(self, device_list):
+    def device_hot_remove(self, device_list: list) -> bool:
         """
         Method to hot remove devices
         Args:
@@ -136,9 +120,9 @@ class TargetUtils:
         """
         try:
             self.dev_addr = []
-            dev_list = self.get_devs()
+            self.cli.list_device()
             for each_dev in device_list:
-                if each_dev not in dev_list:
+                if each_dev not in self.cli.dev_type["SSD"]:
                     logger.error(
                         "given device {} is not connected to the system ".format(
                             each_dev
@@ -173,8 +157,8 @@ class TargetUtils:
                             dev
                         )
                     )
-                    out = self.cli.list_device()
-                    if dev in out[3]:
+                    assert self.cli.list_device()[0] == True
+                    if dev in self.cli.dev_type["SSD"]:
                         logger.error("failed to remove device")
                         return False
                 else:
@@ -231,7 +215,7 @@ class TargetUtils:
             return False
         return True
 
-    def get_nvme_bdf(self):
+    def get_nvme_bdf(self) -> (bool, list):
         """
         Method to get nvme bdf address
         Returns:
@@ -267,8 +251,8 @@ class TargetUtils:
 
             logger.info("scanning the devices after rescan")
             time.sleep(5)  # Adding 5 sec sleep for the sys to get back in normal state
-            assert  self.cli.scan_device()[0] == True
-            
+            assert self.cli.scan_device()[0] == True
+
             list_dev_out_aftr_rescan = self.dev_bdf_map()
             if list_dev_out_aftr_rescan[0] == False:
                 logger.error("failed to get the device and bdf map after pci rescan")
@@ -315,7 +299,7 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    def setup_env_pos(self):
+    def setup_env_pos(self) -> bool:
         """
         Method to setup poseidon envoirment
         Returns:
@@ -331,7 +315,7 @@ class TargetUtils:
             logger.error("Execution  failed because of {}".format(e))
             return False
 
-    def spor_prep(self):
+    def spor_prep(self) -> bool:
         """
         Method to spor preparation
         Returns:
@@ -352,7 +336,7 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def check_rebuild_status(self, array_name=None):
+    def check_rebuild_status(self, array_name: str = None) -> bool:
         """
         Method to check rebuild status
         Args:
@@ -388,7 +372,7 @@ class TargetUtils:
         size: str = "100GB",
         maxiops: int = 100000,
         bw: int = 1000,
-    ):
+    ) -> bool:
         """
         method to create_multiple_volumes
         Args:
@@ -422,7 +406,9 @@ class TargetUtils:
             )
         return True
 
-    def mount_volume_multiple(self, array_name, volume_list, nqn_list):
+    def mount_volume_multiple(
+        self, array_name: str, volume_list: list, nqn_list: list
+    ) -> bool:
         """
         mount volumes to the SS
         Args:
@@ -444,7 +430,7 @@ class TargetUtils:
                 temp = 0
         return True
 
-    def create_subsystems_multiple(self, ss_count):
+    def create_subsystems_multiple(self, ss_count: int) -> bool:
 
         """
         method to create more than one SS
@@ -461,7 +447,7 @@ class TargetUtils:
         except Exception as e:
             return False
 
-    def get_subsystems_list(self):
+    def get_subsystems_list(self) -> bool:
         """
         method to list all the avaliable SS and pop dicovery subsystem
         ss_temp_list (class varaible) | (list) : has the list of subsystems created
@@ -478,7 +464,7 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def get_disk_info(self):
+    def get_disk_info(self) -> bool:
         """
         method to get all info about all SSDs connected
         disk_info (class variable) | (dict) : has info regarding System and array disks
@@ -514,31 +500,17 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def pos_bring_up(
-        self, config_dict = None, json_path="../testcase/config_files/pos_config.json"
-    ):
+    def pos_bring_up(self, data_dict: dict = None) -> bool:
         """
         method to perform the pos_bringup_sequence ../testcase/config_files/pos_config.json
-        Args:
-            config_dict (dict) : configuration details for POS | Sample Refer ./testcase/config_files/pos_config.json
-            json_path (str) : path of JSON defined config
-
         Returns:
             bool
-
         """
 
         try:
-
-            static_dict = dict()
-            if config_dict:
-                self.static_dict = config_dict
-                static_dict = self.static_dict
-            else:
-                logger.info("Reading config from JSON")
-                assert self.helper.json_reader(json_path) == True
-                static_dict = self.helper.static_dict
-
+            if data_dict:
+                self.static_dict = data_dict
+            static_dict = self.static_dict
             assert self.helper.get_mellanox_interface_ip()[0] == True
 
             ###system config
@@ -554,7 +526,7 @@ class TargetUtils:
                 and static_dict["device"]["phase"] == "true"
             ):
                 assert self.cli.create_device(uram_name="uram1")[0] == True
-                assert self.cli.create_device(uram_name="uram2")[0] == True
+                # assert self.cli.create_device(uram_name="uram2")[0] == True
             assert self.cli.scan_device()[0] == True
             if static_dict["subsystem"]["phase"] == "true":
                 assert (
@@ -693,8 +665,13 @@ class TargetUtils:
             return False
 
     def setup_env_ibof(
-        self, hugepages, rd_nr="2", rd_size="4194304", max_part="0", driver_load=False
-    ):
+        self,
+        hugepages: str,
+        rd_nr: str = "2",
+        rd_size: str = "4194304",
+        max_part: str = "0",
+        driver_load: bool = False,
+    ) -> bool:
         """
         Method : runs Setup_sh scripts in SPDK
         Args:
@@ -752,7 +729,7 @@ class TargetUtils:
             logger.error("Execution  failed because of {}".format(e))
             return False
 
-    def setup_core_dump(self):
+    def setup_core_dump(self) -> bool:
         """
         method to setup core dump
         Returns:
@@ -775,7 +752,7 @@ class TargetUtils:
             logger.error("Command Execution failed because of {}".format(e))
             return False
 
-    def setup_max_map_count(self):
+    def setup_max_map_count(self) -> bool:
         """
         method to set max map count
         Returns:
@@ -806,7 +783,7 @@ class TargetUtils:
             logger.error("Command Execution failed because of {}".format(e))
             return False
 
-    def run_shell_command(self, command, expected_exit_code=0):
+    def run_shell_command(self, command: str, expected_exit_code: int = 0) -> bool:
         """method to run shell commands
         Args:
             command (str) : command to be executed
@@ -825,9 +802,7 @@ class TargetUtils:
             logger.error("Command Execution failed because of {}".format(e))
             return False
 
-   
-
-    def get_dir_list(self, dir_path=None):
+    def get_dir_list(self, dir_path: str = None) -> (bool, list):
         """
         method to get file content using cat command
         """
@@ -844,7 +819,7 @@ class TargetUtils:
             logger.error("Command Execution failed because of {}".format(e))
             return False
 
-    def get_file_content(self, file_path=None):
+    def get_file_content(self, file_path: str = None) -> bool:
         """
         method to get file content using cat command
         """
@@ -861,9 +836,7 @@ class TargetUtils:
             logger.error("Command Execution failed because of {}".format(e))
             return False
 
-   
-
-    def check_udev_rule(self):
+    def check_udev_rule(self) -> bool:
         """
         Method to check if the udev rule is applied
         Returns:
@@ -889,7 +862,7 @@ class TargetUtils:
                 )
         return True
 
-    def get_pos(self):
+    def get_pos(self) -> bool:
         """
         method to dump all the get commmands o/p from POS CLI
         Returns:
