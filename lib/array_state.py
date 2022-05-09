@@ -37,7 +37,7 @@ logger = logger.get_logger(__name__)
 
 
 class _Array(POS):
-    def __init__(self, array_name="", data_dict=None):
+    def __init__(self, array_name="POSARRAY1", data_dict=None):
         super().__init__()
 
         self.data_dict = data_dict
@@ -58,6 +58,7 @@ class _Array(POS):
             [
                 "index",
                 "command",
+                "array",
                 "current state",
                 "next state",
                 "data",
@@ -71,8 +72,9 @@ class _Array(POS):
         assert self.cli.list_array()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
-            logger.info("no array present in the config")
+            logger.info("----- CURRENT ARRAY STATE : NO ARRAY PRESENT IN THE CONFIG ----")
         else:
+            logger.info(f' -------------- ARRAY MOUNT/UNMOUNT INFO {self.cli.array_dict} --------------')
             array_dict = {}
             for array in array_list:
                 if self.name == array:
@@ -85,10 +87,7 @@ class _Array(POS):
                         "data": self.cli.array_info[self.name]["data_list"],
                         "spare": self.cli.array_info[self.name]["spare_list"],
                     }
-            logger.info(array_dict)
-
-        logger.info(self.cli.array_dict)
-
+            logger.info(f"---------CURRENT ARRAY STATE : {array_dict} -------------------")
         return True
 
     def select_next_state(self):
@@ -478,7 +477,7 @@ class _Array(POS):
             return False
         self.current_system_state()
         logger.info(
-            "##-----{}---- NEXT STATE: {}/{} -- FUNCTION: {} -- DETACH: {} ----------##".format(
+            "--- ARRAY NAME : {}---- NEXT STATE: {}/{} -- FUNCTION: {} -- DETACH: {} ----------".format(
                 self.name,
                 self.state["next"],
                 self.situation["next"],
@@ -500,7 +499,7 @@ class _Array(POS):
         if self.func["name"] == "delete_array" and self.func["expected"] == True:
             if len(array_list) == 0:
                 logger.info(
-                    "##-{}--{}------- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                    "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                         self.name,
                         self.func["name"],
                         self.state["next"],
@@ -517,7 +516,7 @@ class _Array(POS):
                         state = self.cli.array_info[self.name]["state"].lower()
                         situation = self.cli.array_info[self.name]["situation"].lower()
                         logger.info(
-                            "##-{}--{}------- CHECKT ARRAY STATE : FAIL (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                            "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : FAIL (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                                 self.name,
                                 self.func["name"],
                                 self.state["next"],
@@ -528,7 +527,7 @@ class _Array(POS):
                         )
                         return False
                 logger.info(
-                    "##-{}--{}------- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                    "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                         self.name,
                         self.func["name"],
                         self.state["next"],
@@ -555,7 +554,7 @@ class _Array(POS):
 
             if state == self.state["next"] and situation == self.situation["next"]:
                 logger.info(
-                    "##-{}--{}------- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                    "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                         self.name,
                         self.func["name"],
                         self.state["next"],
@@ -574,7 +573,7 @@ class _Array(POS):
                         self.state["next"] = state
                         self.situation["next"] = situation
                         logger.info(
-                            "##-{}--{}------- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                            "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                                 self.name,
                                 self.func["name"],
                                 self.state["next"],
@@ -591,7 +590,7 @@ class _Array(POS):
                         self.state["next"] = state
                         self.situation["next"] = situation
                         logger.info(
-                            "##-{}--{}------- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                            "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                                 self.name,
                                 self.func["name"],
                                 self.state["next"],
@@ -607,7 +606,7 @@ class _Array(POS):
                         self.state["next"] = state
                         self.situation["next"] = situation
                         logger.info(
-                            "##-{}--{}------- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                            "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                                 self.name,
                                 self.func["name"],
                                 self.state["next"],
@@ -625,7 +624,7 @@ class _Array(POS):
                         self.state["next"] = state
                         self.situation["next"] = situation
                         logger.info(
-                            "##-{}--{}------- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                            "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                                 self.name,
                                 self.func["name"],
                                 self.state["next"],
@@ -644,7 +643,7 @@ class _Array(POS):
                         self.state["next"] = state
                         self.situation["next"] = situation
                         logger.info(
-                            "##-{}--{}------- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                            "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                                 self.name,
                                 self.func["name"],
                                 self.state["next"],
@@ -656,7 +655,7 @@ class _Array(POS):
                         return True
 
                 logger.info(
-                    "##--{}--{}------ CHECKT ARRAY STATE : FAIL (EXPECTED : {}/{}, ACTUAL : {}/{}) ----------##".format(
+                    "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : FAIL (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                         self.name,
                         self.func["name"],
                         self.state["next"],
@@ -1078,6 +1077,7 @@ class _Array(POS):
         cmd = [
             loop,
             self.func["name"],
+            self.name,
             self.situation["current"],
             self.situation["next"],
             len(self.device["data"]),
