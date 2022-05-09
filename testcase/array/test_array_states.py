@@ -19,7 +19,7 @@ def test_array_states(num_array):
         #step ::0 : variable initialization
         data_dict = pos.data_dict
         loop = 1
-        seed = 5 
+        seed = 9
         #seed = random.randint(1, 10)
         random.seed(seed)
         logger.info("#################################################################################################")
@@ -37,7 +37,7 @@ def test_array_states(num_array):
         
         array_list = list(pos.cli.array_dict.keys())
         for item in range(len(array_list)):
-             list_array_obj.append(array(array_name = array_list[item], data_dict = data_dict))
+             list_array_obj.append(array(array_name = array_list[item], data_dict = data_dict, cli_history = pos.cli.cli_history))
              list_array_obj[item].subsystem = pos.target_utils.ss_temp_list
              list_array_obj[item].func['param']['pre_write'] = True
         
@@ -87,7 +87,10 @@ def test_array_states(num_array):
                 
         pos.exit_handler(expected = True)
     except Exception as e:
-        logger.error(e)
+        if list_array_obj:
+         for array_obj in list_array_obj:
+            assert array_obj.cmd_history(exit=False) == True
+       
         pos.exit_handler(expected = False)
         assert 0
 
