@@ -35,6 +35,7 @@ import time
 import logger
 import utils
 import helper
+import json
 from datetime import timedelta
 from threading import Thread
 
@@ -63,6 +64,7 @@ class Cli:
         self.array_name = array_name
         self.new_cli_path = "/bin/poseidonos-cli"  ##path of POS cli
         self.array_info = {}
+        self.cli_history = []
 
     def run_cli_command(
         self, command: str, command_type: str = "request", timeout=30
@@ -83,6 +85,7 @@ class Cli:
             )
             start_time = time.time()
             run_end_time = start_time + timeout
+            
             while time.time() < run_end_time:
                 out = self.ssh_obj.execute(cmd, get_pty=True)
 
@@ -106,7 +109,7 @@ class Cli:
                     logger.error("passed file contains invalid json data")
                     return False, out
                 elif "Receiving error" in out:
-                    logger.error("ibof os crashed in between ! please check ibof logs")
+                    logger.error("POS os crashed in between ! please check POS logs")
                     return False, out
                 else:
                     if "volume mount" in cmd:
@@ -114,8 +117,8 @@ class Cli:
                             True,
                             out,
                         )  ##################temp fix .. invalid json obtained for mount volume
-                    parse_out = self.helper.parse_out(out, cmd)
-                    assert self.helper.add_cli_history(parse_out=parse_out) == True
+                    parse_out = self.parse_out(out, cmd)
+                    assert self.add_cli_history(parse_out=parse_out) == True
 
                     if parse_out["status_code"] == 0:
                         return True, parse_out
@@ -134,7 +137,62 @@ class Cli:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None
+    
+    def add_cli_history(self, parse_out):
+        """
+        Method to get cli command history for debugging
+        """
+        if len(self.cli_history) > 1000:
+            del self.cli_history[0]
+            
+        self.cli_history.append(
+            [
+                parse_out["command"],
+                parse_out["status_code"],
+                parse_out["params"],
+                parse_out["data"],
+            ]
+        )
+        return True
 
+    def parse_out(self, jsonout, command):
+
+        out = json.loads(jsonout)
+        command = command
+        if "param" in out.keys():
+            param = out["Request"]["param"]
+        else:
+            param = {}
+        # logger.info(out)
+        status_code = out["Response"]["result"]["status"]["code"]
+        description = out["Response"]["result"]["status"]["description"]
+        logger.info(
+            "status code response from the command {} is {}".format(
+                command, status_code
+            )
+        )
+        logger.info(
+            "DESCRIPTION from command {} is {}".format(command, description)
+        )
+
+        if "data" in out["Response"]["result"]:
+            return {
+                "output": out,
+                "command": command,
+                "status_code": status_code,
+                "description": description,
+                "data": out["Response"]["result"]["data"],
+                "params": param,
+            }
+        else:
+            return {
+                "output": out,
+                "command": command,
+                "status_code": status_code,
+                "description": description,
+                "params": param,
+                "data": None,
+            }
     def _get_pos_logs(self):
         """
         method to get pos logs.. creates a thread to tail logs from /scripts/pos.log
