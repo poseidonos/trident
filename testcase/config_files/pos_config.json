@@ -4,7 +4,14 @@
     {"phase" :  "true"},
 
     "device" :
-    {"phase" : "true"},
+    {
+        "phase" : "true",
+        "uram_name" : "uram0",
+        "bufer_size" : "8388608",
+        "strip_size" : "512",
+        "numa" : "1"
+
+    },
 
     
     "array" :
@@ -49,11 +56,16 @@
     {
         "phase" : "true",
         "Trident_POS_Array_1" :  1,
-        "Trident_POS_Array_2" :  1
+        "Trident_POS_Array_2" :  1,
+        "base_nqn_name" : "nqn.2022-10.pos",
+        "ns_count" :"512",
+        "serial_number" : "POS000000000001",
+        "model_name" : "POS_VOLUME"
+
     },
     "array_states" :
     {
-        "runtime" :30
+        "runtime" :1
     }
 
 }
