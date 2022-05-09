@@ -112,7 +112,7 @@ class POS:
             logger.info(
                 "------------------------------------------ CLI HISTORY ------------------------------------------"
             )
-            for cli_cmd in self.cli.helper.cli_history:
+            for cli_cmd in self.cli.cli_history:
                 logger.info(
                     "CMD: {}, STATUS_CODE: {}, PARAM: {}".format(
                         cli_cmd[0], cli_cmd[1], cli_cmd[2]
@@ -121,7 +121,7 @@ class POS:
             logger.info(
                 "-------------------------------------------------------------------------------------------------------"
             )
-            if self.client.ctrlr_count()[1] is not None:
+            if self.client.ctrlr_list()[1] is not None:
                 assert (
                     self.client.nvme_disconnect(self.target_utils.ss_temp_list) == True
                 )

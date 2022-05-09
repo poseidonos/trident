@@ -54,7 +54,7 @@ class Client:
         client_cleanup : " flag to clean up client" (Default: True)
     """
 
-    def __init__(self, ip, username, password, client_cleanup=True):
+    def __init__(self, ip:str, username:str, password:str, client_cleanup:bool=True):
 
         self.ssh_obj = SSHclient(ip, username, password)
         self.helper = Helper(self.ssh_obj)
@@ -84,7 +84,7 @@ class Client:
 
         self.ssh_obj.execute("dmesg -C")
 
-    def reboot_node(self):
+    def reboot_node(self) -> bool:
         """
         Method to reboot the node
         Returns : bool
@@ -110,7 +110,7 @@ class Client:
             logger.error("Error rebooting node because of Error {}".format(e))
             return False
 
-    def reboot_with_reconnect(self, timeout=600):
+    def reboot_with_reconnect(self, timeout:int=600) -> bool:
         """
         Methods: To reboot the node and wait for it come up
 
@@ -145,7 +145,7 @@ class Client:
             logger.error(traceback.format_exc())
             raise ConnectionError("Node failed to come up")
 
-    def reconnect(self, timeout: int = 600):
+    def reconnect(self, timeout: int = 600) -> bool:
         """
         Methods: To reboot the node and wait for it come up
 
@@ -179,7 +179,7 @@ class Client:
 
             raise ConnectionError("Node failed to come up")
 
-    def nvme(self, nvme_cmd):
+    def nvme(self, nvme_cmd: str) -> (bool, list):
         """
         Methods: Execution of nvme command
 
@@ -193,7 +193,7 @@ class Client:
         nvme_cmd_output = self.ssh_obj.execute(nvme_cmd)
         return nvme_cmd_output
 
-    def nvme_format(self, device_name):
+    def nvme_format(self, device_name:str) -> (bool, list):
         """
         Method
         To format device using nvme cli
@@ -217,7 +217,7 @@ class Client:
             return False
         return True
 
-    def nvme_id_ctrl(self, device_name, search_string=None):
+    def nvme_id_ctrl(self, device_name:str, search_string:str=None) -> (bool, list):
         """
         Method to execute nvme id-ctrl nvme cli
 
@@ -252,7 +252,7 @@ class Client:
 
             return False, out
 
-    def nvme_ns_rescan(self, cntlr_name):
+    def nvme_ns_rescan(self, cntlr_name:str) -> bool:
         """
         Method to execute nvme ns-rescan nvme cli
 
@@ -279,7 +279,7 @@ class Client:
 
             return False
 
-    def nvme_show_regs(self, device_name, search_string=None):
+    def nvme_show_regs(self, device_name:str, search_string:str=None) ->(bool, list):
         """
         Method to execute nvme show-regs nvme cli
 
@@ -318,7 +318,7 @@ class Client:
 
             return False, out
 
-    def nvme_list_subsys(self, device_name):
+    def nvme_list_subsys(self, device_name:str) ->(bool, list):
         """
         Method to execute nvme list-subsys nvme cli
 
@@ -353,7 +353,7 @@ class Client:
 
             return False, None
 
-    def nvme_smart_log(self, device_name, search_string=None):
+    def nvme_smart_log(self, device_name:str, search_string:str=None) -> (bool, list):
         """
         Method to execute nvme smart-log nvme cli
         Args:
@@ -391,7 +391,7 @@ class Client:
 
             return False, None
 
-    def os_version(self):
+    def os_version(self) -> str:
         """
         method To find OS version
         Returns:
@@ -409,7 +409,7 @@ class Client:
             )
             return flag[0].split("=")[1].strip("\n") + flag[1].split("=")[1].strip()
 
-    def fio_generic_runner(self, devices, fio_user_data=None, IO_mode=True):
+    def fio_generic_runner(self, devices:list, fio_user_data:str=None, IO_mode:bool=True) ->(bool, list):
         """
         method To run user provided fio cmd line from user
 
@@ -459,7 +459,7 @@ class Client:
 
             return (False, None)
 
-    def is_file_present(self, file_path):
+    def is_file_present(self, file_path:str) ->bool:
         """
         Method to verify if file present of not
 
@@ -483,7 +483,7 @@ class Client:
 
             return False
 
-    def create_File_system(self, device_list, fs_format="ext3"):
+    def create_File_system(self, device_list:list, fs_format:str="ext3")-> bool:
         """
         Creates MKFS FS on different devices
 
@@ -511,7 +511,7 @@ class Client:
 
             return False
 
-    def mount_FS(self, device_list, fs_mount_dir=None, options=None):
+    def mount_FS(self, device_list:list, fs_mount_dir:str=None, options:str=None) ->(bool,list):
         """
         method to Mount Fs to device
 
@@ -581,7 +581,7 @@ class Client:
                 return (False, None)
             return (True, list(out.values()))
 
-    def unmount_FS(self, fs_mount_pt):
+    def unmount_FS(self, fs_mount_pt:str) ->bool:
         """
         method to unmount file system
 
@@ -614,7 +614,7 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def delete_FS(self, fs_mount_pt):
+    def delete_FS(self, fs_mount_pt:bool) -> bool:
         """
         Method to delete a directory, used to delete directory after unmount
         Args:
@@ -635,7 +635,7 @@ class Client:
 
             return False
 
-    def is_dir_present(self, dir_path):
+    def is_dir_present(self, dir_path:str) -> bool:
         """
         Method to verif if directory is present or not
         Args:
@@ -659,7 +659,7 @@ class Client:
             logger.error("error finding directory {}".format(e))
             return False
 
-    def nvme_connect(self, nqn_name, mellanox_switch_ip, port, transport="TCP"):
+    def nvme_connect(self, nqn_name:str, mellanox_switch_ip:str, port:str, transport:str="TCP") -> bool:
         """
         starts Nvme connect at the host
         Args:
@@ -683,9 +683,9 @@ class Client:
 
             return False
 
-    def ctrlr_count(self):
+    def ctrlr_list(self) ->(bool,list):
         """
-        method to find the count of number of controllers connected
+        method to find the list of controllers connected
 
         Returns:
         bool,count
@@ -709,7 +709,7 @@ class Client:
 
         return (True, final)
 
-    def load_drivers(self):
+    def load_drivers(self) -> bool:
         """method to load drivers"""
 
         driver_list = ["tcp", "nvme"]
@@ -718,7 +718,7 @@ class Client:
             self.ssh_obj.execute(cmd)
         return True
 
-    def nvme_disconnect(self, nqn=[], timeout=60):
+    def nvme_disconnect(self, nqn:list=[], timeout:int =  60) -> bool:
         """
         Method to disconnect nvmf ss
         Args:
@@ -732,7 +732,7 @@ class Client:
             logger.info("Disconnecting nvme devices from client")
             count = 0
             while True:
-                out = self.ctrlr_count()
+                out = self.ctrlr_list()
                 if out[1] is not None:
                     if len(nqn) != 0:
                         logger.info("Disconnecting Subsystem")
@@ -754,14 +754,14 @@ class Client:
                     time.sleep(10)
                     if count > timeout:
                         break
-                if len(nvme_out[1]) != 0:
+                if len(self.nvme_list_out) != 0:
                     raise Exception("nvme disconnect failed")
         except Exception as e:
             logger.error("command failed wth exception {}".format(e))
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_list(self, model_name="POS_VOLUME"):
+    def nvme_list(self, model_name:str="POS_VOLUME") -> bool:
         """
         Method to get the nvme list
         Args:
@@ -787,7 +787,7 @@ class Client:
             return False
         return True
 
-    def nvme_discover(self, nqn_name, mellanox_switch_ip, port, transport="tcp"):
+    def nvme_discover(self, nqn_name:str, mellanox_switch_ip:str, port:str, transport:str="tcp") -> bool:
         """
         method to discover nvme subsystem
         Args :
@@ -823,7 +823,7 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_flush(self, dev_list):
+    def nvme_flush(self, dev_list:list) -> bool:
         """
         methood to execute nvme flush
         Args
