@@ -112,14 +112,13 @@ class Cli:
                     logger.error("POS os crashed in between ! please check POS logs")
                     return False, out
                 else:
-                    if "volume mount" in cmd:
+                    if "volume mount" in cmd or 'system start' in cmd:
                         return (
                             True,
                             out,
                         )  ##################temp fix .. invalid json obtained for mount volume
                     parse_out = self.parse_out(out, cmd)
-                    assert self.add_cli_history(parse_out=parse_out) == True
-
+                    self.add_cli_history(parse_out)
                     if parse_out["status_code"] == 0:
                         return True, parse_out
                     elif parse_out["status_code"] == 1030:
@@ -138,19 +137,20 @@ class Cli:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None
     
-    def add_cli_history(self, parse_out):
+    def add_cli_history(self, parse_out:dict) -> bool:
         """
         Method to get cli command history for debugging
         """
-        if len(self.cli_history) > 1000:
+       
+        if len(self.cli_history) > 100000:
             del self.cli_history[0]
             
         self.cli_history.append(
             [
                 parse_out["command"],
                 parse_out["status_code"],
-                parse_out["params"],
-                parse_out["data"],
+                parse_out["description"]
+               
             ]
         )
         return True
@@ -209,24 +209,27 @@ class Cli:
         """
         Method to start pos
         """
+        
         try:
-            cli_error, jout = self.run_cli_command("start", "system")
-            jout = []
-            if cli_error == True:
-                # un-commenting the code with tail script/pos.log
-                """
-                self.start_out = self.ssh_obj.run_async(f"tail -f {self.pos_path}/script/pos.log")
-                thread = Thread(target=self._get_pos_logs, args =())
-                thread.daemon = True
-                thread.start()
-                if self.start_out.is_complete() is False():
-                """
-                return True, jout
-            else:
-                raise Exception("CLI Error")
+            out = ''
+            max_running_time = 30 * 60 #30min
+            start_time = time.time()
+            self.out = self.ssh_obj.run_async("nohup {}/bin/{} >> {}/script/pos.log".format(self.pos_path, "poseidonos", self.pos_path))
+            while True:
+                logger.info("waiting for iBOF logs")
+                time.sleep(5)
+                if self.out.is_complete() is False:
+                    logger.info("Time-consuming : {}".format(time.time() - start_time))
+                    return True, out
+                cur_time = time.time()
+                running_time = cur_time - start_time
+                if running_time > max_running_time:
+                    return False, out
+            
         except Exception as e:
             logger.error("failed due to {}".format(e))
-            return False, jout
+            return False, out
+        
 
     def stop_system(
         self,

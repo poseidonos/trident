@@ -26,10 +26,12 @@ def test_array_states(num_array):
         logger.info("--------------------------------------- RANDOM SEED : {} ---------------------------------------" .format(seed))
         logger.info("#################################################################################################")
         #step ::1 : setup envirenment for POS
+        pos.target_utils.setup_core_dump()
+        pos.target_utils.setup_max_map_count()
         pos.target_utils.udev_install()
         assert pos.target_utils.check_udev_rule() == True
         data_dict['array']['num_array'] = 2 if num_array == 2 else 1
-        data_dict['volume']["Trident_POS_Array_2"]['phase'] = 'false' if num_array == 1 else 'true'
+        data_dict['volume']["array2"]['phase'] = 'false' if num_array == 1 else 'true'
         assert pos.target_utils.pos_bring_up(data_dict) == True
         
         assert pos.cli.list_array()[0] == True

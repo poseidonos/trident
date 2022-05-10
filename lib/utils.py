@@ -37,7 +37,7 @@ import random
 import json
 import traceback
 from node import SSHclient
-from helper import Helper
+import helper
 
 logger = logger.get_logger(__name__)
 import node
@@ -56,8 +56,9 @@ class Client:
 
     def __init__(self, ip:str, username:str, password:str, client_cleanup:bool=True):
 
-        self.ssh_obj = SSHclient(ip, username, password)
-        self.helper = Helper(self.ssh_obj)
+        ssh_obj = SSHclient(ip, username, password)
+        self.helper = helper.Helper(ssh_obj)
+        self.ssh_obj = ssh_obj
         self.client_clean = client_cleanup
         if self.client_clean == True:
             self.client_cleanup()

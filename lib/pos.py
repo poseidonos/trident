@@ -109,18 +109,18 @@ class POS:
         try:
 
             assert self.target_utils.helper.check_system_memory() == True
+            """
             logger.info(
                 "------------------------------------------ CLI HISTORY ------------------------------------------"
             )
             for cli_cmd in self.cli.cli_history:
-                logger.info(
-                    "CMD: {}, STATUS_CODE: {}, PARAM: {}".format(
-                        cli_cmd[0], cli_cmd[1], cli_cmd[2]
-                    )
-                )
+                logger.info(cli_cmd)                  
+                    
+                
             logger.info(
                 "-------------------------------------------------------------------------------------------------------"
             )
+            """
             if self.client.ctrlr_list()[1] is not None:
                 assert (
                     self.client.nvme_disconnect(self.target_utils.ss_temp_list) == True
@@ -135,7 +135,8 @@ class POS:
         except Exception as e:
 
             logger.error(e)
-            # self.cli.core_dump()
+            self.cli.core_dump()
+            #self.cli.stop_system()
             self.target_ssh_obj.close()
             self.client.close()
             assert 0

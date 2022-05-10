@@ -37,7 +37,7 @@ logger = logger.get_logger(__name__)
 
 
 class _Array(POS):
-    def __init__(self, array_name="POSARRAY1", data_dict=None):
+    def __init__(self, array_name="POSARRAY1", data_dict: dict =None, cli_history:list = []):
         super().__init__()
 
         self.data_dict = data_dict
@@ -45,7 +45,7 @@ class _Array(POS):
         self.state = {"current": None, "next": None}
         self.situation = {"current": None, "next": None}
         self.device = {"data": list(), "spare": list(), "rebuild": None}
-
+        self.cli.cli_history = cli_history
         self.func = {
             "name": None,
             "expected": True,
@@ -87,7 +87,7 @@ class _Array(POS):
                         "data": self.cli.array_info[self.name]["data_list"],
                         "spare": self.cli.array_info[self.name]["spare_list"],
                     }
-            logger.info(f"---------CURRENT ARRAY STATE : {array_dict} -------------------")
+                    logger.info(f"--------- CURRENT ARRAY STATE : {array_dict} -------------------")
         return True
 
     def select_next_state(self):
@@ -687,12 +687,12 @@ class _Array(POS):
                 for array in array_list:
                     assert self.cli.info_array(array_name=array)[0] == True
                     used_bufer.append(self.cli.array_info[array]["buffer_list"][0])
-                logger.info(used_bufer)
+               
                 free_buf = [
                     buf for buf in self.cli.dev_type["NVRAM"] if buf not in used_bufer
                 ]
                 self.buffer_data = free_buf
-            logger.info(self.buffer_data)
+          
             return True
 
         def check_mbr_device(device=None):
@@ -954,6 +954,10 @@ class _Array(POS):
                 self.subsystem = self.target_utils.ss_temp_list
                 if len(self.subsystem) > 1:
                     for subsystem in self.subsystem:
+                        if self.name in subsystem:
+                            self.client.nvme_list()
+                            if len(self.client.nvme_list_out) != 0:
+                                self.client.nvme_disconnect(nqn = [subsystem])
                         assert (
                             self.cli.delete_subsystem(nqn_name=subsystem)[0]
                             == self.func["expected"]
@@ -976,11 +980,12 @@ class _Array(POS):
             assert self.target_utils.get_subsystems_list() == True
             if self.func["expected"] == True:
                 assert self.cli.list_volume(array_name=self.name)[0] == True
+                base_name =  base_name = self.data_dict["subsystem"]["base_nqn_name"] + self.name
                 self.target_utils.create_subsystems_multiple(
-                    ss_count=self.data_dict["subsystem"][self.name]
+                    ss_count=self.data_dict["subsystem"][self.name], base_name = base_name
                 ) == True
                 self.target_utils.get_subsystems_list()
-                self.subsystem = self.target_utils.ss_temp_list
+                self.subsystem = [ss for ss in self.target_utils.ss_temp_list if self.name in ss]
                 for ss in self.subsystem:
                     self.cli.add_listner_subsystem(
                         ss, self.target_utils.helper.ip_addr[0], "1158"

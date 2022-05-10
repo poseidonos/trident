@@ -18,7 +18,7 @@
     {
         "phase" : "true",
         "num_array" :  1,
-        "array_name" :  "Trident_POS_Array",
+        "array_name" :  "array",
         "array1_data_count" : 4,
         "array1_spare_count": 1,
         "array1_raid_type" : "RAID5",
@@ -28,7 +28,7 @@
 
       },
     "volume" :
-    {"Trident_POS_Array_1" :
+    {"array1" :
     {
         "phase" : "true",
         "num_vol": 1,
@@ -38,7 +38,7 @@
         "maxiops": 10000000,
         "miniops": 1000}
     },
-    "Trident_POS_Array_2" :
+    "array2" :
     {
         "phase" : "true",
         "num_vol": 1,
@@ -55,17 +55,18 @@
     "subsystem" :
     {
         "phase" : "true",
-        "Trident_POS_Array_1" :  1,
-        "Trident_POS_Array_2" :  1,
+        "array1" :  1,
+        "array2" :  1,
         "base_nqn_name" : "nqn.2022-10.pos",
         "ns_count" :"512",
         "serial_number" : "POS000000000001",
         "model_name" : "POS_VOLUME"
 
+
     },
     "array_states" :
     {
-        "runtime" :1
+        "runtime" :60
     }
 
 }

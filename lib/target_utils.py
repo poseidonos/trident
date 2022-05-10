@@ -430,7 +430,7 @@ class TargetUtils:
                 temp = 0
         return True
 
-    def create_subsystems_multiple(self, ss_count: int) -> bool:
+    def create_subsystems_multiple(self, ss_count: int, base_name:str = None) -> bool:
 
         """
         method to create more than one SS
@@ -441,7 +441,10 @@ class TargetUtils:
         """
         try:
             for i in range(ss_count):
-                ss_name = self.generate_nqn_name()
+                if base_name:
+                    ss_name = self.generate_nqn_name(default_nqn_name = base_name)
+                else:
+                    ss_name = self.generate_nqn_name()
                 assert self.cli.create_subsystem(ss_name)[0] == True
             return True
         except Exception as e:
@@ -529,16 +532,18 @@ class TargetUtils:
                 # assert self.cli.create_device(uram_name="uram2")[0] == True
             assert self.cli.scan_device()[0] == True
             if static_dict["subsystem"]["phase"] == "true":
+                base_name = static_dict["subsystem"]["base_nqn_name"] + "array1"
                 assert (
                     self.create_subsystems_multiple(
-                        static_dict["subsystem"]["Trident_POS_Array_1"]
+                        static_dict["subsystem"]["array1"], base_name= base_name
                     )
                     == True
                 )
                 if static_dict["array"]["num_array"] == 2:
+                    base_name = static_dict["subsystem"]["base_nqn_name"] + "array2"
                     assert (
                         self.create_subsystems_multiple(
-                            static_dict["subsystem"]["Trident_POS_Array_2"]
+                            static_dict["subsystem"]["array2"], base_name = base_name
                         )
                         == True
                     )
@@ -581,16 +586,16 @@ class TargetUtils:
                         data=data_disks[:array1_data_count:],
                         spare=data_disks[-(array1_spare_count):],
                         raid_type=array1_raid_type,
-                        array_name=f"{array_name}_1",
+                        array_name=f"{array_name}1",
                     )[0]
                     == True
                 )
                 self.array_list = []
-                self.array_list.append(f"{array_name}_1")
+                self.array_list.append(f"{array_name}1")
                 if num_array == 2:
                     assert (
                         self.cli.autocreate_array(
-                            array_name=f"{array_name}_2",
+                            array_name=f"{array_name}2",
                             buffer_name=write_buffer[1],
                             num_data=str(array2_data_count),
                             num_spare=str(array2_spare_count),
@@ -598,23 +603,23 @@ class TargetUtils:
                         )[0]
                         == True
                     )
-                    self.array_list.append(f"{array_name}_2")
+                    self.array_list.append(f"{array_name}2")
                 for array_name in self.array_list:
                     assert self.cli.mount_array(array_name=array_name)[0] == True
             #####volume config
             assert self.get_subsystems_list() == True
-            if static_dict["volume"]["Trident_POS_Array_1"]["phase"] == "true":
-                array_name = "Trident_POS_Array_1"
-                num_vol_array1 = static_dict["volume"]["Trident_POS_Array_1"]["num_vol"]
-                ss_list_array1 = self.ss_temp_list[
-                    : static_dict["subsystem"]["Trident_POS_Array_1"] :
-                ]
+            if static_dict["volume"]["array1"]["phase"] == "true":
+                array_name = "array1"
+                num_vol_array1 = static_dict["volume"]["array1"]["num_vol"]
+                logger.info(self.ss_temp_list)
+                ss_list_array1 = [ss for ss in self.ss_temp_list if "array1" in ss]
+                 
                 if num_vol_array1 > 0:
                     vol_size = (
                         None
-                        if static_dict["volume"]["Trident_POS_Array_1"]["size"]
+                        if static_dict["volume"]["array1"]["size"]
                         == "None"
-                        else static_dict["volume"]["Trident_POS_Array_1"]["size"]
+                        else static_dict["volume"]["array1"]["size"]
                     )
                     assert (
                         self.create_volume_multiple(
@@ -623,6 +628,7 @@ class TargetUtils:
                         == True
                     )
                     assert self.cli.list_volume(array_name)[0] == True
+                    logger.info(ss_list_array1)
                     assert (
                         self.mount_volume_multiple(
                             array_name, self.cli.vols, ss_list_array1
@@ -630,20 +636,19 @@ class TargetUtils:
                         == True
                     )
 
-                if static_dict["volume"]["Trident_POS_Array_2"]["phase"] == "true":
-                    num_vol_array2 = static_dict["volume"]["Trident_POS_Array_2"][
+                if static_dict["volume"]["array2"]["phase"] == "true":
+                    num_vol_array2 = static_dict["volume"]["array2"][
                         "num_vol"
                     ]
-                    ss_list_array2 = self.ss_temp_list[
-                        -(static_dict["subsystem"]["Trident_POS_Array_2"]) :
-                    ]
+                    ss_list_array2 = [ss for ss in self.ss_temp_list if "array2" in ss]
+                    
                     if num_vol_array2 > 0:
-                        array_name = "Trident_POS_Array_2"
+                        array_name = "array2"
                         vol_size = (
                             None
-                            if static_dict["volume"]["Trident_POS_Array_2"]["size"]
+                            if static_dict["volume"]["array2"]["size"]
                             == "None"
-                            else static_dict["volume"]["Trident_POS_Array_2"]["size"]
+                            else static_dict["volume"]["array2"]["size"]
                         )
                         assert (
                             self.create_volume_multiple(
