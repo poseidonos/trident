@@ -31,8 +31,8 @@
     {"array1" :
     {
         "phase" : "true",
-        "num_vol": 1,
-        "size": "1GB",
+        "num_vol": 10,
+        "size": "50GB",
         "qos" : {"maxbw": 100000,
         "minbw": 1000,
         "maxiops": 10000000,
@@ -41,12 +41,12 @@
     "array2" :
     {
         "phase" : "true",
-        "num_vol": 1,
-        "size": "1GB",
+        "num_vol": 10,
+        "size": "20GB",
         "qos" : {
-        "maxbw": 100000,
-        "minbw": 1000,
-        "maxiops": 10000000,
+        "maxbw": 112212300000,
+        "minbw": 10312300,
+        "maxiops": 100031340000,
         "miniops": 1000}
 
     }

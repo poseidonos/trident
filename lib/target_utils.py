@@ -153,7 +153,7 @@ class TargetUtils:
                     return False
                 if pci_addr in list(list_dev_out[1].values()):
                     logger.warning(
-                        "failed to hot plug the device {}verifing in list_dev ".format(
+                        "failed to hot plug the device {} verifing in list_device ".format(
                             dev
                         )
                     )

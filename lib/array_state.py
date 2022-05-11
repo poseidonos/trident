@@ -991,17 +991,8 @@ class _Array(POS):
                         ss, self.target_utils.helper.ip_addr[0], "1158"
                     )
                 if len(self.cli.vols) != 0:
-
-                    for index, volname in enumerate(self.cli.vols):
-                        assert (
-                            self.cli.mount_volume(
-                                volumename=volname,
-                                nqn=self.subsystem[index],
-                                array_name=self.name,
-                            )[0]
-                            == True
-                        )
-
+                    assert self.target_utils.mount_volume_multiple(array_name = self.name, volume_list= self.cli.vols, nqn_list=self.subsystem) == True
+                    
                 else:
                     assert (
                         self.target_utils.create_volume_multiple(
