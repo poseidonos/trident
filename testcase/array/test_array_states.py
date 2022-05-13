@@ -20,7 +20,7 @@ def test_array_states(num_array):
         data_dict = pos.data_dict
         loop = 1
         #seed = 100
-        seed = random.randint(1, 100)
+        seed = random.randint(1, 10)
         random.seed(seed)
         logger.info("#################################################################################################")
         logger.info("--------------------------------------- RANDOM SEED : {} ---------------------------------------" .format(seed))

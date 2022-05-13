@@ -17,22 +17,22 @@
     "array" :
     {
         "phase" : "true",
-        "num_array" :  1,
+        "num_array" :  2,
         "array_name" :  "array",
-        "array1_data_count" : 4,
+        "array1_data_count" : 5,
         "array1_spare_count": 1,
         "array1_raid_type" : "RAID5",
-        "array2_spare_count" : 1,
+        "array2_spare_count" : 6,
         "array2_data_count" : 4,
-        "array2_raid_type" : "RAID5"
+        "array2_raid_type" : "RAID10"
 
       },
     "volume" :
     {"array1" :
     {
         "phase" : "true",
-        "num_vol": 10,
-        "size": "50GB",
+        "num_vol": 1,
+        "size": "None",
         "qos" : {"maxbw": 100000,
         "minbw": 1000,
         "maxiops": 10000000,
@@ -41,8 +41,8 @@
     "array2" :
     {
         "phase" : "true",
-        "num_vol": 10,
-        "size": "20GB",
+        "num_vol": 1,
+        "size": "None",
         "qos" : {
         "maxbw": 112212300000,
         "minbw": 10312300,

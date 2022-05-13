@@ -410,17 +410,25 @@ class Client:
             )
             return flag[0].split("=")[1].strip("\n") + flag[1].split("=")[1].strip()
 
-    def fio_generic_runner(self, devices:list, fio_user_data:str=None, IO_mode:bool=True) ->(bool, list):
+    def fio_generic_runner(
+        self,
+        devices,
+        fio_user_data=None,
+        IO_mode=True,
+        expected_exit_code=None,
+        run_async=False
+        
+    ):
         """
-        method To run user provided fio cmd line from user
-
-        Args:
-                devices (list) list of devices
-                fio_user_data (str) : fio command line to be used for running FIO
-                io_mode (bool) : if True block IO else File IO
-                #TODO async support
-        Returns:
-            bool, list
+        :method To run user provided fio cmd line from user
+        :params fio_user_data :fio cmd line (default :none)
+                devices: takes a list of either mount points or raw devices
+                IO_mode : RAW IO(True)/File IO(False)
+                expected_exit_code : used to handle the negative FIO scenario's, Need to pass the exit code of the executed FIO command 0 or 1
+                
+                run_async : used to run FIO in back ground
+        :return : Boolean
+        
         """
         try:
             if len(devices) is 1 and IO_mode is True:
@@ -434,32 +442,36 @@ class Client:
                 filename += "/file.bin"
             else:
                 raise Exception("no devices found ")
-            logger.info(fio_user_data)
             if fio_user_data and IO_mode == False:
-                logger.info("Executing fio with user data using  FILE IO")
+               
                 fio_cli = fio_user_data + " --filename={}".format(filename)
             elif fio_user_data and IO_mode == True:
-                logger.info("Executing fio with user data using  RAW IO")
+                
                 fio_cli = fio_user_data + " --filename={}".format(filename)
             elif IO_mode == False:
-                logger.info("Executing the default fio command with File IO ")
+               
                 fio_cli = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --filename={}".format(
                     filename
                 )
             else:
-                logger.info("Executing default fio command with RAW IO")
+              
                 fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(
                     filename
                 )
 
-            outfio = self.ssh_obj.execute(command=fio_cli, get_pty=True)
-            logger.info("".join(outfio))
-            return True, outfio
+            if run_async == True:
+                async_out = self.ssh_obj.run_async(fio_cli)
+                return True, async_out
+            else:
+                outfio = self.ssh_obj.execute(
+                    fio_cli, get_pty = True, expected_exit_code=expected_exit_code
+                )
+                logger.info("".join(outfio))
+                return True, outfio
+                
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
-
             return (False, None)
-
     def is_file_present(self, file_path:str) ->bool:
         """
         Method to verify if file present of not
@@ -772,6 +784,7 @@ class Client:
         """
         try:
             cmd = "nvme list"
+            time.sleep(5)
             out = self.nvme(cmd)
             self.nvme_list_out = []
             for line in out:

@@ -299,22 +299,7 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    def setup_env_pos(self) -> bool:
-        """
-        Method to setup poseidon envoirment
-        Returns:
-            bool
-        """
-        try:
-            cmd = "{}/script/setup_env.sh".format(self.cli.pos_path)
-            out = self.ssh_obj.execute(cmd)
-            if "Setup env. done" in out[-1]:
-                logger.info("Bringing drives from kernel mode to user mode successfull")
-                return True
-        except Exception as e:
-            logger.error("Execution  failed because of {}".format(e))
-            return False
-
+    
     def spor_prep(self) -> bool:
         """
         Method to spor preparation
@@ -388,8 +373,8 @@ class TargetUtils:
         """
 
         if size == None:
-            out = self.cli.info_array(array_name)
-            temp = self.helper.convert_size(out[1]["capacity"]).split(" ")
+            assert self.cli.info_array(array_name)[0] == True
+            temp = self.helper.convert_size(int(self.cli.array_info[array_name]['size']))
             if "TB" in temp:
                 size_params = int(float(temp[0]) * 1000)
                 size_per_vol = int(size_params / num_vol)
@@ -517,7 +502,8 @@ class TargetUtils:
             assert self.helper.get_mellanox_interface_ip()[0] == True
 
             ###system config
-
+           
+            
             if static_dict["system"]["phase"] == "true":
                 assert self.cli.start_system()[0] == True
                 assert self.cli.create_transport_subsystem()[0] == True
@@ -611,7 +597,7 @@ class TargetUtils:
             if static_dict["volume"]["array1"]["phase"] == "true":
                 array_name = "array1"
                 num_vol_array1 = static_dict["volume"]["array1"]["num_vol"]
-                logger.info(self.ss_temp_list)
+             
                 ss_list_array1 = [ss for ss in self.ss_temp_list if "array1" in ss]
                  
                 if num_vol_array1 > 0:
@@ -628,7 +614,7 @@ class TargetUtils:
                         == True
                     )
                     assert self.cli.list_volume(array_name)[0] == True
-                    logger.info(ss_list_array1)
+                 
                     assert (
                         self.mount_volume_multiple(
                             array_name, self.cli.vols, ss_list_array1
@@ -669,9 +655,9 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def setup_env_ibof(
+    def setup_env_pos(
         self,
-        hugepages: str,
+        hugepages: str = "7000",
         rd_nr: str = "2",
         rd_size: str = "4194304",
         max_part: str = "0",
@@ -729,6 +715,8 @@ class TargetUtils:
 
             assert self.setup_core_dump() == True
             assert self.setup_max_map_count() == True
+            assert self.udev_install() == True
+            assert self.check_udev_rule()
             return True
         except Exception as e:
             logger.error("Execution  failed because of {}".format(e))
@@ -877,6 +865,7 @@ class TargetUtils:
         assert self.cli.info_system()[0] == True
         logger.info("=============================ARRAY==========================")
         assert self.cli.info_array()[0] == True
+        assert self.cli.list_array()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) != 0:
             for array in array_list:

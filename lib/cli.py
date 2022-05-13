@@ -31,6 +31,8 @@
 #
 
 
+from multiprocessing.context import assert_spawning
+from re import T
 import time
 import logger
 import utils
@@ -131,7 +133,7 @@ class Cli:
                         time.sleep(5)
                         continue
                     else:
-                        return False, out
+                        return False, parse_out
 
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
@@ -253,8 +255,8 @@ class Cli:
                         # assert self.info_array(array_name=array)[0] == True
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
-                        assert self.delete_array(array_name=array)[0] == True
-
+                        
+                assert self.reset_devel()[0] == True
                 out = self.run_cli_command("stop --force", command_type="system")
 
                 if out[0] == True:
@@ -326,9 +328,13 @@ class Cli:
             self.array_dict = {}
             cmd = "list"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            
+            if cli_error == False and int(jout['status_code']) == 1224:
+                logger.info(jout['description'])
+                return True, jout
             if cli_error == True:
                 out = jout["output"]["Response"]
-                if "There is no array" in out["result"]["data"]["arrayList"]:
+                if "There is no array" in out["result"]["data"]["arrayList"] :
                     logger.info("No arrays present in the config")
                     return True, out
                 else:
@@ -355,6 +361,7 @@ class Cli:
         raid_type: str,
         array_name: str = None,
     ) -> (bool, dict()):
+        
         """
         Method to create array
         Args:
@@ -366,20 +373,21 @@ class Cli:
         """
         try:
             data = ",".join(data)
-
             if array_name != None:
                 self.array_name = array_name
 
-            cmd = "create -b {} -d {} -a {} --raid {}".format(
-                write_buffer, data, self.array_name, raid_type
+            cmd = "create -b {} -d {} -a {} ".format(
+                write_buffer, data, self.array_name
             )
-            if spare:
+                        
+            if spare and raid_type != "no-raid":
                 spare = spare[0] if len(spare) == 0 else ",".join(spare)
                 cmd += f" --spare {spare}"
-            if raid_type == "no-raid":
-                cmd.replace("raid RAID5", "--no-raid")
-
-            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            if raid_type != "no-raid":
+                cmd += f' --raid {raid_type}'
+            else:
+                cmd += ' --no-raid'
+            cli_error, jout = self.run_cli_command(cmd, command_type = "array")
             if cli_error == True:
                 if jout["status_code"] == 0:
                     return cli_error, jout
@@ -505,10 +513,11 @@ class Cli:
                 else:
                     flag = False
             else:
-                logger.error("list array device command execution failed")
+                logger.warning("No array found in the config")
                 return False, out[1]
             if flag == True:
                 array_state = out[1]["data"]["state"]
+                array_size = out[1]["data"]["capacity"]
                 array_situation = out[1]["data"]["situation"]
                 for dev in out[1]["data"]["devicelist"]:
                     if dev["type"] == "DATA":
@@ -529,6 +538,7 @@ class Cli:
             return False, None, None, None
         self.array_info[array_name] = {
             "state": array_state,
+            "size": array_size,
             "situation": array_situation,
             "data_list": data_dev,
             "spare_list": spare_dev,
@@ -593,7 +603,7 @@ class Cli:
         self,
         buffer_name: str,
         num_data: str,
-        num_spare: str,
+        num_spare: str ,
         raid: str,
         array_name: str = None,
     ) -> (bool, dict()):
@@ -610,9 +620,16 @@ class Cli:
         try:
             if array_name != None:
                 self.array_name = array_name
-            cmd = "autocreate --array-name {} --buffer {} --num-data-devs {} --num-spare {} --raid {}".format(
-                self.array_name, buffer_name, num_data, num_spare, raid
+            cmd = "autocreate --array-name {} --buffer {} --num-data-devs {}".format(
+                self.array_name, buffer_name, num_data
             )
+            
+            if int(num_spare) > 1 :
+                cmd += f' --num-spare {num_spare} '
+            if raid != "no-raid":
+                cmd += f' --raid {raid}'
+            else:
+                cmd += ' --no-raid'
 
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:

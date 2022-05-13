@@ -29,7 +29,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-
+import time
 from node import SSHclient
 from cli import Cli
 from target_utils import TargetUtils
@@ -109,6 +109,7 @@ class POS:
         try:
 
             assert self.target_utils.helper.check_system_memory() == True
+            
             """
             logger.info(
                 "------------------------------------------ CLI HISTORY ------------------------------------------"
@@ -135,7 +136,8 @@ class POS:
         except Exception as e:
 
             logger.error(e)
-            self.cli.core_dump()
+            #time.sleep(10000)
+            #self.cli.core_dump()
             #self.cli.stop_system()
             self.target_ssh_obj.close()
             self.client.close()
