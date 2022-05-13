@@ -2,11 +2,11 @@
 #    BSD LICENSE
 #    Copyright (c) 2021 Samsung Electronics Corporation
 #    All rights reserved.
-# 
+#
 #    Redistribution and use in source and binary forms, with or without
 #    modification, are permitted provided that the following conditions
 #    are met:
-# 
+#
 #      * Redistributions of source code must retain the above copyright
 #        notice, this list of conditions and the following disclaimer.
 #      * Redistributions in binary form must reproduce the above copyright
@@ -16,7 +16,7 @@
 #      * Neither the name of Samsung Electronics Corporation nor the names of
 #        its contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
-# 
+#
 #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 #    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -28,100 +28,56 @@
 #    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 
-import json
+
+from multiprocessing.context import assert_spawning
+from re import T
 import time
-from datetime import timedelta
 import logger
-from utils import Client
+import utils
+import helper
+import json
+from datetime import timedelta
+from threading import Thread
+
 
 logger = logger.get_logger(__name__)
-# from target_utils import TargetUtils as target_utils
 
 
 class Cli:
-    def __init__(
-        self,
-        con: "node ssh object of the target",
-        pos_path: "POS path",
-        array_name="POS_ARRAY1",
-    ):
+    """
+    The Cli class contains objects for  POS cli
+    
+    Args:
+        con (object) : target ssh obj
+        data_dict (dict) : pos_config details from testcase/config_files/`.json
+         pos_path (str) : path for pos source
+        array_name (str) : name of the POS array
+    """
 
+    def __init__(
+        self, con, data_dict: dict, pos_path: str, array_name: str = "POSARRAY1"
+    ):
         self.ssh_obj = con
+        self.helper = helper.Helper(con)
+        self.data_dict = data_dict
         self.pos_path = pos_path
         self.array_name = array_name
-        self.new_cli_path = "/bin/poseidonos-cli"
+        self.new_cli_path = "/bin/poseidonos-cli"  ##path of POS cli
+        self.array_info = {}
         self.cli_history = []
 
-    def parse_out(
-        self,
-        jsonout: dict(),
-        command: str,
-    ) -> dict():
-        """
-        Method to parse JSON params of CLI
-        """
-        out = json.loads(jsonout)
-        command = out["Response"]["command"]
-        if "param" in out.keys():
-            param = out["Request"]["param"]
-        else:
-            param = {}
-        status_code = out["Response"]["result"]["status"]["code"]
-        description = out["Response"]["result"]["status"]["description"]
-        logger.info(
-            "status code response from the command {} is {}".format(
-                command, status_code
-            )
-        )
-        logger.info(
-            "DESCRIPTION reposonse from command {} is {}".format(command, description)
-        )
-        parse_out = {}
-        if "data" in out["Response"]["result"]:
-            parse_out = {
-                "output": out,
-                "command": command,
-                "status_code": status_code,
-                "description": description,
-                "data": out["Response"]["result"]["data"],
-                "params": param,
-            }
-        else:
-            parse_out = {
-                "output": out,
-                "command": command,
-                "status_code": status_code,
-                "description": description,
-                "params": param,
-                "data": {},
-            }
-        logger.info(parse_out)
-        self.add_cli_history(parse_out)
-        return parse_out
-
-    def add_cli_history(self, parse_out):
-        """
-        Method to get cli command history for debugging
-        """
-        if len(self.cli_history) > 100:
-            del self.cli_history[0]
-        self.cli_history.append(
-            [
-                parse_out["command"],
-                parse_out["status_code"],
-                parse_out["params"],
-                parse_out["data"],
-            ]
-        )
-        return True
-
     def run_cli_command(
-        self, command: str, command_type="request", timeout=1800
-    ) -> (bool, list):
+        self, command: str, command_type: str = "request", timeout=30
+    ) -> (bool, dict()):
         """
-        Method to Execute CLIT commands and return Response
+        Method to Execute CLI commands and return Response
+        Args:
+        
+            command (str):  cli command to be executed
+            command_type (str) : Command type [array, device, system, qos, volume]
+            timeout (int) : time in seconds to wait for compeltion |default 30 seconds as max time allowed time is 30 sec wait
         """
 
         try:
@@ -131,9 +87,10 @@ class Cli:
             )
             start_time = time.time()
             run_end_time = start_time + timeout
+            
             while time.time() < run_end_time:
                 out = self.ssh_obj.execute(cmd, get_pty=True)
-                logger.info(out)
+
                 elapsed_time_secs = time.time() - start_time
                 logger.info(
                     "command execution completed in  : {} secs ".format(
@@ -143,7 +100,9 @@ class Cli:
                 out = "".join(out)
                 logger.info("Raw output of the command {} is {}".format(command, out))
                 if "cannot connect to the PoseidonOS server" in out:
-                    logger.warning("POSis not running! please start POS and try again!")
+                    logger.warning(
+                        "POS is not running! please start POS and try again!"
+                    )
                     return False, out
                 elif "invalid data metric" in out:
                     logger.warning("invalid syntax passed to the command ")
@@ -152,10 +111,16 @@ class Cli:
                     logger.error("passed file contains invalid json data")
                     return False, out
                 elif "Receiving error" in out:
-                    logger.error("ibof os crashed in between ! please check ibof logs")
+                    logger.error("POS os crashed in between ! please check POS logs")
                     return False, out
                 else:
-                    parse_out = self.parse_out(out, command)
+                    if "volume mount" in cmd or 'system start' in cmd:
+                        return (
+                            True,
+                            out,
+                        )  ##################temp fix .. invalid json obtained for mount volume
+                    parse_out = self.parse_out(out, cmd)
+                    self.add_cli_history(parse_out)
                     if parse_out["status_code"] == 0:
                         return True, parse_out
                     elif parse_out["status_code"] == 1030:
@@ -168,51 +133,130 @@ class Cli:
                         time.sleep(5)
                         continue
                     else:
-                        return False, out
+                        return False, parse_out
 
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
-            # out = self.ssh_obj.execute("pkill -9 pos")
-            self.core_dump()
             return False, None
+    
+    def add_cli_history(self, parse_out:dict) -> bool:
+        """
+        Method to get cli command history for debugging
+        """
+       
+        if len(self.cli_history) > 100000:
+            del self.cli_history[0]
+            
+        self.cli_history.append(
+            [
+                parse_out["command"],
+                parse_out["status_code"],
+                parse_out["description"]
+               
+            ]
+        )
+        return True
+
+    def parse_out(self, jsonout, command):
+
+        out = json.loads(jsonout)
+        command = command
+        if "param" in out.keys():
+            param = out["Request"]["param"]
+        else:
+            param = {}
+        # logger.info(out)
+        status_code = out["Response"]["result"]["status"]["code"]
+        description = out["Response"]["result"]["status"]["description"]
+        logger.info(
+            "status code response from the command {} is {}".format(
+                command, status_code
+            )
+        )
+        logger.info(
+            "DESCRIPTION from command {} is {}".format(command, description)
+        )
+
+        if "data" in out["Response"]["result"]:
+            return {
+                "output": out,
+                "command": command,
+                "status_code": status_code,
+                "description": description,
+                "data": out["Response"]["result"]["data"],
+                "params": param,
+            }
+        else:
+            return {
+                "output": out,
+                "command": command,
+                "status_code": status_code,
+                "description": description,
+                "params": param,
+                "data": None,
+            }
+    def _get_pos_logs(self):
+        """
+        method to get pos logs.. creates a thread to tail logs from /scripts/pos.log
+        """
+        while True:
+            out = self.start_out.get_output()
+            if out:
+                logger.info(out)
+            else:
+                pass
 
     #####################################################system################################
-    def start_system(self) -> (bool, list):
+    def start_system(self) -> (bool, dict()):
         """
         Method to start pos
         """
+        
         try:
-            cli_error, jout = self.run_cli_command("start", "system")
-            if cli_error == True:
-                return True, jout
-            else:
-                raise Exception("CLI Error")
+            out = ''
+            max_running_time = 30 * 60 #30min
+            start_time = time.time()
+            self.out = self.ssh_obj.run_async("nohup {}/bin/{} >> {}/script/pos.log".format(self.pos_path, "poseidonos", self.pos_path))
+            while True:
+                logger.info("waiting for iBOF logs")
+                time.sleep(5)
+                if self.out.is_complete() is False:
+                    logger.info("Time-consuming : {}".format(time.time() - start_time))
+                    return True, out
+                cur_time = time.time()
+                running_time = cur_time - start_time
+                if running_time > max_running_time:
+                    return False, out
+            
         except Exception as e:
             logger.error("failed due to {}".format(e))
-            return False, jout
+            return False, out
+        
 
-    def stop_system(self, grace_shutdown=True, time_out=300) -> (bool, list):
+    def stop_system(
+        self,
+        grace_shutdown: bool = True,
+        time_out: int = 300,
+    ) -> (bool, dict()):
         """
         Method to stop poseidon
+        Args:
+            grace_shutdown (bool) :"flag to kill POS grace_fully" (optional) | (default= True),
+            time_out (int) "timeout to wait POS map" (optional) | (default =300)
         """
         try:
             if grace_shutdown:
-                ibof_info = self.list_array()
-                if ibof_info[0] == True:
-                    logger.info("successfully fetched the POS os info")
-
-                    if len(list(ibof_info[2].keys())) == 0:
-                        logger.info("no array present to unmount")
-                    else:
-                        for array in list(ibof_info[2].keys()):
-
-                            self.array_name = array
-                            if ibof_info[2][array]["status"] == "Mounted":
-                                unmount_out = self.mount_unmount_array(
-                                    operation="unmount"
-                                )
-
-                            self.delete_array()
+                assert self.list_array()[0] == True
+                array_list = list(self.array_dict.keys())
+                if len(array_list) == 0:
+                    logger.info("No array found in the config")
+                else:
+                    for array in array_list:
+                        # assert self.info_array(array_name=array)[0] == True
+                        if self.array_dict[array].lower() == "mounted":
+                            assert self.unmount_array(array_name=array)[0] == True
+                        
+                assert self.reset_devel()[0] == True
                 out = self.run_cli_command("stop --force", command_type="system")
 
                 if out[0] == True:
@@ -220,16 +264,9 @@ class Cli:
                         logger.info("POS was stopped successfully!!! verifying PID")
                         count = 0
                         while True:
-                            pos_count = 0
-                            process_out = self.ssh_obj.execute(
-                                command="ps -eaf | grep 'poseidonos'"
-                            )
-                            logger.info(process_out)
-                            for i in process_out:
-                                logger.info(i)
-                                if "poseidonos" in i:
-                                    pos_count += 1
-                            if pos_count > 0:
+
+                            out = self.helper.check_pos_exit()
+                            if out == False:
                                 logger.warning("POS PID is still active")
                                 time.sleep(10)
                                 count += 10
@@ -244,8 +281,12 @@ class Cli:
             return False
         return True
 
-    def setposproperty_system(self, rebuild_impact: str):
-        """method to set the rebuild impact"""
+    def setposproperty_system(self, rebuild_impact: str) -> (bool, dict()):
+        """
+        method to set the rebuild impact
+        Args:
+            Rebuild_impact (str) : rebuild weight
+        """
         try:
             cmd = "set-property --rebuild-impact {}".format(rebuild_impact)
             cli_error, jout = self.run_cli_command(cmd, command_type="system")
@@ -260,28 +301,52 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
+    def info_system(self) -> (bool, dict()):
+        """
+        method to get system info of pos
+        """
+        try:
+            cmd = "info"
+            cli_error, jout = self.run_cli_command(cmd, command_type="system")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
     ################################################array#######################################
-    def list_array(self) -> (bool, list, dict()):
+    def list_array(self) -> (bool, dict()):
         """
         Method to list array
         """
         try:
-            array_dict = {}
+            self.array_dict = {}
             cmd = "list"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            
+            if cli_error == False and int(jout['status_code']) == 1224:
+                logger.info(jout['description'])
+                return True, jout
             if cli_error == True:
                 out = jout["output"]["Response"]
-                if "There is no array" in out["result"]["data"]["arrayList"]:
+                if "There is no array" in out["result"]["data"]["arrayList"] :
                     logger.info("No arrays present in the config")
-                    return True, out, array_dict
+                    return True, out
                 else:
-                    logger.info(out["result"]["data"]["arrayList"])
+
                     for i in out["result"]["data"]["arrayList"]:
                         a_name = i["name"]
                         a_status = i["status"]
-                        array_dict[a_name] = a_status
-                    logger.info(array_dict)
-                    return True, out, array_dict
+                        self.array_dict[a_name] = a_status
+                    logger.info(
+                        f"{str(len(list(self.array_dict.keys())))} Arrays are present in the Config and the Array names are {list(self.array_dict.keys())}"
+                    )
+                    return True, out
             else:
                 raise Exception("list array command execution failed ")
         except Exception as e:
@@ -290,30 +355,39 @@ class Cli:
 
     def create_array(
         self,
-        write_buffer: str = "uram0",
-        data: str = "unvme-ns-0,unvme-ns-1,unvme-ns-2",
-        spare: str = "unvme-ns-3",
-        raid_type: str = "RAID5",
+        write_buffer: str,
+        data: list,
+        spare: list,
+        raid_type: str,
         array_name: str = None,
-        npor=False,
-    ) -> (bool, list):
+    ) -> (bool, dict()):
+        
         """
         Method to create array
+        Args:
+            write_buffer (str) :name of the uram
+            data (list) : list of the data devices
+            spare (list) : list of the spare devices
+            raid_type (str) : Raid type
+            array_name (str) : name of the array
         """
         try:
+            data = ",".join(data)
             if array_name != None:
                 self.array_name = array_name
-            if npor == False:
-                out = self.reset_devel()
-            if spare:
-                cmd = "create -b {} -d {} -s {} -a {} --raid {}".format(
-                    write_buffer, data, spare, self.array_name, raid_type
-                )
+
+            cmd = "create -b {} -d {} -a {} ".format(
+                write_buffer, data, self.array_name
+            )
+                        
+            if spare and raid_type != "no-raid":
+                spare = spare[0] if len(spare) == 0 else ",".join(spare)
+                cmd += f" --spare {spare}"
+            if raid_type != "no-raid":
+                cmd += f' --raid {raid_type}'
             else:
-                cmd = "create -b {} -d {} -a {} --raid {}".format(
-                    write_buffer, data, self.array_name, raid_type
-                )
-            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+                cmd += ' --no-raid'
+            cli_error, jout = self.run_cli_command(cmd, command_type = "array")
             if cli_error == True:
                 if jout["status_code"] == 0:
                     return cli_error, jout
@@ -325,14 +399,22 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def mount_array(self, array_name: str = None) -> (bool, list):
+    def mount_array(
+        self, array_name: str = None, write_back: bool = False
+    ) -> (bool, dict()):
         """
         Method to mount array
+         
+        Args:
+            array_name (str) : name of the array
+            write_back (bool)  : write through if True else write back
         """
         try:
             if array_name != None:
                 self.array_name = array_name
             cmd = "mount -a {}".format(self.array_name)
+            if write_back:
+                cmd += "--enable-write-through"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -345,9 +427,12 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def unmount_array(self, array_name: str = None) -> (bool, list):
+    def unmount_array(self, array_name: str = None) -> (bool, dict()):
         """
         Method to unmount array
+        
+        Args:
+            array_name (str) : name of the array
         """
         try:
             if array_name != None:
@@ -365,7 +450,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def reset_devel(self) -> (bool, list):
+    def reset_devel(self) -> (bool, dict()):
         """
         Method to array reset
         """
@@ -383,9 +468,12 @@ class Cli:
             logger.error("failed due to  {}".format(e))
             return False, jout
 
-    def delete_array(self, array_name=None) -> (bool, list):
+    def delete_array(self, array_name: str = None) -> (bool, dict()):
         """
         Method to delete array
+        
+        Args:
+            array_name (str) name of the array
         """
         try:
             if array_name == None:
@@ -403,14 +491,18 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def info_array(self, array_name: str = None) -> (bool, list, list, str):
+    def info_array(self, array_name: str = None) -> (bool, dict()):
         """
         Method to get array information
+        
+        Args:
+            array_name (str) name of the array
         """
         spare_dev = []
         data_dev = []
         buffer_dev = []
         try:
+
             if array_name != None:
                 self.array_name = array_name
             cmd = "list -a {}".format(self.array_name)
@@ -421,10 +513,11 @@ class Cli:
                 else:
                     flag = False
             else:
-                logger.error("list array device command execution failed")
+                logger.warning("No array found in the config")
                 return False, out[1]
             if flag == True:
                 array_state = out[1]["data"]["state"]
+                array_size = out[1]["data"]["capacity"]
                 array_situation = out[1]["data"]["situation"]
                 for dev in out[1]["data"]["devicelist"]:
                     if dev["type"] == "DATA":
@@ -443,85 +536,119 @@ class Cli:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None, None, None
-        return (
-            True,
-            out[1]["data"],
-            array_state,
-            array_situation,
-            data_dev,
-            spare_dev,
-            buffer_dev,
-        )
+        self.array_info[array_name] = {
+            "state": array_state,
+            "size": array_size,
+            "situation": array_situation,
+            "data_list": data_dev,
+            "spare_list": spare_dev,
+            "buffer_list": buffer_dev,
+        }
+        return (True, out)
 
-    def addspare_array(self, device_name: str, array_name: str = None) -> (bool, list):
+    def addspare_array(
+        self, device_name: str, array_name: str = None
+    ) -> (bool, dict()):
         """
         Method to add spare drive
+        
+        Args:
+            device_name (str) : name of the device
+            array_name (str) : name of the array
         """
         try:
-            cmd = "addspare -s {} -a {}".format(device_name, array_name)
+            if array_name != None:
+                self.array_name = array_name
+            cmd = "addspare -s {} -a {}".format(device_name, self.array_name)
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 status_code = out["status_code"]
                 if status_code == 0:
-                    logger.info(out["description"])
-                    return True, out[1]
+
+                    return True, out
                 else:
                     raise Exception(out["description"])
             else:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
-            return False, out[1]
+            return False, out
 
-    def rmspare_array(self, device_name: str, array_name: str = None) -> (bool, list):
+    def rmspare_array(self, device_name: str, array_name: str = None) -> (bool, dict()):
         """
         Method to remove spare drive
+        
+        Args:
+            device_name (str) : name of the device
+            array_name (str) : name of the array
         """
         try:
+            if array_name != None:
+                self.array_name = array_name
             cmd = "rmspare -s {} -a {}".format(device_name, array_name)
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 status_code = out["status_code"]
                 if status_code == 0:
-                    logger.info(out["description"])
-                    return True, out[1]
+                    return True, out
                 else:
                     raise Exception(out["description"])
             else:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
-            return False, out[1]
+            return False, out
 
     def autocreate_array(
-        self, array_name: str, num_buffer: str, num_data: str, num_spare: str, raid: str
-    ) -> (bool, list):
+        self,
+        buffer_name: str,
+        num_data: str,
+        num_spare: str ,
+        raid: str,
+        array_name: str = None,
+    ) -> (bool, dict()):
         """
-        Method to autocreate array
+        Method to ameutocreate array
+        
+        Args:
+            array_name (str) : name of the array
+            buffer_name (str) : name of the buffer
+            num_data (str) : num of data devices
+            num_spare (str) : num of spare | 0 if no spare
+            raid (str) : type of raid
         """
         try:
-            cmd = "autocreate --array-name {} --num-buffer {} --num-data-devs {} --num-spare {} --raid {}".format(
-                array_name, num_buffer, num_data, num_spare, raid
+            if array_name != None:
+                self.array_name = array_name
+            cmd = "autocreate --array-name {} --buffer {} --num-data-devs {}".format(
+                self.array_name, buffer_name, num_data
             )
+            
+            if int(num_spare) > 1 :
+                cmd += f' --num-spare {num_spare} '
+            if raid != "no-raid":
+                cmd += f' --raid {raid}'
+            else:
+                cmd += ' --no-raid'
 
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 status_code = out["status_code"]
                 if status_code == 0:
                     logger.info(out["description"])
-                    return True, out[1]
+                    return True, out
                 else:
                     raise Exception(out["description"])
             else:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
-            return False, out[1]
+            return False, out
 
     ########################################################device######################
     def scan_device(
         self,
-    ) -> (bool, list):
+    ) -> (bool, dict()):
         """
         Method to scan devices
         """
@@ -540,14 +667,31 @@ class Cli:
             return False, jout
 
     def create_device(
-        self, uram_name :str ="uram0", bufer_size :str ="16777216", strip_size :str="512"
-    ) -> (bool, list):
+        self,
+        uram_name: str = None,
+        bufer_size: str = None,
+        strip_size: str = None,
+        numa: str = None,
+    ):
         """
         Method to create malloc device
+        Args:
+            uram_name (str) : name of uram
+            buffer_szie (str) : |default 8GB
+            strip_size (str) : 512
+            num (str) : 1
         """
         try:
-            cmd = 'create --device-name {} --num-blocks {} --block-size {} --device-type "uram"'.format(
-                uram_name, bufer_size, strip_size
+            if uram_name == None:
+                uram_name = self.data_dict["device"]["uram_name"]
+            if bufer_size == None:
+                bufer_size = self.data_dict["device"]["bufer_size"]
+            if strip_size == None:
+                strip_size = self.data_dict["device"]["strip_size"]
+            if numa == None:
+                numa = self.data_dict["device"]["numa"]
+            cmd = 'create --device-name {} --num-blocks {} --block-size {} --device-type "uram" --numa {}'.format(
+                uram_name, bufer_size, strip_size, numa
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="device")
             if cli_error == True:
@@ -564,18 +708,21 @@ class Cli:
     def list_device(self) -> (bool, dict()):
         """
         Method to list devices
+
         """
         try:
             cmd = "list"
             cli_error, out = self.run_cli_command(cmd, command_type="device")
             devices = []
             device_map = {}
-            dev_type = {"NVRAM": [], "SSD": []}
+            self.device_type = {}
+            self.dev_type = {"NVRAM": [], "SSD": []}
+
             if cli_error == True:
                 if out["status_code"] == 0:
                     if out["description"].lower() == "no any device exists":
                         logger.info("No devices listed")
-                        return True, out, devices, device_map, dev_type
+                        return True, out, devices, device_map, self.dev_type
                     if "data" in out:
                         dev = out["data"]["devicelist"]
                         for device in dev:
@@ -587,19 +734,26 @@ class Cli:
                                 "sn": device["sn"],
                                 "size": device["size"],
                                 "type": device["type"],
+                                "class": device["class"],
                             }
-                            if dev_map["type"] in dev_type.keys():
-                                dev_type[dev_map["type"]].append(dev_map["name"])
+                            if dev_map["type"] in self.dev_type.keys():
+                                self.dev_type[dev_map["type"]].append(dev_map["name"])
                                 device_map.update({device["name"]: dev_map})
 
-                        return (
-                            True,
-                            out,
-                            devices,
-                            device_map,
-                            dev_type["NVRAM"],
-                            dev_type["SSD"],
-                        )
+                        self.NVMe_BDF = device_map
+                        self.system_disks = [
+                            item
+                            for item in device_map
+                            if device_map[item]["class"].lower() == "system"
+                            and device_map[item]["type"].lower() == "ssd"
+                        ]
+                        self.system_buffer = [
+                            item
+                            for item in device_map
+                            if device_map[item]["class"].lower() == "system"
+                            and device_map[item]["type"].lower() == "nvram"
+                        ]
+                        return (True, out)
                 else:
                     raise Exception(
                         "list dev command failed with status code {}".format(
@@ -612,8 +766,13 @@ class Cli:
             logger.error("command execution failed with exception {}".format(e))
             return False, None, None, None, None
 
-    def smart_device(self, devicename: str) -> (bool,dict()):
-        """method to get smart details of a devce"""
+    def smart_device(self, devicename: str) -> (bool, dict()):
+        """
+        method to get smart details of a devce
+        Args:
+            device_name : name of the device
+
+        """
         try:
             cmd = "smart-log -d {}".format(devicename)
             cli_error, jout = self.run_cli_command(cmd, command_type="device")
@@ -629,8 +788,12 @@ class Cli:
             return False, jout
 
     ################################################logger##############################
-    def set_log_level_logger(self, level: str) -> (bool,dict()):
-        """method to set the log level"""
+    def set_log_level_logger(self, level: str) -> (bool, dict()):
+        """
+        method to set the log level
+        Args:
+            level (str) : logger level
+        """
         try:
             cmd = "set-level --level {}".format(level)
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
@@ -645,8 +808,12 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def get_log_level_logger(self) -> (bool,dict()):
-        """method to get the log level"""
+    def get_log_level_logger(self) -> (bool, dict()):
+        """
+        method to get the log level
+
+        """
+
         try:
             cmd = "get-level"
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
@@ -661,8 +828,11 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def apply_log_filter(self) -> (bool,dict()):
-        """method to set log filter"""
+    def apply_log_filter(self) -> (bool, dict()):
+        """
+        method to set log filter
+
+        """
         try:
             cmd = "apply-filter"
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
@@ -677,8 +847,11 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def info_logger(self) -> (bool,dict()):
-        """method to get logger info"""
+    def info_logger(self) -> (bool, dict()):
+        """
+        method to get logger info
+
+        """
         try:
             cmd = "info"
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
@@ -696,7 +869,10 @@ class Cli:
     ###################################################telemetry#########################
 
     def start_telemetry(self) -> (bool, dict()):
-        """method to start telemetry"""
+        """
+        method to start telemetry
+
+        """
         try:
             cmd = "start"
             cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
@@ -711,8 +887,11 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def stop_telemetry(self):
-        """method to stop telemetry"""
+    def stop_telemetry(self) -> (bool, dict()):
+        """
+        method to stop telemetry
+
+        """
         try:
             cmd = "stop"
             cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
@@ -736,8 +915,19 @@ class Cli:
         maxbw: str,
         miniops: str = None,
         minbw: str = None,
-    ) -> (bool,dict()):
-        """method to create qos volume policy"""
+    ) -> (bool, dict()):
+        """
+        method to create qos volume policy
+        Args:
+            volumename (str) : name of the volume
+            arrayname (str) : name of the array
+            maxiops (str) IOPs value
+            maxbw (str) bandwidth
+            miniops (str) |default
+            minbw (str)
+        Returns:
+            bool, list
+        """
         try:
             if miniops == None and minbw != None:
                 cmd = "create -v {} -a {} --maxiops {} --maxbw {} --minbw {}".format(
@@ -764,8 +954,15 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def reset_volume_policy_qos(self, volumename :str, arrayname:str) -> (bool,dict()):
-        """method to reset volume policy"""
+    def reset_volume_policy_qos(
+        self, volumename: str, arrayname: str
+    ) -> (bool, dict()):
+        """method to reset volume policy
+        Args:
+            volumename (str) name of the volume
+            arrayname (str) name of the array
+
+        """
         try:
             cmd = "reset -v {} -a {}".format(volumename, arrayname)
             cli_error, jout = self.run_cli_command(cmd, command_type="qos")
@@ -780,8 +977,14 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def list_volume_policy_qos(self, volumename : str, arrayname: str) -> (bool,dict()):
-        """method to list volume policy"""
+    def list_volume_policy_qos(self, volumename: str, arrayname: str) -> (bool, dict()):
+        """
+        method to list volume policy
+        Args:
+            volumename (str) : name of the volume
+            arrayname (str) : name of the array
+
+        """
         try:
             cmd = "list -v {} -a {}".format(volumename, arrayname)
             cli_error, jout = self.run_cli_command(cmd, command_type="qos")
@@ -797,15 +1000,18 @@ class Cli:
             return False, jout
 
     ###################################################volume#############################
-    def list_volume(self, array_name: str =None) -> (bool, list, dict()):
+    def list_volume(self, array_name: str = "POSARRAY1") -> (bool, dict()):
         """
         Method to list volumes
+        Args:
+            array_name : name of the array
+
         """
         try:
             if array_name != None:
                 self.array_name = array_name
             vol_dict = {}
-            volumes = []
+
             cmd = "list -a {}".format(self.array_name)
             cli_error, out = self.run_cli_command(cmd, command_type="volume")
 
@@ -813,8 +1019,11 @@ class Cli:
                 raise Exception("CLI Error")
             if out["status_code"] != 0:
                 raise Exception(out["description"])
-            if len(out["data"]["volumes"]) == 0:
-                raise Exception("no volumes present in the array")
+            no_vols_str = f"no any volume exist in {self.array_name}"
+            if no_vols_str == out["description"]:
+                logger.warning(out["description"])
+                self.vols = []
+                return True, [], {}
             for vol in out["data"]["volumes"]:
                 vol_dict[vol["name"]] = {
                     "total": vol["total"],
@@ -822,15 +1031,30 @@ class Cli:
                     "max_iops": vol["maxiops"],
                     "maxbw": vol["maxbw"],
                 }
-
+            self.vols = list(vol_dict.keys())
             return True, list(vol_dict.keys()), vol_dict
         except Exception as e:
             logger.error("list volume command failed with exception {}".format(e))
             return False, out
 
-    def create_volume(self, volumename: str, size: str, array_name:str=None, iops:int =0, bw:int =0):
+    def create_volume(
+        self,
+        volumename: str,
+        size: str,
+        array_name: str = None,
+        iops: str = 0,
+        bw: str = 0,
+    ) -> (bool, dict()):
         """
         Method to create volume
+        Args:
+            volumename (str) : name of the volume
+            size (str) : size of the volume
+            array_name (str) : name of the array
+            iops (str) : iops value
+            bw (str) : bandwidth value
+            #TODO add max and min iops
+
         """
         try:
             if array_name == None:
@@ -850,12 +1074,18 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def delete_volume(self, volumename: str, array_name:str) -> (bool, list):
+    def delete_volume(self, volumename: str, array_name: str) -> (bool, dict()):
         """
         Method to delete volume
+        Args:
+            volumename (str) : name of the volume
+            array_name (str) : name of the array
+
         """
         try:
-            cmd = "delete -a {} -v {} --force ".format(array_name, volumename)
+            if array_name != None:
+                self.array_name = array_name
+            cmd = "delete -a {} -v {} --force ".format(self.array_name, volumename)
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -868,20 +1098,27 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def mount_volume(self, volumename:str, array_name:str, nqn:str=None) -> (bool, list):
+    def mount_volume(
+        self, volumename: str, array_name: str = None, nqn: str = None
+    ) -> (bool, dict()):
         """
         Method to mount volume
+        Args:
+            volumename (str) name of the volume
+            array_name (str) name of the array
+            nqn (str) Subsystem name  |if nqn == None then random NQN will be selected by POS
+
         """
         try:
-            cmd = "mount -v {} -a {}".format(volumename, array_name)
+            if array_name != None:
+                self.array_name = array_name
+            cmd = "mount -v {} -a {} --force".format(volumename, self.array_name)
             if nqn:
                 cmd += " --subnqn {}".format(nqn)
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
+
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return cli_error, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -889,14 +1126,21 @@ class Cli:
             return False, jout
 
     def rename_volume(
-        self, new_volname:str=None, volname:str=None, array_name:str=None
-    ) -> (bool, list):
+        self, new_volname: str, volname: str, array_name: str = None
+    ) -> (bool, dict()):
         """
         Method to unmount volume
+        Args:
+            new_volname (str) name of the new volume
+            volname (str) old volumename
+            array_name (str) old array_name
+
         """
         try:
+            if array_name != None:
+                self.array_name = array_name
             cmd = "rename --volume-name {} --array-name {} --new-volume-name {}".format(
-                volname, array_name, new_volname
+                volname, self.array_name, new_volname
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
@@ -910,12 +1154,18 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def unmount_volume(self, volumename:str, array_name:str) -> (bool, list):
+    def unmount_volume(self, volumename: str, array_name: str = None) -> (bool, dict()):
         """
         Method to unmount volume
+        Args:
+            volumename (str) name of the volume
+            array_name (str) name of array
+
         """
         try:
-            cmd = "unmount -v {} -a {} --force".format(volumename, array_name)
+            if array_name != None:
+                self.array_name = array_name
+            cmd = "unmount -v {} -a {} --force".format(volumename, self.array_name)
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -928,13 +1178,25 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    def mount_with_subsystem_volume(self, volumename:str, nqn_name:str, array_name:str, ip:str, vcid:str):
+    def mount_with_subsystem_volume(
+        self, volumename: str, nqn_name: str, ip: str, vcid: str, array_name: str = None
+    ) -> (bool, dict()):
         """
         method to mount volume with subsystem
+        Args:
+            volumename (str) name of the volume
+            nqn_name (str) : name of the SS
+            array_name (str) name of the array
+            ip (str) : IP details
+            vcid (str) : port details
+
+
         """
         try:
+            if array_name != None:
+                self.array_name = array_name
             cmd = "mount-with-subsystem --volume-name {} --subnqn {} --array-name {} --trtype tcp --traddr {} --trsvcid {} --force".format(
-                volumename, nqn_name, array_name, ip, vcid
+                volumename, nqn_name, self.array_name, ip, vcid
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
@@ -950,14 +1212,31 @@ class Cli:
 
     #########################################subsystem#################
     def create_subsystem(
-        self, nqn_name:str, ns_count:int =512, s:str="POS000000000001", d:str="POS_VOLUME"
-    ) -> (bool, list):
+        self,
+        nqn_name: str,
+        ns_count: str = None,
+        serial_number: str = None,
+        model_name: str = None,
+    ) -> (bool, dict()):
         """
         Method to create nvmf subsystem
+        Args:
+            nqn_name (str) : name of Subsystem
+            ns_count (int) : max namespace
+            model_name (str) : model_number
+            serial_number (str) : serial number
+
         """
         try:
+            if ns_count == None:
+                ns_count = self.data_dict["subsystem"]["ns_count"]
+            if serial_number == None:
+                serial_number = self.data_dict["subsystem"]["serial_number"]
+            if model_name == None:
+                model_name = self.data_dict["subsystem"]["model_name"]
+
             cmd = "create --subnqn {} --serial-number {} --model-number {} --max-namespaces {} --allow-any-host".format(
-                nqn_name, s, d, ns_count
+                nqn_name, serial_number, model_name, ns_count
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="subsystem")
             if cli_error == True:
@@ -971,9 +1250,10 @@ class Cli:
             logger.error(e)
             return False, jout
 
-    def list_subsystem(self) -> (bool, list):
+    def list_subsystem(self) -> (bool, dict()):
         """
         method executes nvmf_get_subsystems
+
         """
         try:
             nvmf_out, temp = {}, {}
@@ -989,10 +1269,13 @@ class Cli:
             return (False, None)
 
     def add_listner_subsystem(
-        self, nqn_name:str, mellanox_interface:str, port:str, transport:str="TCP"
-    ) -> (bool, list):
+        self, nqn_name: str, mellanox_interface: str, port: str, transport: str = "TCP"
+    ):
         """
         Method to add nvmf listner
+        Args:
+            nqn_name (str) : Subsystem name
+            mellanox_interface
         """
         try:
 
@@ -1014,10 +1297,17 @@ class Cli:
             return False, jout
 
     def create_transport_subsystem(
-        self, buf_cache_size:str=64, num_shared_buf:str=4096, transport_type:str="TCP"
-    ) -> (bool, list):
+        self,
+        buf_cache_size: str = 64,
+        num_shared_buf: str = 4096,
+        transport_type: str = "TCP",
+    ) -> (bool, dict()):
         """
         Method to create transport
+        Args:
+            buf_cache_size (str) : buffer size for TCP packets
+            num_share_buf (str) : num of buffers
+            transport type (str)
         """
         try:
             command = "create-transport --trtype {} --buf-cache-size {} --num-shared-buf {} ".format(
@@ -1032,9 +1322,34 @@ class Cli:
             logger.error(e)
             return False, out
 
+    def delete_subsystem(self, nqn_name: str, force: bool = True) -> (bool, dict()):
+        """method to delete subsystem
+        Args:
+            nqn_name (str) name of the subsystem
+            force (bool) |default True
+
+        """
+        try:
+            force = " --force" if force else " "
+            command = f"delete --subnqn {nqn_name} {force}"
+            cli_error, jout = self.run_cli_command(command, "subsystem")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    logger.info(jout["description"])
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+
+        except Exception as e:
+            logger.error(e)
+            return False, jout
+
+    # TODO check if the below Methods are to be open sourced/ renamed for open sourcing
     ######################################wbt#######################################
 
-    def wbt_do_gc(self, array_name: str = None) -> (bool, list):
+    def wbt_do_gc(self, array_name: str = None):
         """
         Method to do gc
         """
@@ -1055,7 +1370,7 @@ class Cli:
             logger.error(e)
             return False, jout
 
-    def wbt_get_gc_status(self, array_name: str = None) -> (bool, list):
+    def wbt_get_gc_status(self, array_name: str = None):
         """
         Method to get gc status
         """
@@ -1076,7 +1391,7 @@ class Cli:
             logger.error(e)
             return False, jout
 
-    def wbt_get_gc_threshold(self, array_name: str = None) -> (bool, list):
+    def wbt_get_gc_threshold(self, array_name: str = None):
         """
         Method to get gc threshold
         """
@@ -1097,7 +1412,7 @@ class Cli:
             logger.error(e)
             return False, jout
 
-    def wbt_flush(self, array_name: str = None) -> (bool, list):
+    def wbt_flush(self, array_name: str = None):
         """
         Method to flush
         """
@@ -1127,7 +1442,7 @@ class Cli:
         try:
             output_txt_path = "/root/output.txt"
 
-            if Client.is_file_present(output_txt_path) == True:
+            if utils.Client.is_file_present(output_txt_path) == True:
                 delete_cmd = "rm -fr %s" % output_txt_path
                 logger.info("Deleting existing output files")
                 out = self.ssh_obj.execute(delete_cmd)
@@ -1138,11 +1453,11 @@ class Cli:
             cli_error, jout = self.run_cli_command(vsamap_entry_cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
-                    if Client.is_file_present(output_txt_path) == False:
+                    if utils.Client.is_file_present(output_txt_path) == False:
                         raise Exception("output file not generated")
                     else:
                         logger.info("Output.txt file Generated!!!")
-                        flag, map_dict = self.wbt_parser(output_txt_path)
+                        flag, map_dict = self.helper.wbt_parser(output_txt_path)
                         if flag == True:
                             logger.info(
                                 "Successfully data parsed from output.txt file "
@@ -1156,9 +1471,7 @@ class Cli:
             logger.error(e)
             return False, jout
 
-    def wbt_read_stripemap_entry(
-        self, vsid: str, array_name: str = None
-    ) -> (bool, dict()):
+    def wbt_read_stripemap_entry(self, vsid: str, array_name: str = None):
         """
         Method to read stripe map entry
         """
@@ -1166,7 +1479,7 @@ class Cli:
             logger.info("Executing read_stripemap_entry command")
             output_txt_path = "/root/output.txt"
 
-            if Client.is_file_present(output_txt_path) == True:
+            if utils.Client.is_file_present(output_txt_path) == True:
                 delete_cmd = "rm -fr {}".format(output_txt_path)
                 logger.info("Deleting existing output files")
                 out = self.ssh_obj.execute(delete_cmd)
@@ -1178,11 +1491,13 @@ class Cli:
                     "Command Execution failed; Please check and Retry again"
                 )
             else:
-                if Client.is_file_present(output_txt_path) == False:
+                if utils.Client.is_file_present(output_txt_path) == False:
                     raise Exception("output file not generated")
                 else:
                     logger.info("Output.txt file Generated!!!")
-                    flag_wbt_par, map_dict_wbt_par = self.wbt_parser(output_txt_path)
+                    flag_wbt_par, map_dict_wbt_par = self.helper.wbt_parser(
+                        output_txt_path
+                    )
                     if flag_wbt_par == True:
                         logger.info("successfully parsed data from output.txt file")
                         return True, map_dict_wbt_par
@@ -1193,14 +1508,14 @@ class Cli:
             return False, None
 
     def wbt_translate_device_lba(
-        self, array_name:str, logical_stripe_id:str=0, logical_offset:str=10
+        self, array_name: str, logical_stripe_id: str = 0, logical_offset: str = 10
     ):
         """
         Method to translate device lba
         """
         try:
             output_txt_path = "/root/output.txt"
-            if self.is_file_present(output_txt_path) == True:
+            if utils.Client.is_file_present(output_txt_path) == True:
                 delete_cmd = "rm -fr {}".format(output_txt_path)
                 logger.info("Deleting existing output files")
 
@@ -1217,11 +1532,13 @@ class Cli:
                     "Command Execution failed; Please check and Retry again"
                 )
             else:
-                if self.is_file_present(output_txt_path) == False:
+                if utils.Client.is_file_present(output_txt_path) == False:
                     raise Exception("output file not generated")
                 else:
                     logger.info("Output.txt file Generated!!!")
-                    flag_par_lba, trans_dict_lba = self.wbt_parser(output_txt_path)
+                    flag_par_lba, trans_dict_lba = self.helper.wbt_parser(
+                        output_txt_path
+                    )
                     if flag_par_lba == True:
                         logger.info("Successfully data parsed from output.txt file ")
                         return True, trans_dict_lba
@@ -1231,7 +1548,7 @@ class Cli:
             logger.error("command execution failed because of {}".format(e))
             return False, None
 
-    def wbt_write_uncorrectable_lba(self, device_name:str, lba:str):
+    def wbt_write_uncorrectable_lba(self, device_name: str, lba: str):
         """
         Method to write uncorrectable lba
         """
@@ -1261,12 +1578,12 @@ class Cli:
             logger.error("command execution failed because  of {}".format(e))
             return False, out
 
-    def wbt_read_raw(self, dev:str, lba:str, count:str):
+    def wbt_read_raw(self, dev: str, lba: str, count: str):
         """
         Method to read raw
         """
         try:
-            file_name = "/tmp/{}.bin".format(self.random_File_name())
+            file_name = "/tmp/{}.bin".format(self.helper.random_File_name())
             wbt_cmd = "read_raw --dev {} --lba {} --count {}  --output {} ".format(
                 dev, lba, count, file_name
             )
@@ -1294,26 +1611,17 @@ class Cli:
         Method to collect core dump by giving different options depending on whether poseidonos is running
         """
         try:
-            logger.info(
-                "------------------------------------------ CLI HISTORY ------------------------------------------"
-            )
-            logger.info(self.cli_history)
-            for cli_cmd in self.cli_history:
-                logger.info("CMD: {}, STATUS_CODE: {}, ".format(cli_cmd[0], cli_cmd[1]))
-            logger.info(
-                "-------------------------------------------------------------------------------------------------------"
-            )
-            command = "ps -aef | grep -i poseidonos"
-            out = self.ssh_obj.execute(command)
-            command = "pkill -11 poseidonos"
-            out = self.ssh_obj.execute(command)
-            logger.error("pkill -11 poseidonos for createing core dump file")
-            dump_type = "crashed"
+
+            if self.helper.check_pos_exit() == False:
+                dump_type = "triggercrash"
+            else:
+                dump_type = "crashed"
+
             command = "{}/tool/dump/trigger_core_dump.sh {}".format(
                 self.pos_path, dump_type
             )
-            # out = self.ssh_obj.execute(command)
-            # logger.info("core dump file creation: {}".format(out))
+            out = self.ssh_obj.execute(command)
+            logger.info("core dump file creation: {}".format(out))
             return out
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))

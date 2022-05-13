@@ -6,7 +6,7 @@
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
 #   are met:
-#   
+#
 #     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright
@@ -16,7 +16,7 @@
 #      * Neither the name of Samsung Electronics Corporation nor the names of
 #        its contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
-#    
+#
 #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 #    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -37,6 +37,7 @@ import random
 import json
 import traceback
 from node import SSHclient
+import helper
 
 logger = logger.get_logger(__name__)
 import node
@@ -44,20 +45,23 @@ import node
 
 class Client:
     """
-    Client class consisting of utilities methods
-    """
+    The Client objects contains methods for host application
 
-    def __init__(
-        self,
+    Args:
         ip: "ip of the host",
         username: "username of the host",
         password: "password of the host",
-    ):
-        """
-        :param ssh_obj: ssh object needs to be passed created during starting of execution
-        """
-        self.ssh_obj = SSHclient(ip, username, password)
-        # self.file_gen_path = "/root/output.txt"
+        client_cleanup : " flag to clean up client" (Default: True)
+    """
+
+    def __init__(self, ip:str, username:str, password:str, client_cleanup:bool=True):
+
+        ssh_obj = SSHclient(ip, username, password)
+        self.helper = helper.Helper(ssh_obj)
+        self.ssh_obj = ssh_obj
+        self.client_clean = client_cleanup
+        if self.client_clean == True:
+            self.client_cleanup()
 
     def close(self):
         """
@@ -65,10 +69,26 @@ class Client:
         """
         self.ssh_obj.close()
 
+    def client_cleanup(self):
+        """
+        method to do client clean up
+        """
+
+        self.nvme_disconnect()
+        self.load_drivers()
+        self.dmesg_clear()
+
+    def dmesg_clear(self):
+        """
+        method to clear Dmesg
+        """
+
+        self.ssh_obj.execute("dmesg -C")
+
     def reboot_node(self) -> bool:
         """
         Method to reboot the node
-        :return:True/False
+        Returns : bool
         """
         try:
             stdoutlines = []
@@ -89,13 +109,16 @@ class Client:
             return True
         except Exception as e:
             logger.error("Error rebooting node because of Error {}".format(e))
-            logger.error(traceback.format_exc())
             return False
 
-    def reboot_with_reconnect(self, timeout: int = 600) -> (object, bool):
+    def reboot_with_reconnect(self, timeout:int=600) -> bool:
         """
         Methods: To reboot the node and wait for it come up
-        timeout: time to wait for node to come up after reboot
+
+        Args:
+            timeout (int) : time to wait for not to come up (default 5 minutes)
+        Returns:
+         new_ssh obj, bool
         """
         self.reboot_node()
         count = 0
@@ -123,10 +146,14 @@ class Client:
             logger.error(traceback.format_exc())
             raise ConnectionError("Node failed to come up")
 
-    def reconnect(self, timeout: int = 600) -> object:
+    def reconnect(self, timeout: int = 600) -> bool:
         """
         Methods: To reboot the node and wait for it come up
-        timeout: time to wait for node to come up after reboot
+
+        Args:
+            timeout (int) : time to wait for not to come up (default 5 minutes)
+        Returns:
+         new_ssh obj
         """
         count = 0
         new_ssh_obj = None
@@ -150,20 +177,32 @@ class Client:
         if new_ssh_obj:
             return new_ssh_obj
         else:
-            logger.error(traceback.format_exc())
+
             raise ConnectionError("Node failed to come up")
 
     def nvme(self, nvme_cmd: str) -> (bool, list):
         """
         Methods: Execution of nvme command
+
+        Args:
+            nvme_cmd (str) : nvme command to be executed
+        Returns:
+          bool, list
+
         """
-        logger.info("Executing NVMe CLI client commands")
+
         nvme_cmd_output = self.ssh_obj.execute(nvme_cmd)
         return nvme_cmd_output
 
-    def nvme_format(self, device_name: str) -> bool:
+    def nvme_format(self, device_name:str) -> (bool, list):
         """
-        Method to format device using nvme cli
+        Method
+        To format device using nvme cli
+
+        Args:
+            device_name (str) : Name of the device to be formated
+        Returns:
+            bool
         """
         try:
             logger.info("Formatting the device {} ".format(device_name))
@@ -175,13 +214,19 @@ class Client:
                 raise Exception("formatting nvme device failed")
         except Exception as e:
             logger.error("nvme format command failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False
         return True
 
-    def nvme_id_ctrl(self, device_name: str, search_string: str = None) -> (list, bool):
+    def nvme_id_ctrl(self, device_name:str, search_string:str=None) -> (bool, list):
         """
         Method to execute nvme id-ctrl nvme cli
+
+        Args:
+            device_name (str) name of the device
+            search_string (str) Search Expression (default = None)
+        Returns:
+            bool, list
         """
         try:
             logger.info("Executing id-ctrl on  the device {} ".format(device_name))
@@ -205,12 +250,17 @@ class Client:
                 )
         except Exception as e:
             logger.error("nvme id-ctrl command failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False, out
 
-    def nvme_ns_rescan(self, cntlr_name: str) -> bool:
+    def nvme_ns_rescan(self, cntlr_name:str) -> bool:
         """
         Method to execute nvme ns-rescan nvme cli
+
+        Args:
+            cntlr_name (str) Search for the name of the controller
+        Returns:
+            bool
         """
         try:
             logger.info("Executing ns-rescan on  the controller {} ".format(cntlr_name))
@@ -227,12 +277,19 @@ class Client:
                 return True
         except Exception as e:
             logger.error("nvme ns-rescan command failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False
 
-    def nvme_show_regs(self, device_name: str, search_string: str = None):
+    def nvme_show_regs(self, device_name:str, search_string:str=None) ->(bool, list):
         """
         Method to execute nvme show-regs nvme cli
+
+        Args:
+            device_name (str): name of the Device
+            search_strings (str): Pattern to be matched (default = None)
+
+        Returns:
+            bool, list
         """
         try:
             logger.info("Executing show-regs on  the device {} ".format(device_name))
@@ -259,12 +316,18 @@ class Client:
                 )
         except Exception as e:
             logger.error("nvme show-regs command failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False, out
 
-    def nvme_list_subsys(self, device_name: str):
+    def nvme_list_subsys(self, device_name:str) ->(bool, list):
         """
         Method to execute nvme list-subsys nvme cli
+
+        Args:
+            device_name (str) : device name
+
+        Returns:
+            bool, list
         """
         try:
             logger.info("Executing list-subsys on  the device {} ".format(device_name))
@@ -288,12 +351,18 @@ class Client:
                 return True, json_out
         except Exception as e:
             logger.error("nvme list-subsys command failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False, None
 
-    def nvme_smart_log(self, device_name: str, search_string: str = None):
+    def nvme_smart_log(self, device_name:str, search_string:str=None) -> (bool, list):
         """
         Method to execute nvme smart-log nvme cli
+        Args:
+            device_name (str): name of the Device
+            search_strings (str): Pattern to be matched (default = None)
+
+        Returns:
+            bool, list
         """
         try:
             logger.info("Executing smart-log  on  the device {} ".format(device_name))
@@ -320,12 +389,14 @@ class Client:
                 )
         except Exception as e:
             logger.error("nvme smart-log command failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False, None
 
     def os_version(self) -> str:
         """
-        :method To find OS version
+        method To find OS version
+        Returns:
+            str
         """
         flag = [
             version
@@ -340,13 +411,24 @@ class Client:
             return flag[0].split("=")[1].strip("\n") + flag[1].split("=")[1].strip()
 
     def fio_generic_runner(
-        self, devices: list, fio_user_data: str = None, IO_mode: bool = True
+        self,
+        devices,
+        fio_user_data=None,
+        IO_mode=True,
+        expected_exit_code=None,
+        run_async=False
+        
     ):
         """
         :method To run user provided fio cmd line from user
         :params fio_user_data :fio cmd line (default :none)
                 devices: takes a list of either mount points or raw devices
                 IO_mode : RAW IO(True)/File IO(False)
+                expected_exit_code : used to handle the negative FIO scenario's, Need to pass the exit code of the executed FIO command 0 or 1
+                
+                run_async : used to run FIO in back ground
+        :return : Boolean
+        
         """
         try:
             if len(devices) is 1 and IO_mode is True:
@@ -360,37 +442,44 @@ class Client:
                 filename += "/file.bin"
             else:
                 raise Exception("no devices found ")
-            logger.info(fio_user_data)
             if fio_user_data and IO_mode == False:
-                logger.info("Executing fio with user data using  FILE IO")
+               
                 fio_cli = fio_user_data + " --filename={}".format(filename)
             elif fio_user_data and IO_mode == True:
-                logger.info("Executing fio with user data using  RAW IO")
+                
                 fio_cli = fio_user_data + " --filename={}".format(filename)
             elif IO_mode == False:
-                logger.info("Executing the default fio command with File IO ")
+               
                 fio_cli = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --filename={}".format(
                     filename
                 )
             else:
-                logger.info("Executing default fio command with RAW IO")
+              
                 fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(
                     filename
                 )
 
-            outfio = self.ssh_obj.execute(command=fio_cli, get_pty=True)
-            logger.info("".join(outfio))
-            return True, outfio
+            if run_async == True:
+                async_out = self.ssh_obj.run_async(fio_cli)
+                return True, async_out
+            else:
+                outfio = self.ssh_obj.execute(
+                    fio_cli, get_pty = True, expected_exit_code=expected_exit_code
+                )
+                logger.info("".join(outfio))
+                return True, outfio
+                
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
-            logger.error(traceback.format_exc())
             return (False, None)
-
-    def is_file_present(self, file_path: str):
+    def is_file_present(self, file_path:str) ->bool:
         """
-        Method to verif if file present of not
-        :param file_path: file path
-        :return: Boolean True or False
+        Method to verify if file present of not
+
+        Args:
+            file_path (str): file path
+        Returns:
+                bool
         """
         try:
             out = self.ssh_obj.execute(
@@ -404,12 +493,18 @@ class Client:
                 raise Exception("file {}  does not exist".format(file_path))
         except Exception as e:
             logger.error("command failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False
 
-    def create_File_system(self, device_list: list, fs_format: str = "ext3") -> bool:
+    def create_File_system(self, device_list:list, fs_format:str="ext3")-> bool:
         """
         Creates MKFS FS on different devices
+
+        Args:
+            device_list (list) : list of devices
+            fs_format (str) : format of the FS (default ext3)
+        Returns:
+            bool
         """
         try:
             if len(device_list) == 0:
@@ -426,19 +521,20 @@ class Client:
                 return True
         except Exception as e:
             logger.error("command failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False
 
-    def mount_FS(
-        self, device_list: list, fs_mount_dir: str = None, options: str = None
-    ) -> (bool, list):
+    def mount_FS(self, device_list:list, fs_mount_dir:str=None, options:str=None) ->(bool,list):
         """
         method to Mount Fs to device
-        params:
-        device_list : [devices to mount]
-        fs_mount_dir : if None will create dir in /tmp
-        option if not None will add to mount cmd
-        eg --force
+
+        Args:
+             device_list (list) :devices to mount
+             fs_mount_dir (str) :if None will create dir in /tmp
+             option if not None will add to mount cmd
+                eg --force
+        Returns:
+            bool, list of dir
         """
         out = {}
         logger.info("device_list={}".format(device_list))
@@ -491,17 +587,22 @@ class Client:
                                 fs_mount, device, e
                             )
                         )
-                        logger.error(traceback.format_exc())
+
                         return (False, None)
             except Exception as e:
                 logger.error("command execution failed with exception {}".format(e))
                 return (False, None)
             return (True, list(out.values()))
 
-    def unmount_FS(self, fs_mount_pt: str) -> bool:
+    def unmount_FS(self, fs_mount_pt:str) ->bool:
         """
         method to unmount file system
-        params : fs_mount_pt : Name of the directory to unmount
+
+        Args:
+
+            fs_mount_pt (str): Name of the directory to unmount
+        Returns:
+            bool
         """
         try:
             if len(fs_mount_pt) == 0:
@@ -526,10 +627,14 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def delete_FS(self, fs_mount_pt: str = None) -> bool:
+    def delete_FS(self, fs_mount_pt:bool) -> bool:
         """
         Method to delete a directory, used to delete directory after unmount
-        params : fs_mount_pt = dir_name
+        Args:
+            fs_mount_pt (str) : dir of mount pt
+        Returns:
+            bool
+
         """
         try:
             rm_cmd = "rm -fr {}".format(fs_mount_pt)
@@ -540,13 +645,16 @@ class Client:
                 return True
         except Exception as e:
             logger.error("command excution failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False
 
-    def is_dir_present(self, dir_path: str) -> bool:
+    def is_dir_present(self, dir_path:str) -> bool:
         """
         Method to verif if directory is present or not
-        :param dir_path:  path to directory
+        Args:
+            dir_path (str) : path of the dir
+        Returns:
+            Bool
 
         """
         try:
@@ -564,34 +672,19 @@ class Client:
             logger.error("error finding directory {}".format(e))
             return False
 
-    def nvme_connect(
-        self, nqn_name: str, mellanox_switch_ip: str, port: str, transport: str = "TCP"
-    ) -> bool:
+    def nvme_connect(self, nqn_name:str, mellanox_switch_ip:str, port:str, transport:str="TCP") -> bool:
         """
-        Method to connect rdma at initiator
-        params:
-        nqn_name:nqn random name
-        mellanox_switch_ip: mellanox switch interface ip
-        port: switch port ip
+        starts Nvme connect at the host
+        Args:
+
+        nqn_name (str) :Name of SS
+        mellanox_switch_ip (str): mellanox switch interface ip
+        port (str): port
+        transport (str) : transport connection protocol (default : TCP)
         """
         try:
-            for cmd in [
-                "modprobe mlx5_core",
-                "modprobe mlx4_core",
-                "modprobe mlx4_ib",
-                "modprobe nvme",
-            ]:
-                self.ssh_obj.execute(cmd)
-            logger.info("loading {} Drivers".format(transport))
-            if transport.lower() == "rdma":
-                cmd = "modprobe nvme_rdma"
-                self.ssh_obj.execute(cmd)
-            elif transport.lower() == "tcp":
-                cmd = "modprobe nvme_tcp"
-                self.ssh_obj.execute(cmd)
-            else:
-                raise Exception("invalid Transport protocol mentioned")
-
+            if self.client_clean == False:
+                self.load_drivers()
             cmd = "nvme connect -t {} -s {} -a {} -n {}".format(
                 transport.lower(), port, mellanox_switch_ip, nqn_name
             )
@@ -600,13 +693,15 @@ class Client:
             return True
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False
 
-    def ctrlr_count(self) -> (bool, str):
+    def ctrlr_list(self) ->(bool,list):
         """
-        method to find the count of number of controllers connected at the client machine
-        return (bool,count)
+        method to find the list of controllers connected
+
+        Returns:
+        bool,count
         """
         cmd = "ls /dev/nvme*"
         out = self.ssh_obj.execute(cmd)
@@ -627,26 +722,43 @@ class Client:
 
         return (True, final)
 
-    def nvme_disconnect(self, timeout: int = 60) -> bool:
+    def load_drivers(self) -> bool:
+        """method to load drivers"""
+
+        driver_list = ["tcp", "nvme"]
+        for drive in driver_list:
+            cmd = f"modprobe {drive}"
+            self.ssh_obj.execute(cmd)
+        return True
+
+    def nvme_disconnect(self, nqn:list=[], timeout:int =  60) -> bool:
         """
-        Method to disconnect rdma at initiator
-        return True/False
+        Method to disconnect nvmf ss
+        Args:
+            nqn (list) : list of ss to be disconnected if empty -d  will be used
+            timeout : waiting time for disconnect to pass (default 60 sec)
+        Returns:
+            bool
+
         """
         try:
             logger.info("Disconnecting nvme devices from client")
             count = 0
-
             while True:
-                out = self.ctrlr_count()
-                if out[1] is None:
-                    logger.info("no devices present")
-                    return True
-                for ctrlr in out[1]:
-                    cmd = "nvme disconnect -d {}".format(ctrlr)
-                    out = self.ssh_obj.execute(cmd, get_pty=True)
+                out = self.ctrlr_list()
+                if out[1] is not None:
+                    if len(nqn) != 0:
+                        logger.info("Disconnecting Subsystem")
+                        for nqn_name in nqn:
+                            cmd = f"nvme disconnect -n {nqn_name}"
+                            self.ssh_obj.execute(cmd)
+                    else:
+                        for ctrlr in out[1]:
+                            cmd = "nvme disconnect -d {}".format(ctrlr)
+                            out = self.ssh_obj.execute(cmd, get_pty=True)
 
-                nvme_out = self.nvme_list()
-                if len(nvme_out[1]) == 0:
+                self.nvme_list()
+                if len(self.nvme_list_out) == 0:
                     logger.info("Nvme disconnect passed")
                     return True
                 else:
@@ -655,60 +767,54 @@ class Client:
                     time.sleep(10)
                     if count > timeout:
                         break
-            if len(nvme_out[1]) != 0:
-                raise Exception("nvme disconnect failed")
+                if len(self.nvme_list_out) != 0:
+                    raise Exception("nvme disconnect failed")
         except Exception as e:
             logger.error("command failed wth exception {}".format(e))
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_list(self, model_name="POS_VOLUME") -> (bool, list):
+    def nvme_list(self, model_name:str="POS_VOLUME") -> bool:
         """
         Method to get the nvme list
-        :param : model_name :
+        Args:
+            model_name (str) mode name in nvme list (default : POS_VOLUME)
+        Returns:
+            Bool
         """
         try:
             cmd = "nvme list"
+            time.sleep(5)
             out = self.nvme(cmd)
-            nvme_list_out = []
+            self.nvme_list_out = []
             for line in out:
                 logger.info(line)
                 if model_name in line:
                     list_out = line.split(" ")
-                    nvme_list_out.append(str(list_out[0]))
-            if len(nvme_list_out) == 0:
+                    self.nvme_list_out.append(str(list_out[0]))
+            if len(self.nvme_list_out) == 0:
                 logger.debug("no devices listed")
-                return False, nvme_list_out
+                return False
         except Exception as e:
             logger.error("command execution failed with exception {} ".format(e))
-            logger.error(traceback.format_exc())
-            return False, nvme_list_out
-        return True, nvme_list_out
 
-    def nvme_discover(
-        self, nqn_name: str, mellanox_switch_ip: str, port: str, transport: str = "tcp"
-    ):
+            return False
+        return True
+
+    def nvme_discover(self, nqn_name:str, mellanox_switch_ip:str, port:str, transport:str="tcp") -> bool:
         """
         method to discover nvme subsystem
-        params :
-              nqn_name : Subsystem name
-              mellanox_switch_ip : mlnx_ip
-              port : port number
+        Args :
+              nqn_name (str): Subsystem name
+              mellanox_switch_ip (str): mlnx_ip
+              port (str) : port number
+              transport (str) : transport protocol (default : TCP)
+        Returns :
+            bool
         """
         try:
-            self.ssh_obj.execute("modprobe nvme")
-            self.ssh_obj.execute("modprobe mlx4_core")
-            self.ssh_obj.execute("modprobe mlx4_ib")
-            self.ssh_obj.execute("modprobe mlx5_core")
-            self.ssh_obj.execute("modprobe mlx5_ib")
 
-            if transport == "tcp":
-                logger.info("loading tcp drivers")
-                driver_cmd = "modprobe nvme_tcp"
-                self.ssh_obj.execute(driver_cmd)
-            else:
-                driver_cmd = "modprobe nvme_rdma"
-                self.ssh_obj.execute(driver_cmd)
+            self.load_drivers()
             discover_cmd = (
                 "nvme discover --transport={} --traddr={} -s {}  --hostnqn={}".format(
                     transport, mellanox_switch_ip, port, nqn_name
@@ -731,10 +837,12 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_flush(self, dev_list: list) -> bool:
+    def nvme_flush(self, dev_list:list) -> bool:
         """
         methood to execute nvme flush
-        :params : devices_list : list of nvme devices to be passed in list
+        Args
+            devices_list (list) list of nvme devices to be passed in list
+        Returns bool
         """
         try:
             for dev in dev_list:
@@ -753,6 +861,10 @@ class Client:
                     )
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
-            logger.error(traceback.format_exc())
+
             return False
         return True
+
+    def check_system_memory(self):
+        """method to check the system mem info in the host"""
+        assert self.helper.check_system_memory() == True
