@@ -299,7 +299,6 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    
     def spor_prep(self) -> bool:
         """
         Method to spor preparation
@@ -374,7 +373,9 @@ class TargetUtils:
 
         if size == None:
             assert self.cli.info_array(array_name)[0] == True
-            temp = self.helper.convert_size(int(self.cli.array_info[array_name]['size']))
+            temp = self.helper.convert_size(
+                int(self.cli.array_info[array_name]["size"])
+            )
             if "TB" in temp:
                 size_params = int(float(temp[0]) * 1000)
                 size_per_vol = int(size_params / num_vol)
@@ -415,7 +416,7 @@ class TargetUtils:
                 temp = 0
         return True
 
-    def create_subsystems_multiple(self, ss_count: int, base_name:str = None) -> bool:
+    def create_subsystems_multiple(self, ss_count: int, base_name: str = None) -> bool:
 
         """
         method to create more than one SS
@@ -427,7 +428,7 @@ class TargetUtils:
         try:
             for i in range(ss_count):
                 if base_name:
-                    ss_name = self.generate_nqn_name(default_nqn_name = base_name)
+                    ss_name = self.generate_nqn_name(default_nqn_name=base_name)
                 else:
                     ss_name = self.generate_nqn_name()
                 assert self.cli.create_subsystem(ss_name)[0] == True
@@ -502,8 +503,7 @@ class TargetUtils:
             assert self.helper.get_mellanox_interface_ip()[0] == True
 
             ###system config
-           
-            
+
             if static_dict["system"]["phase"] == "true":
                 assert self.cli.start_system()[0] == True
                 assert self.cli.create_transport_subsystem()[0] == True
@@ -521,7 +521,7 @@ class TargetUtils:
                 base_name = static_dict["subsystem"]["base_nqn_name"] + "array1"
                 assert (
                     self.create_subsystems_multiple(
-                        static_dict["subsystem"]["array1"], base_name= base_name
+                        static_dict["subsystem"]["array1"], base_name=base_name
                     )
                     == True
                 )
@@ -529,7 +529,7 @@ class TargetUtils:
                     base_name = static_dict["subsystem"]["base_nqn_name"] + "array2"
                     assert (
                         self.create_subsystems_multiple(
-                            static_dict["subsystem"]["array2"], base_name = base_name
+                            static_dict["subsystem"]["array2"], base_name=base_name
                         )
                         == True
                     )
@@ -597,14 +597,13 @@ class TargetUtils:
             if static_dict["volume"]["array1"]["phase"] == "true":
                 array_name = "array1"
                 num_vol_array1 = static_dict["volume"]["array1"]["num_vol"]
-             
+
                 ss_list_array1 = [ss for ss in self.ss_temp_list if "array1" in ss]
-                 
+
                 if num_vol_array1 > 0:
                     vol_size = (
                         None
-                        if static_dict["volume"]["array1"]["size"]
-                        == "None"
+                        if static_dict["volume"]["array1"]["size"] == "None"
                         else static_dict["volume"]["array1"]["size"]
                     )
                     assert (
@@ -614,7 +613,7 @@ class TargetUtils:
                         == True
                     )
                     assert self.cli.list_volume(array_name)[0] == True
-                 
+
                     assert (
                         self.mount_volume_multiple(
                             array_name, self.cli.vols, ss_list_array1
@@ -623,17 +622,14 @@ class TargetUtils:
                     )
 
                 if static_dict["volume"]["array2"]["phase"] == "true":
-                    num_vol_array2 = static_dict["volume"]["array2"][
-                        "num_vol"
-                    ]
+                    num_vol_array2 = static_dict["volume"]["array2"]["num_vol"]
                     ss_list_array2 = [ss for ss in self.ss_temp_list if "array2" in ss]
-                    
+
                     if num_vol_array2 > 0:
                         array_name = "array2"
                         vol_size = (
                             None
-                            if static_dict["volume"]["array2"]["size"]
-                            == "None"
+                            if static_dict["volume"]["array2"]["size"] == "None"
                             else static_dict["volume"]["array2"]["size"]
                         )
                         assert (

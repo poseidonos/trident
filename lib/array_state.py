@@ -37,7 +37,9 @@ logger = logger.get_logger(__name__)
 
 
 class _Array(POS):
-    def __init__(self, array_name="POSARRAY1", data_dict: dict =None, cli_history:list = []):
+    def __init__(
+        self, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
+    ):
         super().__init__()
 
         self.data_dict = data_dict
@@ -72,9 +74,13 @@ class _Array(POS):
         assert self.cli.list_array()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
-            logger.info("----- CURRENT ARRAY STATE : NO ARRAY PRESENT IN THE CONFIG ----")
+            logger.info(
+                "----- CURRENT ARRAY STATE : NO ARRAY PRESENT IN THE CONFIG ----"
+            )
         else:
-            logger.info(f' -------------- ARRAY MOUNT/UNMOUNT INFO {self.cli.array_dict} --------------')
+            logger.info(
+                f" -------------- ARRAY MOUNT/UNMOUNT INFO {self.cli.array_dict} --------------"
+            )
             array_dict = {}
             for array in array_list:
                 if self.name == array:
@@ -87,7 +93,9 @@ class _Array(POS):
                         "data": self.cli.array_info[self.name]["data_list"],
                         "spare": self.cli.array_info[self.name]["spare_list"],
                     }
-                    logger.info(f"--------- CURRENT ARRAY STATE : {array_dict} -------------------")
+                    logger.info(
+                        f"--------- CURRENT ARRAY STATE : {array_dict} -------------------"
+                    )
         return True
 
     def select_next_state(self):
@@ -687,12 +695,12 @@ class _Array(POS):
                 for array in array_list:
                     assert self.cli.info_array(array_name=array)[0] == True
                     used_bufer.append(self.cli.array_info[array]["buffer_list"][0])
-               
+
                 free_buf = [
                     buf for buf in self.cli.dev_type["NVRAM"] if buf not in used_bufer
                 ]
                 self.buffer_data = free_buf
-          
+
             return True
 
         def check_mbr_device(device=None):
@@ -957,7 +965,7 @@ class _Array(POS):
                         if self.name in subsystem:
                             self.client.nvme_list()
                             if len(self.client.nvme_list_out) != 0:
-                                self.client.nvme_disconnect(nqn = [subsystem])
+                                self.client.nvme_disconnect(nqn=[subsystem])
                         assert (
                             self.cli.delete_subsystem(nqn_name=subsystem)[0]
                             == self.func["expected"]
@@ -980,19 +988,30 @@ class _Array(POS):
             assert self.target_utils.get_subsystems_list() == True
             if self.func["expected"] == True:
                 assert self.cli.list_volume(array_name=self.name)[0] == True
-                base_name =  base_name = self.data_dict["subsystem"]["base_nqn_name"] + self.name
+                base_name = base_name = (
+                    self.data_dict["subsystem"]["base_nqn_name"] + self.name
+                )
                 self.target_utils.create_subsystems_multiple(
-                    ss_count=self.data_dict["subsystem"][self.name], base_name = base_name
+                    ss_count=self.data_dict["subsystem"][self.name], base_name=base_name
                 ) == True
                 self.target_utils.get_subsystems_list()
-                self.subsystem = [ss for ss in self.target_utils.ss_temp_list if self.name in ss]
+                self.subsystem = [
+                    ss for ss in self.target_utils.ss_temp_list if self.name in ss
+                ]
                 for ss in self.subsystem:
                     self.cli.add_listner_subsystem(
                         ss, self.target_utils.helper.ip_addr[0], "1158"
                     )
                 if len(self.cli.vols) != 0:
-                    assert self.target_utils.mount_volume_multiple(array_name = self.name, volume_list= self.cli.vols, nqn_list=self.subsystem) == True
-                    
+                    assert (
+                        self.target_utils.mount_volume_multiple(
+                            array_name=self.name,
+                            volume_list=self.cli.vols,
+                            nqn_list=self.subsystem,
+                        )
+                        == True
+                    )
+
                 else:
                     assert (
                         self.target_utils.create_volume_multiple(

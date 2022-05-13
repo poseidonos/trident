@@ -109,7 +109,7 @@ class POS:
         try:
 
             assert self.target_utils.helper.check_system_memory() == True
-            
+
             """
             logger.info(
                 "------------------------------------------ CLI HISTORY ------------------------------------------"
@@ -136,9 +136,9 @@ class POS:
         except Exception as e:
 
             logger.error(e)
-            #time.sleep(10000)
-            #self.cli.core_dump()
-            #self.cli.stop_system()
+            # time.sleep(10000)
+            # self.cli.core_dump()
+            # self.cli.stop_system()
             self.target_ssh_obj.close()
             self.client.close()
             assert 0
