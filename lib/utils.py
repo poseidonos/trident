@@ -471,13 +471,38 @@ class Client:
                 outfio = self.ssh_obj.execute(
                     fio_cli, get_pty=True, expected_exit_code=expected_exit_code
                 )
+              
                 logger.info("".join(outfio))
+                self.fio_parser(outfio)
+                logger.info(f'======================== {self.bw_iops} ==========================')
                 return True, outfio
 
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
             return (False, None)
-
+    def fio_parser(self, fio_out:list) -> bool:
+        try:
+            self.bw_iops = {}
+            bw_iops = [sent for sent in fio_out if ': IOPS=' in sent and ', BW=' in sent]
+            for sent in bw_iops:
+                
+                op = re.search(r'   [a-z]+', sent)
+                logger.info(op)
+                logger.info(op.groups())
+                op = op.group()
+                iops = re.search(r'[0-9]+', sent)
+                iops = iops.group()
+                bw = re.search(r'([0-9]+MB/s)', sent)
+                bw = bw.group()
+                self.bw_iops[op] = {'iops' : iops , "bw" : bw }
+                                            
+            return True
+               
+        except Exception as e:
+            logger.error(e)
+            return False
+        
+        
     def is_file_present(self, file_path: str) -> bool:
         """
         Method to verify if file present of not
