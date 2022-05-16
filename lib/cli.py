@@ -1007,7 +1007,7 @@ class Cli:
         try:
             if array_name != None:
                 self.array_name = array_name
-            vol_dict = {}
+            self.vol_dict = {}
 
             cmd = "list -a {}".format(self.array_name)
             cli_error, out = self.run_cli_command(cmd, command_type="volume")
@@ -1022,14 +1022,14 @@ class Cli:
                 self.vols = []
                 return True, [], {}
             for vol in out["data"]["volumes"]:
-                vol_dict[vol["name"]] = {
+                self.vol_dict[vol["name"]] = {
                     "total": vol["total"],
                     "status": vol["status"],
                     "max_iops": vol["maxiops"],
                     "maxbw": vol["maxbw"],
                 }
-            self.vols = list(vol_dict.keys())
-            return True, list(vol_dict.keys()), vol_dict
+            self.vols = list(self.vol_dict.keys())
+            return True, list(self.vol_dict.keys())
         except Exception as e:
             logger.error("list volume command failed with exception {}".format(e))
             return False, out

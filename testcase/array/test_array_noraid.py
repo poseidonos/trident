@@ -1,6 +1,6 @@
 import pytest
 
-# from lib.pos import POS
+#from lib.pos import POS
 import logger
 from pos import POS
 
@@ -136,3 +136,4 @@ def test_Autocreate_NoRaid_Array():
     except Exception as e:
         logger.error(e)
         pos.exit_handler()
+

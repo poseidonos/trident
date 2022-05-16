@@ -463,7 +463,7 @@ class Client:
                 fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(
                     filename
                 )
-
+            fio_cli += " --output-format=json"
             if run_async == True:
                 async_out = self.ssh_obj.run_async(fio_cli)
                 return True, async_out
@@ -474,34 +474,35 @@ class Client:
               
                 logger.info("".join(outfio))
                 self.fio_parser(outfio)
-                logger.info(f'======================== {self.bw_iops} ==========================')
+                
                 return True, outfio
 
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
             return (False, None)
-    def fio_parser(self, fio_out:list) -> bool:
-        try:
-            self.bw_iops = {}
-            bw_iops = [sent for sent in fio_out if ': IOPS=' in sent and ', BW=' in sent]
-            for sent in bw_iops:
-                
-                op = re.search(r'   [a-z]+', sent)
-                logger.info(op)
-                logger.info(op.groups())
-                op = op.group()
-                iops = re.search(r'[0-9]+', sent)
-                iops = iops.group()
-                bw = re.search(r'([0-9]+MB/s)', sent)
-                bw = bw.group()
-                self.bw_iops[op] = {'iops' : iops , "bw" : bw }
-                                            
-            return True
-               
-        except Exception as e:
-            logger.error(e)
-            return False
+    def fio_parser(
+        self,
+        str_out: str
+        ) -> dict():
+        """
+        method to make specific information from fio output
+        bw: KiB/s
+        iops: iops
+        clat: nsec
+        """
+        self.fio_par_out = {}
+        str_out = "".join(str_out).replace("\n", "")
+        jout = json.loads(str_out)
         
+        self.fio_par_out["read"] = {"bw": jout["jobs"][0]["read"]["bw"],
+                            "iops": jout["jobs"][0]["read"]["iops"],
+                            "clat": jout["jobs"][0]["read"]["clat_ns"]}
+        self.fio_par_out["write"] = {"bw": jout["jobs"][0]["write"]["bw"],
+                            "iops": jout["jobs"][0]["write"]["iops"],
+                            "clat": jout["jobs"][0]["write"]["clat_ns"]}
+        
+        
+        return True
         
     def is_file_present(self, file_path: str) -> bool:
         """
