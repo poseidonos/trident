@@ -515,7 +515,7 @@ class TargetUtils:
                     and static_dict["device"]["phase"] == "true"
                 ):
                     assert self.cli.create_device(uram_name="uram1")[0] == True
-            
+
                 assert self.cli.scan_device()[0] == True
             if static_dict["subsystem"]["phase"] == "true":
                 base_name = static_dict["subsystem"]["base_nqn_name"] + "array1"
@@ -567,12 +567,16 @@ class TargetUtils:
                 data_disks = self.cli.system_disks
                 if len(data_disks) < self.total_required:
                     raise Exception("not Enough drives to start test")
-                spare_disk = [] if array1_spare_count == 0 else data_disks[-(array1_spare_count):]
+                spare_disk = (
+                    []
+                    if array1_spare_count == 0
+                    else data_disks[-(array1_spare_count):]
+                )
                 assert (
                     self.cli.create_array(
                         write_buffer=write_buffer[0],
                         data=data_disks[:array1_data_count:],
-                        spare= spare_disk,
+                        spare=spare_disk,
                         raid_type=array1_raid_type,
                         array_name=f"{array_name}1",
                     )[0]
@@ -625,7 +629,9 @@ class TargetUtils:
 
                 if static_dict["volume"]["array2"]["phase"] == "true":
                     num_vol_array2 = static_dict["volume"]["array2"]["num_vol"]
-                    self.ss_list_array2 = [ss for ss in self.ss_temp_list if "array2" in ss]
+                    self.ss_list_array2 = [
+                        ss for ss in self.ss_temp_list if "array2" in ss
+                    ]
 
                     if num_vol_array2 > 0:
                         array_name = "array2"
@@ -916,9 +922,17 @@ class TargetUtils:
                             logger.info("No volumes found")
                         else:
                             for vol in self.cli.vols:
-                                if self.cli.vol_dict[vol]["status"].lower() == "mounted":
-                                    assert self.cli.unmount_volume(volumename=vol, array_name=array)[0] == True
-                
+                                if (
+                                    self.cli.vol_dict[vol]["status"].lower()
+                                    == "mounted"
+                                ):
+                                    assert (
+                                        self.cli.unmount_volume(
+                                            volumename=vol, array_name=array
+                                        )[0]
+                                        == True
+                                    )
+
             assert self.cli.stop_system()[0] == True
             assert self.cli.start_system()[0] == True
             uram_list = [f"uram{str(i)}" for i in len(array_list)]
@@ -928,7 +942,14 @@ class TargetUtils:
             self.helper.get_mellanox_interface_ip()
             for ss in self.ss_temp_list:
                 assert self.cli.create_subsystem(ss)[0] == True
-                assert self.cli.add_listner_subsystem(nqn_name = ss, mellanox_interface = self.helper.ip_addr[0], port="1158")[0] == True
+                assert (
+                    self.cli.add_listner_subsystem(
+                        nqn_name=ss,
+                        mellanox_interface=self.helper.ip_addr[0],
+                        port="1158",
+                    )[0]
+                    == True
+                )
             assert self.cli.list_array()[0] == True
             array_list = list(self.cli.array_dict.keys())
             if len(array_list) == 0:
@@ -939,15 +960,15 @@ class TargetUtils:
                     assert self.cli.mount_array(array_name=array)[0] == True
                     assert self.cli.list_volume(array_name=array)[0] == True
                     if len(self.cli.vols) == 0:
-                            logger.info("No volumes found")
+                        logger.info("No volumes found")
                     else:
                         ss_list = [ss for ss in self.ss_temp_list if array in ss]
-                        assert self.mount_volume_multiple(self.cli.vols, nqn_list = ss_list) == True
-                        
-                             
+                        assert (
+                            self.mount_volume_multiple(self.cli.vols, nqn_list=ss_list)
+                            == True
+                        )
+
             return True
         except Exception as e:
-            logger.error(f'SPOR failed due to {e}')
+            logger.error(f"SPOR failed due to {e}")
             return False
-        
-        

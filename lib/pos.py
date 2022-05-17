@@ -119,7 +119,7 @@ class POS:
                 raise Exception(" Test case failed ! Creating core dump and clean up")
             if self.target_utils.helper.check_pos_exit() == False:
                 self.cli.stop_system()
-           
+
         except Exception as e:
 
             logger.error(e)
@@ -127,14 +127,13 @@ class POS:
                 "------------------------------------------ CLI HISTORY ------------------------------------------"
             )
             for cli_cmd in self.cli.cli_history:
-                logger.info(cli_cmd)                  
-                    
-                
+                logger.info(cli_cmd)
+
             logger.info(
                 "-------------------------------------------------------------------------------------------------------"
             )
             # time.sleep(10000)
             # self.cli.core_dump()
             self.cli.stop_system()
-            
+
             assert 0

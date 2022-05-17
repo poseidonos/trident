@@ -249,7 +249,6 @@ class Cli:
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
 
-                
                 out = self.run_cli_command("stop --force", command_type="system")
 
                 if out[0] == True:
@@ -593,7 +592,12 @@ class Cli:
             return False, out
 
     def autocreate_array(
-        self, buffer_name: str, num_data: str, raid: str, array_name: str = None, num_spare:str = '0'
+        self,
+        buffer_name: str,
+        num_data: str,
+        raid: str,
+        array_name: str = None,
+        num_spare: str = "0",
     ) -> (bool, dict()):
         """
         Method to ameutocreate array
