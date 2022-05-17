@@ -110,7 +110,19 @@ class POS:
 
             assert self.target_utils.helper.check_system_memory() == True
 
-            """
+            if self.client.ctrlr_list()[1] is not None:
+                assert (
+                    self.client.nvme_disconnect(self.target_utils.ss_temp_list) == True
+                )
+
+            if expected == False:
+                raise Exception(" Test case failed ! Creating core dump and clean up")
+            if self.target_utils.helper.check_pos_exit() == False:
+                self.cli.stop_system()
+           
+        except Exception as e:
+
+            logger.error(e)
             logger.info(
                 "------------------------------------------ CLI HISTORY ------------------------------------------"
             )
@@ -121,22 +133,8 @@ class POS:
             logger.info(
                 "-------------------------------------------------------------------------------------------------------"
             )
-            """
-            if self.client.ctrlr_list()[1] is not None:
-                assert (
-                    self.client.nvme_disconnect(self.target_utils.ss_temp_list) == True
-                )
-
-            if expected == False:
-                raise Exception(" Test case failed ! Creating core dump and clean up")
-            self.cli.stop_system()
-           
-
-        except Exception as e:
-
-            logger.error(e)
             # time.sleep(10000)
             # self.cli.core_dump()
-            # self.cli.stop_system()
+            self.cli.stop_system()
             
             assert 0

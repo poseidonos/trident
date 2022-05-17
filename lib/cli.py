@@ -31,8 +31,6 @@
 #
 
 
-from multiprocessing.context import assert_spawning
-from re import T
 import time
 import logger
 import utils
@@ -143,7 +141,6 @@ class Cli:
         """
         Method to get cli command history for debugging
         """
-
         if len(self.cli_history) > 100000:
             del self.cli_history[0]
 
@@ -397,7 +394,7 @@ class Cli:
             return False, jout
 
     def mount_array(
-        self, array_name: str = None, write_back: bool = False
+        self, array_name: str = None, write_back: bool = True
     ) -> (bool, dict()):
         """
         Method to mount array
@@ -410,8 +407,8 @@ class Cli:
             if array_name != None:
                 self.array_name = array_name
             cmd = "mount -a {}".format(self.array_name)
-            if write_back:
-                cmd += "--enable-write-through"
+            if write_back == False:
+                cmd += " --enable-write-through"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -597,12 +594,7 @@ class Cli:
             return False, out
 
     def autocreate_array(
-        self,
-        buffer_name: str,
-        num_data: str,
-        num_spare: str,
-        raid: str,
-        array_name: str = None,
+        self, buffer_name: str, num_data: str, raid: str, array_name: str = None, num_spare:str = '0'
     ) -> (bool, dict()):
         """
         Method to ameutocreate array
@@ -1353,7 +1345,7 @@ class Cli:
         try:
             if array_name == None:
                 array_name = self.array_name
-            cmd = "do_gc -a {}".format(array_name)
+            cmd = "do_gc --array {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -1374,7 +1366,7 @@ class Cli:
         try:
             if array_name == None:
                 array_name = self.array_name
-            cmd = "get_gc_status -a {}".format(array_name)
+            cmd = "get_gc_status --array {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -1395,7 +1387,7 @@ class Cli:
         try:
             if array_name == None:
                 array_name = self.array_name
-            cmd = "get_gc_threshold -a {}".format(array_name)
+            cmd = "get_gc_threshold --array {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
