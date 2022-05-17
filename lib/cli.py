@@ -30,7 +30,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 import time
 import logger
 import utils
@@ -250,7 +249,7 @@ class Cli:
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
 
-                assert self.reset_devel()[0] == True
+                
                 out = self.run_cli_command("stop --force", command_type="system")
 
                 if out[0] == True:
