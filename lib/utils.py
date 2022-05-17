@@ -54,7 +54,9 @@ class Client:
         client_cleanup : " flag to clean up client" (Default: True)
     """
 
-    def __init__(self, ip:str, username:str, password:str, client_cleanup:bool=True):
+    def __init__(
+        self, ip: str, username: str, password: str, client_cleanup: bool = True
+    ):
 
         ssh_obj = SSHclient(ip, username, password)
         self.helper = helper.Helper(ssh_obj)
@@ -111,7 +113,7 @@ class Client:
             logger.error("Error rebooting node because of Error {}".format(e))
             return False
 
-    def reboot_with_reconnect(self, timeout:int=600) -> bool:
+    def reboot_with_reconnect(self, timeout: int = 600) -> bool:
         """
         Methods: To reboot the node and wait for it come up
 
@@ -194,7 +196,7 @@ class Client:
         nvme_cmd_output = self.ssh_obj.execute(nvme_cmd)
         return nvme_cmd_output
 
-    def nvme_format(self, device_name:str) -> (bool, list):
+    def nvme_format(self, device_name: str) -> (bool, list):
         """
         Method
         To format device using nvme cli
@@ -218,7 +220,7 @@ class Client:
             return False
         return True
 
-    def nvme_id_ctrl(self, device_name:str, search_string:str=None) -> (bool, list):
+    def nvme_id_ctrl(self, device_name: str, search_string: str = None) -> (bool, list):
         """
         Method to execute nvme id-ctrl nvme cli
 
@@ -253,7 +255,7 @@ class Client:
 
             return False, out
 
-    def nvme_ns_rescan(self, cntlr_name:str) -> bool:
+    def nvme_ns_rescan(self, cntlr_name: str) -> bool:
         """
         Method to execute nvme ns-rescan nvme cli
 
@@ -280,7 +282,9 @@ class Client:
 
             return False
 
-    def nvme_show_regs(self, device_name:str, search_string:str=None) ->(bool, list):
+    def nvme_show_regs(
+        self, device_name: str, search_string: str = None
+    ) -> (bool, list):
         """
         Method to execute nvme show-regs nvme cli
 
@@ -319,7 +323,7 @@ class Client:
 
             return False, out
 
-    def nvme_list_subsys(self, device_name:str) ->(bool, list):
+    def nvme_list_subsys(self, device_name: str) -> (bool, list):
         """
         Method to execute nvme list-subsys nvme cli
 
@@ -354,7 +358,9 @@ class Client:
 
             return False, None
 
-    def nvme_smart_log(self, device_name:str, search_string:str=None) -> (bool, list):
+    def nvme_smart_log(
+        self, device_name: str, search_string: str = None
+    ) -> (bool, list):
         """
         Method to execute nvme smart-log nvme cli
         Args:
@@ -416,8 +422,7 @@ class Client:
         fio_user_data=None,
         IO_mode=True,
         expected_exit_code=None,
-        run_async=False
-        
+        run_async=False,
     ):
         """
         :method To run user provided fio cmd line from user
@@ -425,10 +430,10 @@ class Client:
                 devices: takes a list of either mount points or raw devices
                 IO_mode : RAW IO(True)/File IO(False)
                 expected_exit_code : used to handle the negative FIO scenario's, Need to pass the exit code of the executed FIO command 0 or 1
-                
+
                 run_async : used to run FIO in back ground
         :return : Boolean
-        
+
         """
         try:
             if len(devices) is 1 and IO_mode is True:
@@ -443,36 +448,63 @@ class Client:
             else:
                 raise Exception("no devices found ")
             if fio_user_data and IO_mode == False:
-               
+
                 fio_cli = fio_user_data + " --filename={}".format(filename)
             elif fio_user_data and IO_mode == True:
-                
+
                 fio_cli = fio_user_data + " --filename={}".format(filename)
             elif IO_mode == False:
-               
+
                 fio_cli = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --filename={}".format(
                     filename
                 )
             else:
-              
+
                 fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(
                     filename
                 )
-
+            fio_cli += " --output-format=json"
             if run_async == True:
                 async_out = self.ssh_obj.run_async(fio_cli)
                 return True, async_out
             else:
                 outfio = self.ssh_obj.execute(
-                    fio_cli, get_pty = True, expected_exit_code=expected_exit_code
+                    fio_cli, get_pty=True, expected_exit_code=expected_exit_code
                 )
+              
                 logger.info("".join(outfio))
-                return True, outfio
+                self.fio_parser(outfio)
                 
+                return True, outfio
+
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
             return (False, None)
-    def is_file_present(self, file_path:str) ->bool:
+    def fio_parser(
+        self,
+        str_out: str
+        ) -> dict():
+        """
+        method to make specific information from fio output
+        bw: KiB/s
+        iops: iops
+        clat: nsec
+        """
+        self.fio_par_out = {}
+        str_out = "".join(str_out).replace("\n", "")
+        jout = json.loads(str_out)
+        
+        self.fio_par_out["read"] = {"bw": jout["jobs"][0]["read"]["bw"],
+                            "iops": jout["jobs"][0]["read"]["iops"],
+                            "clat": jout["jobs"][0]["read"]["clat_ns"]}
+        self.fio_par_out["write"] = {"bw": jout["jobs"][0]["write"]["bw"],
+                            "iops": jout["jobs"][0]["write"]["iops"],
+                            "clat": jout["jobs"][0]["write"]["clat_ns"]}
+        
+        
+        return True
+        
+    def is_file_present(self, file_path: str) -> bool:
         """
         Method to verify if file present of not
 
@@ -496,7 +528,7 @@ class Client:
 
             return False
 
-    def create_File_system(self, device_list:list, fs_format:str="ext3")-> bool:
+    def create_File_system(self, device_list: list, fs_format: str = "ext3") -> bool:
         """
         Creates MKFS FS on different devices
 
@@ -524,7 +556,9 @@ class Client:
 
             return False
 
-    def mount_FS(self, device_list:list, fs_mount_dir:str=None, options:str=None) ->(bool,list):
+    def mount_FS(
+        self, device_list: list, fs_mount_dir: str = None, options: str = None
+    ) -> (bool, list):
         """
         method to Mount Fs to device
 
@@ -594,7 +628,7 @@ class Client:
                 return (False, None)
             return (True, list(out.values()))
 
-    def unmount_FS(self, fs_mount_pt:str) ->bool:
+    def unmount_FS(self, fs_mount_pt: str) -> bool:
         """
         method to unmount file system
 
@@ -627,7 +661,7 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def delete_FS(self, fs_mount_pt:bool) -> bool:
+    def delete_FS(self, fs_mount_pt: bool) -> bool:
         """
         Method to delete a directory, used to delete directory after unmount
         Args:
@@ -648,7 +682,7 @@ class Client:
 
             return False
 
-    def is_dir_present(self, dir_path:str) -> bool:
+    def is_dir_present(self, dir_path: str) -> bool:
         """
         Method to verif if directory is present or not
         Args:
@@ -672,7 +706,9 @@ class Client:
             logger.error("error finding directory {}".format(e))
             return False
 
-    def nvme_connect(self, nqn_name:str, mellanox_switch_ip:str, port:str, transport:str="TCP") -> bool:
+    def nvme_connect(
+        self, nqn_name: str, mellanox_switch_ip: str, port: str, transport: str = "TCP"
+    ) -> bool:
         """
         starts Nvme connect at the host
         Args:
@@ -696,7 +732,7 @@ class Client:
 
             return False
 
-    def ctrlr_list(self) ->(bool,list):
+    def ctrlr_list(self) -> (bool, list):
         """
         method to find the list of controllers connected
 
@@ -731,7 +767,7 @@ class Client:
             self.ssh_obj.execute(cmd)
         return True
 
-    def nvme_disconnect(self, nqn:list=[], timeout:int =  60) -> bool:
+    def nvme_disconnect(self, nqn: list = [], timeout: int = 60) -> bool:
         """
         Method to disconnect nvmf ss
         Args:
@@ -774,7 +810,7 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_list(self, model_name:str="POS_VOLUME") -> bool:
+    def nvme_list(self, model_name: str = "POS_VOLUME") -> bool:
         """
         Method to get the nvme list
         Args:
@@ -801,7 +837,9 @@ class Client:
             return False
         return True
 
-    def nvme_discover(self, nqn_name:str, mellanox_switch_ip:str, port:str, transport:str="tcp") -> bool:
+    def nvme_discover(
+        self, nqn_name: str, mellanox_switch_ip: str, port: str, transport: str = "tcp"
+    ) -> bool:
         """
         method to discover nvme subsystem
         Args :
@@ -837,7 +875,7 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_flush(self, dev_list:list) -> bool:
+    def nvme_flush(self, dev_list: list) -> bool:
         """
         methood to execute nvme flush
         Args

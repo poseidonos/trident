@@ -109,7 +109,7 @@ class POS:
         try:
 
             assert self.target_utils.helper.check_system_memory() == True
-            
+
             """
             logger.info(
                 "------------------------------------------ CLI HISTORY ------------------------------------------"
@@ -130,15 +130,13 @@ class POS:
             if expected == False:
                 raise Exception(" Test case failed ! Creating core dump and clean up")
             self.cli.stop_system()
-            self.target_ssh_obj.close()
-            self.client.close()
+           
 
         except Exception as e:
 
             logger.error(e)
-            #time.sleep(10000)
-            #self.cli.core_dump()
-            #self.cli.stop_system()
-            self.target_ssh_obj.close()
-            self.client.close()
+            # time.sleep(10000)
+            # self.cli.core_dump()
+            # self.cli.stop_system()
+            
             assert 0

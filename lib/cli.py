@@ -48,7 +48,7 @@ logger = logger.get_logger(__name__)
 class Cli:
     """
     The Cli class contains objects for  POS cli
-    
+
     Args:
         con (object) : target ssh obj
         data_dict (dict) : pos_config details from testcase/config_files/`.json
@@ -74,7 +74,7 @@ class Cli:
         """
         Method to Execute CLI commands and return Response
         Args:
-        
+
             command (str):  cli command to be executed
             command_type (str) : Command type [array, device, system, qos, volume]
             timeout (int) : time in seconds to wait for compeltion |default 30 seconds as max time allowed time is 30 sec wait
@@ -87,7 +87,7 @@ class Cli:
             )
             start_time = time.time()
             run_end_time = start_time + timeout
-            
+
             while time.time() < run_end_time:
                 out = self.ssh_obj.execute(cmd, get_pty=True)
 
@@ -114,7 +114,7 @@ class Cli:
                     logger.error("POS os crashed in between ! please check POS logs")
                     return False, out
                 else:
-                    if "volume mount" in cmd or 'system start' in cmd:
+                    if "volume mount" in cmd or "system start" in cmd:
                         return (
                             True,
                             out,
@@ -138,22 +138,17 @@ class Cli:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None
-    
-    def add_cli_history(self, parse_out:dict) -> bool:
+
+    def add_cli_history(self, parse_out: dict) -> bool:
         """
         Method to get cli command history for debugging
         """
-       
+
         if len(self.cli_history) > 100000:
             del self.cli_history[0]
-            
+
         self.cli_history.append(
-            [
-                parse_out["command"],
-                parse_out["status_code"],
-                parse_out["description"]
-               
-            ]
+            [parse_out["command"], parse_out["status_code"], parse_out["description"]]
         )
         return True
 
@@ -173,9 +168,7 @@ class Cli:
                 command, status_code
             )
         )
-        logger.info(
-            "DESCRIPTION from command {} is {}".format(command, description)
-        )
+        logger.info("DESCRIPTION from command {} is {}".format(command, description))
 
         if "data" in out["Response"]["result"]:
             return {
@@ -195,6 +188,7 @@ class Cli:
                 "params": param,
                 "data": None,
             }
+
     def _get_pos_logs(self):
         """
         method to get pos logs.. creates a thread to tail logs from /scripts/pos.log
@@ -211,12 +205,16 @@ class Cli:
         """
         Method to start pos
         """
-        
+
         try:
-            out = ''
-            max_running_time = 30 * 60 #30min
+            out = ""
+            max_running_time = 30 * 60  # 30min
             start_time = time.time()
-            self.out = self.ssh_obj.run_async("nohup {}/bin/{} >> {}/script/pos.log".format(self.pos_path, "poseidonos", self.pos_path))
+            self.out = self.ssh_obj.run_async(
+                "nohup {}/bin/{} >> {}/script/pos.log".format(
+                    self.pos_path, "poseidonos", self.pos_path
+                )
+            )
             while True:
                 logger.info("waiting for iBOF logs")
                 time.sleep(5)
@@ -227,11 +225,10 @@ class Cli:
                 running_time = cur_time - start_time
                 if running_time > max_running_time:
                     return False, out
-            
+
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, out
-        
 
     def stop_system(
         self,
@@ -255,7 +252,7 @@ class Cli:
                         # assert self.info_array(array_name=array)[0] == True
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
-                        
+
                 assert self.reset_devel()[0] == True
                 out = self.run_cli_command("stop --force", command_type="system")
 
@@ -328,13 +325,13 @@ class Cli:
             self.array_dict = {}
             cmd = "list"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
-            
-            if cli_error == False and int(jout['status_code']) == 1224:
-                logger.info(jout['description'])
+
+            if cli_error == False and int(jout["status_code"]) == 1224:
+                logger.info(jout["description"])
                 return True, jout
             if cli_error == True:
                 out = jout["output"]["Response"]
-                if "There is no array" in out["result"]["data"]["arrayList"] :
+                if "There is no array" in out["result"]["data"]["arrayList"]:
                     logger.info("No arrays present in the config")
                     return True, out
                 else:
@@ -361,7 +358,7 @@ class Cli:
         raid_type: str,
         array_name: str = None,
     ) -> (bool, dict()):
-        
+
         """
         Method to create array
         Args:
@@ -379,15 +376,15 @@ class Cli:
             cmd = "create -b {} -d {} -a {} ".format(
                 write_buffer, data, self.array_name
             )
-                        
+
             if spare and raid_type != "no-raid":
                 spare = spare[0] if len(spare) == 0 else ",".join(spare)
                 cmd += f" --spare {spare}"
             if raid_type != "no-raid":
-                cmd += f' --raid {raid_type}'
+                cmd += f" --raid {raid_type}"
             else:
-                cmd += ' --no-raid'
-            cli_error, jout = self.run_cli_command(cmd, command_type = "array")
+                cmd += " --no-raid"
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 if jout["status_code"] == 0:
                     return cli_error, jout
@@ -404,7 +401,7 @@ class Cli:
     ) -> (bool, dict()):
         """
         Method to mount array
-         
+
         Args:
             array_name (str) : name of the array
             write_back (bool)  : write through if True else write back
@@ -430,7 +427,7 @@ class Cli:
     def unmount_array(self, array_name: str = None) -> (bool, dict()):
         """
         Method to unmount array
-        
+
         Args:
             array_name (str) : name of the array
         """
@@ -471,7 +468,7 @@ class Cli:
     def delete_array(self, array_name: str = None) -> (bool, dict()):
         """
         Method to delete array
-        
+
         Args:
             array_name (str) name of the array
         """
@@ -494,7 +491,7 @@ class Cli:
     def info_array(self, array_name: str = None) -> (bool, dict()):
         """
         Method to get array information
-        
+
         Args:
             array_name (str) name of the array
         """
@@ -551,7 +548,7 @@ class Cli:
     ) -> (bool, dict()):
         """
         Method to add spare drive
-        
+
         Args:
             device_name (str) : name of the device
             array_name (str) : name of the array
@@ -577,7 +574,7 @@ class Cli:
     def rmspare_array(self, device_name: str, array_name: str = None) -> (bool, dict()):
         """
         Method to remove spare drive
-        
+
         Args:
             device_name (str) : name of the device
             array_name (str) : name of the array
@@ -603,13 +600,13 @@ class Cli:
         self,
         buffer_name: str,
         num_data: str,
-        num_spare: str ,
+        num_spare: str,
         raid: str,
         array_name: str = None,
     ) -> (bool, dict()):
         """
         Method to ameutocreate array
-        
+
         Args:
             array_name (str) : name of the array
             buffer_name (str) : name of the buffer
@@ -623,13 +620,13 @@ class Cli:
             cmd = "autocreate --array-name {} --buffer {} --num-data-devs {}".format(
                 self.array_name, buffer_name, num_data
             )
-            
-            if int(num_spare) > 1 :
-                cmd += f' --num-spare {num_spare} '
+
+            if int(num_spare) > 1:
+                cmd += f" --num-spare {num_spare} "
             if raid != "no-raid":
-                cmd += f' --raid {raid}'
+                cmd += f" --raid {raid}"
             else:
-                cmd += ' --no-raid'
+                cmd += " --no-raid"
 
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
@@ -1010,7 +1007,7 @@ class Cli:
         try:
             if array_name != None:
                 self.array_name = array_name
-            vol_dict = {}
+            self.vol_dict = {}
 
             cmd = "list -a {}".format(self.array_name)
             cli_error, out = self.run_cli_command(cmd, command_type="volume")
@@ -1025,14 +1022,14 @@ class Cli:
                 self.vols = []
                 return True, [], {}
             for vol in out["data"]["volumes"]:
-                vol_dict[vol["name"]] = {
+                self.vol_dict[vol["name"]] = {
                     "total": vol["total"],
                     "status": vol["status"],
                     "max_iops": vol["maxiops"],
                     "maxbw": vol["maxbw"],
                 }
-            self.vols = list(vol_dict.keys())
-            return True, list(vol_dict.keys()), vol_dict
+            self.vols = list(self.vol_dict.keys())
+            return True, list(self.vol_dict.keys())
         except Exception as e:
             logger.error("list volume command failed with exception {}".format(e))
             return False, out
