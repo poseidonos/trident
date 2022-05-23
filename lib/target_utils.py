@@ -501,7 +501,7 @@ class TargetUtils:
                 self.static_dict = data_dict
             static_dict = self.static_dict
             assert self.helper.get_mellanox_interface_ip()[0] == True
-
+            logger.info(self.static_dict)
             ###system config
 
             if static_dict["system"]["phase"] == "true":
