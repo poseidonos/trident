@@ -48,6 +48,7 @@ def teardown_module():
 
 def test_R0_2Array_BlockIO():
     try:
+        logger.info(" ============== Test : test_R0_2Array_BlockIO =============")
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
         array_list = [f'array{str(i)}' for i in range(1,3)]
@@ -75,6 +76,7 @@ def test_R0_2Array_BlockIO():
             )[0]
             == True
         )
+        logger.info(" ========================================== ")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected = False)
@@ -82,6 +84,7 @@ def test_R0_2Array_BlockIO():
 @pytest.mark.sanity
 def test_R0_AutoCreateArray():
     try:
+        logger.info("=================TESTs : test_R0_AutoCreateArray =============")
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
         
@@ -101,12 +104,14 @@ def test_R0_AutoCreateArray():
         assert pos.client.nvme_list() == True
         assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10")[0] == True
              
+        logger.info(" ========================================= ")
     except Exception as e:
         logger.error(f'Test script failed due to {e}')
         pos.exit_handler()
 @pytest.mark.sanity
 def test_R0_R5_Array_WriteThrough():
     try:
+        logger.info("============= TEST : test_R0_R5_Array_WriteThrough ============")
         if pos.target_utils.helper.check_pos_exit() == True:
                      
             assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
@@ -126,7 +131,7 @@ def test_R0_R5_Array_WriteThrough():
             
         assert pos.client.nvme_list() == True
         assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10")[0] == True
-             
+        logger.info(" ================================================== ")    
     except Exception as e:
         logger.error(f'Test script failed due to {e}')
         pos.exit_handler()
@@ -134,6 +139,7 @@ def test_R0_R5_Array_WriteThrough():
 @pytest.mark.parametrize('raid_type', ['RAID0', 'RAID5'])
 def test_deleteR0_create_R5Array(raid_type):
     try:
+        logger.info("===================== TEST : test_deleteR0_create_R5Array ============== ")
         #if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
             pos.data_dict['array']['phase'] = 'false'
@@ -175,7 +181,7 @@ def test_deleteR0_create_R5Array(raid_type):
                assert pos.cli.mount_array(array_name = array)[0] == True
                assert pos.cli.unmount_array(array_name = array)[0] == True
                assert pos.cli.delete_array(array_name=array)[0] == True
-          
+        logger.info(" ================================================== ")  
     except Exception as e:
         logger.error(f'Test script failed due to {e}')
         pos.exit_handler()
@@ -184,6 +190,7 @@ def test_Create_delete_R0_R5():
     """The purpose of this test case is to Create 2 arrays with Raid 0, Create 2 volumes each, Delete first array and create first array with RAID 5 and create volumes on it.
     """
     try:
+        logger.info(" ================= TEST : test_Create_delete_R0_R5 ==============")
         if pos.target_utils.helper.check_pos_exit() == True:
             
             assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
@@ -208,7 +215,7 @@ def test_Create_delete_R0_R5():
         assert pos.cli.unmount_array(array_name="array1")[0] == True
         assert pos.cli.delete_array(array_name="array1")[0] == True
         assert pos.cli.autocreate_array(buffer_name=f'uram0', num_data = pos.data_dict['array']['array1_data_count'],raid="RAID5", array_name= "array1")[0] == True
-        
+        logger.info(" ================================================== ")
         
     except Exception as e:
         logger.error(f'Test script failed due to {e}')
@@ -217,6 +224,7 @@ def test_Create_delete_R0_R5():
 def test_Create_R0_Do_GC():
     """The purpose of this test case is to Create 2 arrays with Raid 0, Create 2 volumes on each, connect Initiator and Run block IO and Trigger Gc and verify the system response """
     try:
+        logger.info(" =============== TEST : test_Create_R0_Do_GC ===================")
         #if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
@@ -242,6 +250,7 @@ def test_Create_R0_Do_GC():
             == True
         )
         assert pos.cli.wbt_do_gc()[0] == False
+        logger.info(" ================================================== ")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected = False)
@@ -251,6 +260,7 @@ def test_Create_R0_Do_GC():
 def test_AddSpare_R0_Array():
     """The purpose of this test case is to Create 2 arrays with Raid 0, Create 2 volumes on each, Try to add spare to the existing Array and get the proper response for Raid 0 has no fault tolerance"""
     try:
+        logger.info(" ================= TEST : test_AddSpare_R0_Array ================== ")
         #if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
@@ -280,7 +290,7 @@ def test_AddSpare_R0_Array():
             assert pos.cli.list_device()[0] == True
             assert pos.cli.addspare_array(pos.cli.system_disks[0], array_name = array)[0] == False
             assert pos.cli.info_array(array_name= array)[0] == True
-        
+        logger.info(" ================================================== ")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected = False)
@@ -288,6 +298,7 @@ def test_AddSpare_R0_Array():
 def test_remove_device_R0_Array():
     """The purpose of this test case is to Create 2 array with Raid 0 , Create 2 volumes on each , Detach 1 data drive and verify the array list and system response(System should not crash)"""
     try:
+        logger.info("================ TEST : test_remove_device_R0_Array ==================")
        #if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
@@ -316,7 +327,7 @@ def test_remove_device_R0_Array():
             assert pos.cli.info_array(array_name = array)[0] == True
             assert pos.target_utils.device_hot_remove([pos.cli.array_info[array]['data_list'][0]])
             assert pos.cli.info_array(array_name= array)[0] == True
-        
+        logger.info(" ================================================== ")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected = False)
