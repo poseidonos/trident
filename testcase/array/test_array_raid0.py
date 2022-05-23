@@ -201,7 +201,8 @@ def test_Create_delete_R0_R5():
             assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
             
         assert pos.client.nvme_list() == True
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10")[0] == True
+        
+        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --size=100%")[0] == True
         assert pos.client.nvme_disconnect() == True
         assert pos.cli.info_array(array_name="array1")[0] == True
         assert pos.cli.unmount_array(array_name="array1")[0] == True
@@ -225,7 +226,7 @@ def test_Create_R0_Do_GC():
         for index,array in enumerate(array_list):
             assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
             assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol']) == True
+            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol'], size = "10gb") == True
             assert pos.target_utils.get_subsystems_list() == True
             assert pos.cli.list_volume(array_name = array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
@@ -236,11 +237,11 @@ def test_Create_R0_Do_GC():
         assert (
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
+                fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=512 --direct=1  --numjobs=1 --verify=pattern --verify_pattern=0x5279e55fe853debd --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting  --log_offset=1 --name=pos0 --size=100% ",
             )[0]
             == True
         )
-        assert pos.cli.wbt_do_gc()[0] == True
+        assert pos.cli.wbt_do_gc()[0] == False
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected = False)
