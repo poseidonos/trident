@@ -1,8 +1,8 @@
 import pytest
 
-#from lib.pos import POS
-import logger
 from pos import POS
+import logger
+#from pos import POS
 
 logger = logger.get_logger(__name__)
 
@@ -10,22 +10,15 @@ logger = logger.get_logger(__name__)
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
 
-    global pos, raid_type, data_dict
+    global pos, raid_type, data_dict, data_store
     raid_type = "no-raid"
-    pos = POS()
+    pos = POS("array_noraid.json")
+    data_store = {}
+    data_dict = pos.data_dict
     # bring devices to user mode, setup core, setup udev, setup max map count
     # assert pos.target_utils.setup_env_pos() == True
-    data_dict = pos.data_dict
-    data_dict["system"]["phase"] = "true"
-    data_dict["device"]["phase"] = "true"
-    data_dict["array"]["phase"] = "false"
-    data_dict["subsystem"]["phase"] = "true"
-    data_dict["volume"]["array1"]["phase"] = "false"
-    data_dict["volume"]["array2"]["phase"] = "false"
-
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
-
 
 def teardown_function():
 
@@ -44,7 +37,7 @@ def teardown_function():
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
-    assert pos.cli.reset_devel()[0] == True
+    #assert pos.cli.reset_devel()[0] == True
     logger.info("==========================================")
 
 
@@ -52,22 +45,21 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
-
+@pytest.mark.sanity
 def test_NoRaidArray_256Volumes_BlockIO():
+    logger.info(" ==================== Test : test_NoRaidArray_256Volumes_BlockIO ================== ")
     try:
-
-        data_dict["system"]["phase"] = "false"
-        data_dict["device"]["phase"] = "false"
-        data_dict["subsystem"]["phase"] = "false"
-        data_dict["array"]["phase"] = "true"
-        data_dict["volume"]["array1"]["num_vol"] = 256
-        data_dict["volume"]["array1"]["phase"] = "true"
-        data_dict["array"]["num_array"] = 1
-        data_dict["array"]["array1_data_count"] = 1
-        data_dict["array"]["array1_raid_type"] = raid_type
-
-        assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
+        if pos.target_utils.helper.check_pos_exit() == True:
+            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
+        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.autocreate_array(buffer_name='uram0', num_data = 1,raid=raid_type, array_name= "array1")[0] == True
+        assert pos.cli.mount_array(array_name = "array1")[0] == True
+        assert pos.target_utils.create_volume_multiple(array_name = "array1", num_vol = 256, size = "1gb") == True
+        assert pos.target_utils.get_subsystems_list() == True
+        assert pos.cli.list_volume(array_name = "array1")[0] == True
+        ss_list = [ss for ss in pos.target_utils.ss_temp_list if "array1" in ss]
+        assert pos.target_utils.mount_volume_multiple(array_name= "array1",volume_list= pos.cli.vols, nqn_list = ss_list) == True
+        
         for ss in pos.target_utils.ss_temp_list:
             assert (
                 pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
@@ -81,37 +73,41 @@ def test_NoRaidArray_256Volumes_BlockIO():
             )[0]
             == True
         )
+        logger.info(" ============================= Test ENDs ======================================")
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
-
+@pytest.mark.sanity
 def test_Autocreate_NoRaid_Array():
+    logger.info( " ======================= Test : test_Autocreate_NoRaid_Array =====================")
     try:
+        if pos.target_utils.helper.check_pos_exit() == True:
+            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
         assert pos.cli.list_device()[0] == True
         assert (
             pos.cli.autocreate_array(
-                buffer_name=pos.cli.dev_type["NVRAM"][0],
+                buffer_name="uram1",
                 num_data="1",
                 num_spare="0",
-                array_name="array1",
+                array_name="array2",
                 raid="no-raid",
             )[0]
             == True
         )
-        assert pos.cli.mount_array(array_name="array1")[0] == True
+        assert pos.cli.mount_array(array_name="array2")[0] == True
         assert (
             pos.target_utils.create_volume_multiple(
-                array_name="array1", num_vol=2, size="500gb"
+                array_name="array2", num_vol=2, size="500gb"
             )
             == True
         )
-        assert pos.cli.list_volume("array1")[0] == True
+        assert pos.cli.list_volume("array2")[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         assert (
             pos.target_utils.mount_volume_multiple(
-                array_name="array1",
+                array_name="array2",
                 volume_list=pos.cli.vols,
                 nqn_list=[pos.target_utils.ss_temp_list[0]],
             )
@@ -133,6 +129,7 @@ def test_Autocreate_NoRaid_Array():
             )[0]
             == True
         )
+        logger.info(" ==================================================== ")
     except Exception as e:
         logger.error(e)
         pos.exit_handler()
