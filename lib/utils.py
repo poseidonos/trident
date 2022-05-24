@@ -471,19 +471,17 @@ class Client:
                 outfio = self.ssh_obj.execute(
                     fio_cli, get_pty=True, expected_exit_code=expected_exit_code
                 )
-              
+
                 logger.info("".join(outfio))
                 self.fio_parser(outfio)
-                
+
                 return True, outfio
 
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
             return (False, None)
-    def fio_parser(
-        self,
-        str_out: str
-        ) -> dict():
+
+    def fio_parser(self, str_out: str) -> dict():
         """
         method to make specific information from fio output
         bw: KiB/s
@@ -493,17 +491,20 @@ class Client:
         self.fio_par_out = {}
         str_out = "".join(str_out).replace("\n", "")
         jout = json.loads(str_out)
-        
-        self.fio_par_out["read"] = {"bw": jout["jobs"][0]["read"]["bw"],
-                            "iops": jout["jobs"][0]["read"]["iops"],
-                            "clat": jout["jobs"][0]["read"]["clat_ns"]}
-        self.fio_par_out["write"] = {"bw": jout["jobs"][0]["write"]["bw"],
-                            "iops": jout["jobs"][0]["write"]["iops"],
-                            "clat": jout["jobs"][0]["write"]["clat_ns"]}
-        
-        
+
+        self.fio_par_out["read"] = {
+            "bw": jout["jobs"][0]["read"]["bw"],
+            "iops": jout["jobs"][0]["read"]["iops"],
+            "clat": jout["jobs"][0]["read"]["clat_ns"],
+        }
+        self.fio_par_out["write"] = {
+            "bw": jout["jobs"][0]["write"]["bw"],
+            "iops": jout["jobs"][0]["write"]["iops"],
+            "clat": jout["jobs"][0]["write"]["clat_ns"],
+        }
+
         return True
-        
+
     def is_file_present(self, file_path: str) -> bool:
         """
         Method to verify if file present of not
