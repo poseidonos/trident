@@ -401,7 +401,7 @@ def test_Array_R10_Remove_Data():
         assert pos.cli.reset_devel()[0] == True
         array_list = ["posarray1", "posarray2"]
         for index, array in enumerate(array_list):
-            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = "1" , raid='RAID10',   array_name=array)
+            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = 0 , raid='RAID10',   array_name=array)
             assert res[0] == True
             logger.info(json.dumps(res[1], indent=1))
             assert pos.cli.mount_array(array_name=array)[0] == True
@@ -443,7 +443,7 @@ def test_Array_R10_QoS_256vol():
         assert pos.cli.reset_devel()[0] == True
         array_list = ["posarray1", "posarray2"]
         for index, array in enumerate(array_list):
-            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = "1" , raid='RAID10',   array_name=array)
+            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = 0 , raid='RAID10',   array_name=array)
             assert res[0] == True
             logger.info(json.dumps(res[1], indent=1))
             assert pos.cli.mount_array(array_name=array)[0] == True
@@ -481,7 +481,7 @@ def test_Array_R10_256vol():
         assert pos.cli.reset_devel()[0] == True
         array_list = ["posarray1", "posarray2"]
         for index, array in enumerate(array_list):
-            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = "1" , raid='RAID10',   array_name=array)
+            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = 0 , raid='RAID10',   array_name=array)
             assert res[0] == True
             logger.info(json.dumps(res[1], indent=1))
             assert pos.cli.mount_array(array_name=array)[0] == True
@@ -517,7 +517,7 @@ def test_Array_AutoCreate_R10():
         assert pos.cli.reset_devel()[0] == True
         array_list = ["posarray1", "posarray2"]
         for index, array in enumerate(array_list):
-            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = "1" , raid='RAID10',   array_name=array)
+            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = 0 , raid='RAID10',   array_name=array)
             assert res[0] == True
             logger.info(json.dumps(res[1], indent=1))
             assert pos.cli.mount_array(array_name=array)[0] == True
@@ -627,7 +627,7 @@ def test_Array_R10_QoS_2vol():
         assert pos.cli.reset_devel()[0] == True
         array_list = ["posarray1", "posarray2"]
         for index, array in enumerate(array_list):
-            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = "1" , raid='RAID10',   array_name=array)
+            res = pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data=4, num_spare = 0 , raid='RAID10',   array_name=array)
             assert res[0] == True
             logger.info(json.dumps(res[1], indent=1))
             assert pos.cli.mount_array(array_name=array)[0] == True
