@@ -567,16 +567,16 @@ class TargetUtils:
                 data_disks = self.cli.system_disks
                 if len(data_disks) < self.total_required:
                     raise Exception("not Enough drives to start test")
-                spare_disk = (
-                    []
-                    if array1_spare_count == 0
-                    else data_disks[-(array1_spare_count):]
-                )
+
+                spare_disk_list = []
+                if array1_spare_count:
+                    spare_disk_list = data_disks[-(array1_spare_count):]
+
                 assert (
                     self.cli.create_array(
                         write_buffer=write_buffer[0],
                         data=data_disks[:array1_data_count:],
-                        spare=spare_disk,
+                        spare=spare_disk_list,
                         raid_type=array1_raid_type,
                         array_name=f"{array_name}1",
                     )[0]
