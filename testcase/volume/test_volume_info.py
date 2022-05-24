@@ -1,32 +1,17 @@
 import pytest
-
-#from lib.pos import POS
-import logger
-from pos import POS
-
 import re
 
-logger = logger.get_logger(__name__)
+from pos import POS
 
+import logger
+logger = logger.get_logger(__name__)
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
 
-    global pos, raid_type, data_dict
-    raid_type = 'RAID10'
+    global pos, data_dict
     pos = POS('volume_config.json')
     data_dict = pos.data_dict
-    data_dict["system"]["phase"] = "true"
-    data_dict["device"]["phase"] = "true"
-    data_dict["subsystem"]["phase"] = "true"
-    data_dict["array"]["phase"] = "true"
-    data_dict["volume"]["array1"]["num_vol"] = 255
-    data_dict["volume"]["array1"]["phase"] = "true"
-    data_dict["volume"]["array2"]["phase"] = "false"
-    data_dict["array"]["num_array"] = 1
-    data_dict["array"]["array1_data_count"] = 4
-    data_dict["array"]["array1_spare_count"] = 0
-    data_dict["array"]["array1_raid_type"] = raid_type
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
 
@@ -68,7 +53,7 @@ def test_mounted_vol_info():
         assert pos.cli.volume_info[array_name][vol]["array_name"] == array_name
 
         # Verify the volume status is mounted
-        assert pos.cli.volume_info[array_name][vol]["status"] == 'Mounted':
+        assert pos.cli.volume_info[array_name][vol]["status"] == 'Mounted'
 
         # Compare Volume Subnqn
         subnqn = 'nqn.2022-10.posarray1:subsystem1'

@@ -1097,7 +1097,7 @@ class Cli:
                 return False, out[1]
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
-            return False, None, None, None
+            return (False, None)
 
         return (True, out)
 

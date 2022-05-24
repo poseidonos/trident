@@ -11,11 +11,11 @@
     },
     "array": {
         "phase": "true",
-        "num_array": 2,
+        "num_array": 1,
         "array_name": "array",
-        "array1_data_count": 5,
-        "array1_spare_count": 1,
-        "array1_raid_type": "RAID5",
+        "array1_data_count": 4,
+        "array1_spare_count": 0,
+        "array1_raid_type": "RAID10",
         "array2_spare_count": 6,
         "array2_data_count": 4,
         "array2_raid_type": "RAID10"
@@ -23,7 +23,7 @@
     "volume": {
         "array1": {
             "phase": "true",
-            "num_vol": 2,
+            "num_vol": 255,
             "size": "None",
             "qos": {
                 "maxbw": 1000,
