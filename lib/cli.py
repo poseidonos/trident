@@ -30,9 +30,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
-from multiprocessing.context import assert_spawning
-from re import T
 import time
 import logger
 import utils
@@ -143,7 +140,6 @@ class Cli:
         """
         Method to get cli command history for debugging
         """
-
         if len(self.cli_history) > 100000:
             del self.cli_history[0]
 
@@ -253,7 +249,6 @@ class Cli:
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
 
-                assert self.reset_devel()[0] == True
                 out = self.run_cli_command("stop --force", command_type="system")
 
                 if out[0] == True:
@@ -397,7 +392,7 @@ class Cli:
             return False, jout
 
     def mount_array(
-        self, array_name: str = None, write_back: bool = False
+        self, array_name: str = None, write_back: bool = True
     ) -> (bool, dict()):
         """
         Method to mount array
@@ -410,8 +405,8 @@ class Cli:
             if array_name != None:
                 self.array_name = array_name
             cmd = "mount -a {}".format(self.array_name)
-            if write_back:
-                cmd += "--enable-write-through"
+            if write_back == False:
+                cmd += " --enable-write-through"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -600,9 +595,9 @@ class Cli:
         self,
         buffer_name: str,
         num_data: str,
-        num_spare: str,
         raid: str,
         array_name: str = None,
+        num_spare: str = "0",
     ) -> (bool, dict()):
         """
         Method to ameutocreate array
@@ -762,8 +757,28 @@ class Cli:
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False, None, None, None, None
-
+    
     def smart_device(self, devicename: str) -> (bool, dict()):
+        """
+        method to get smart details of a devce
+        Args:
+            device_name : name of the device
+
+        """
+        try:
+            cmd = "smart -d {}".format(devicename)
+            cli_error, jout = self.run_cli_command(cmd, command_type="device")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return cli_error, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+    def smart_log_device(self, devicename: str) -> (bool, dict()):
         """
         method to get smart details of a devce
         Args:
@@ -1353,7 +1368,7 @@ class Cli:
         try:
             if array_name == None:
                 array_name = self.array_name
-            cmd = "do_gc -a {}".format(array_name)
+            cmd = "do_gc --array {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -1374,7 +1389,7 @@ class Cli:
         try:
             if array_name == None:
                 array_name = self.array_name
-            cmd = "get_gc_status -a {}".format(array_name)
+            cmd = "get_gc_status --array {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -1395,7 +1410,7 @@ class Cli:
         try:
             if array_name == None:
                 array_name = self.array_name
-            cmd = "get_gc_threshold -a {}".format(array_name)
+            cmd = "get_gc_threshold --array {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -1623,3 +1638,44 @@ class Cli:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False
+    
+    def updateeventwrr_devel(self, name:str, weight:str) -> (bool, dict):
+        
+        try:
+            
+            command = f"update-event-wrr --name {name} --weight {weight}"
+            cli_error, jout = self.run_cli_command(command, "devel")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    logger.info(jout["description"])
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+
+        except Exception as e:
+            logger.error(e)
+            return False, jout
+    
+    
+    def reseteventwrr_devel(self) -> (bool, dict):
+        
+        try:
+            
+            command = "reset-event-wrr"
+            cli_error, jout = self.run_cli_command(command, "devel")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    logger.info(jout["description"])
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+
+        except Exception as e:
+            logger.error(e)
+            return False, jout
+        
+        
