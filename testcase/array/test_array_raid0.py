@@ -332,3 +332,64 @@ def test_remove_device_R0_Array():
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected = False)
     
+def test_array_R0_volume_all_Operation():
+    """The purpose of this test case is to Create 2 arrays with RAID 0, 2 volumes of 100GB on each array, Connect initiator, run block IO and perform different volume Operation.
+    """
+    try:
+        #if previous TC failed load POS from start
+        if pos.target_utils.helper.check_pos_exit() == True:
+            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
+        #step 2 create 2 arrays as per config
+        assert pos.cli.reset_devel()[0] == True
+        array_list = ["posarray1","posarray2"]
+        for index,array in enumerate(array_list):
+            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
+            assert pos.cli.mount_array(array_name = array)[0] == True
+            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = 2, size="100gb",vol_name="vol") == True
+            assert pos.target_utils.get_subsystems_list() == True
+            assert pos.cli.list_volume(array_name = array)[0] == True
+            ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
+            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+        for ss in pos.target_utils.ss_temp_list:
+            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
+        assert pos.client.nvme_list() == True
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out,
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
+            )[0]
+            == True
+        )
+        for array in array_list:
+            assert pos.cli.list_volume(array_name = array)[0] == True
+            for volume in pos.cli.vols:
+                pos.cli.unmount_volume(volumename=volume, array_name=array)
+                pos.cli.delete_volume(volumename=volume, array_name=array)
+
+        for array in array_list:
+            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = 2, size="100gb",vol_name="vol") == True
+            assert pos.target_utils.get_subsystems_list() == True
+            assert pos.cli.list_volume(array_name = array)[0] == True
+            ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
+            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+
+        for array in array_list:
+            assert pos.cli.list_volume(array_name = array)[0] == True
+            for volume in pos.cli.vols:
+                pos.cli.rename_volume(volname=volume, new_volname="New_Vol_"+volume,array_name=array)
+
+        for ss in pos.target_utils.ss_temp_list:
+            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
+        assert pos.client.nvme_list() == True
+
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out,
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
+            )[0]
+            == True
+        )
+        assert pos.client.nvme_disconnect() == True
+    except Exception as e:
+        logger.error(f'Test script failed due to {e}')
+        pos.exit_handler()

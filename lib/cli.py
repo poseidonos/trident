@@ -616,7 +616,7 @@ class Cli:
                 self.array_name, buffer_name, num_data
             )
 
-            if int(num_spare) > 1:
+            if int(num_spare) > 0:
                 cmd += f" --num-spare {num_spare} "
             if raid != "no-raid":
                 cmd += f" --raid {raid}"
