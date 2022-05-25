@@ -21,7 +21,7 @@ def test_array_states(num_array):
         # step ::0 : variable initialization
         data_dict = pos.data_dict
         loop = 1
-        # seed = 100
+        #seed = 10
         seed = random.randint(1, 10)
         random.seed(seed)
         logger.info(
@@ -77,7 +77,7 @@ def test_array_states(num_array):
         assert (
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --size=100%",
+                fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0 ",
             )[0]
             == True
         )
