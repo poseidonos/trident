@@ -907,3 +907,64 @@ class Client:
     def check_system_memory(self):
         """method to check the system mem info in the host"""
         assert self.helper.check_system_memory() == True
+    
+    def part_num(self, Device_name:str = None, part:bool=True) -> (bool, list, int):
+        """method to find number of partitions presnt on a device"""
+
+        try:
+            if part is False:
+                cmd = "lsblk | grep nvme||true"
+            else:
+                dev_name = Device_name.split("/dev/")[1]
+                cmd = "lsblk | grep {}p||true".format(dev_name)
+
+            out = self.ssh_obj.execute(cmd)
+            if len(out) is 0:
+                logger.info("No partitions found")
+                return True, None, len(out)
+            else:
+                temp = []
+                if part is True:
+                    logger.info(
+                        "number of partitions in {} : {}".format(Device_name, len(out))
+                    )
+                    reg = "{}p\d+".format(dev_name)
+                else:
+                    reg = "nvme\d+n\d+"
+
+                for i in out:
+                    regx = re.search(reg, i)
+                    temp.append(regx.group())
+
+                return True, temp, len(out)
+
+        except Exception as e:
+            logger.error("failed to get partition data due to {}".format(e))
+            return False, None, None
+
+    def create_part(self, device_name:str, part_size:str) ->(bool,list):
+        """
+        Method to create partition on a given block device
+        """
+        try:
+            out = self.part_num(Device_name=device_name)
+            num_part = out[2]
+            if out[0] is True:
+                cmd = "fdisk {}".format(device_name)
+                out = self.ssh_obj.shell_execute(
+                    cmd, ["n", "p", "\n", "+{}".format(part_size), "Y", "w"], wait=3
+                )
+
+                out = self.part_num(Device_name=device_name)
+                if num_part >= out[2]:
+                    logger.error("Creation of partion failed")
+                    return False, None
+                else:
+                    temp = []
+                    for i in out[1]:
+                        dev = "/dev/{}".format(i)
+                        temp.append(dev)
+                    return True, temp
+        except Exception as e:
+            logger.error("creating partition failed due to {}".format(e))
+            return False, None
