@@ -35,6 +35,7 @@ import logger
 import utils
 import helper
 import json
+import pprint
 from datetime import timedelta
 from threading import Thread
 
@@ -95,7 +96,7 @@ class Cli:
                     )
                 )
                 out = "".join(out)
-                logger.info("Raw output of the command {} is {}".format(command, out))
+                logger.debug("Raw output of the command {} is {}".format(command, out))
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
                         "POS is not running! please start POS and try again!"
@@ -156,7 +157,7 @@ class Cli:
             param = out["Request"]["param"]
         else:
             param = {}
-        # logger.info(out)
+        logger.info(pprint.pformat(out))
         status_code = out["Response"]["result"]["status"]["code"]
         description = out["Response"]["result"]["status"]["description"]
         logger.info(
@@ -1048,6 +1049,57 @@ class Cli:
         except Exception as e:
             logger.error("list volume command failed with exception {}".format(e))
             return False, out
+
+    def info_volume(self, array_name: str = None, vol_name: str = None) -> (bool, dict()):
+        """
+        Method to get volume information
+
+        Args:
+            array_name (str) name of the array
+            array_name (str) name of the volume
+        """
+        try:
+            if array_name != None:
+                self.array_name = array_name
+            
+            self.volume_info = {}
+            self.volume_info[array_name] = {}
+
+            cmd = "list -a {} -v {}".format(self.array_name, vol_name)
+            out = self.run_cli_command(cmd, command_type="volume")
+            if out[0] == True:
+                if out[1]["output"]["Response"]["result"]["status"]["code"] == 0:
+                    flag = True
+                else:
+                    flag = False
+            else:
+                logger.warning("No array found in the config")
+                return False, out[1]
+            if flag == True:
+                self.volume_info[array_name][vol_name] = {
+                    "uuid": out[1]["data"]["uuid"],
+                    "name": out[1]["data"]["name"],
+                    "total_capacity": out[1]["data"]["total"],
+                    "status": out[1]["data"]["status"],
+                    "max_iops": out[1]["data"]["maxiops"],
+                    "min_iops": out[1]["data"]["miniops"],
+                    "max_bw": out[1]["data"]["maxbw"],
+                    "min_bw": out[1]["data"]["minbw"],
+                    "subnqn": out[1]["data"]["subnqn"],
+                    "array_name": out[1]["data"]["array_name"],
+                }
+                vol_status = self.volume_info[array_name][vol_name]["status"]
+                if vol_status == 'Mounted':
+                    cap = out[1]["data"]["remain"]
+                    self.volume_info[array_name][vol_name]["remain"] = cap
+            else:
+                logger.error("failed to execute list_array_device command")
+                return False, out[1]
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return (False, None)
+
+        return (True, out)
 
     def create_volume(
         self,
