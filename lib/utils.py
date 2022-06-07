@@ -907,8 +907,8 @@ class Client:
     def check_system_memory(self):
         """method to check the system mem info in the host"""
         assert self.helper.check_system_memory() == True
-    
-    def part_num(self, Device_name:str = None, part:bool=True) -> (bool, list, int):
+
+    def part_num(self, Device_name: str = None, part: bool = True) -> (bool, list, int):
         """method to find number of partitions presnt on a device"""
 
         try:
@@ -942,7 +942,7 @@ class Client:
             logger.error("failed to get partition data due to {}".format(e))
             return False, None, None
 
-    def create_part(self, device_name:str, part_size:str) ->(bool,list):
+    def create_part(self, device_name: str, part_size: str) -> (bool, list):
         """
         Method to create partition on a given block device
         """

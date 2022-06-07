@@ -1,6 +1,6 @@
 import pytest
 
-#from lib.pos import POS
+# from lib.pos import POS
 import logger
 from pos import POS
 
@@ -19,6 +19,7 @@ def setup_module():
     # assert pos.target_utils.setup_env_pos() == True
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
+
 
 def teardown_function():
 
@@ -50,18 +51,37 @@ def test_R0_2Array_BlockIO():
     try:
         logger.info(" ============== Test : test_R0_2Array_BlockIO =============")
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
-        array_list = [f'array{str(i)}' for i in range(1,3)]
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
         assert pos.cli.reset_devel()[0] == True
-        for index,array in enumerate(array_list):
-            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
-            assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol']) == True
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid="RAID0",
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array,
+                    num_vol=pos.data_dict["volume"][f"array{str(index+1)}"]["num_vol"],
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
-            
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
+
         assert pos.target_utils.get_subsystems_list() == True
         for ss in pos.target_utils.ss_temp_list:
             assert (
@@ -79,168 +99,331 @@ def test_R0_2Array_BlockIO():
         logger.info(" ========================================== ")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        pos.exit_handler(expected = False)
+        pos.exit_handler(expected=False)
+
 
 @pytest.mark.sanity
 def test_R0_AutoCreateArray():
     try:
         logger.info("=================TESTs : test_R0_AutoCreateArray =============")
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
-        
-        array_list = [f'array{str(i)}' for i in range(1,3)]
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
         assert pos.cli.reset_devel()[0] == True
-        for index,array in enumerate(array_list):
-            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
-            assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol']) == True
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid="RAID0",
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array,
+                    num_vol=pos.data_dict["volume"][f"array{str(index+1)}"]["num_vol"],
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
         for ss in pos.target_utils.ss_temp_list:
-            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
-            
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
+
         assert pos.client.nvme_list() == True
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10")[0] == True
-             
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out,
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
+            )[0]
+            == True
+        )
+
         logger.info(" ========================================= ")
     except Exception as e:
-        logger.error(f'Test script failed due to {e}')
+        logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
+
+
 @pytest.mark.sanity
 def test_R0_R5_Array_WriteThrough():
     try:
         logger.info("============= TEST : test_R0_R5_Array_WriteThrough ============")
         if pos.target_utils.helper.check_pos_exit() == True:
-                     
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
-        array_list = [f'array{str(i)}' for i in range(1,3)]
-        raid_list = ['RAID0', 'RAID5']
+
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
+        raid_list = ["RAID0", "RAID5"]
         assert pos.cli.reset_devel()[0] == True
-        for index,array in enumerate(array_list):
-              assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid=raid_list[index], array_name= array)[0] == True
-              assert pos.cli.mount_array(array_name = array,write_back = False)[0] == True
-              assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol']) == True
-              assert pos.target_utils.get_subsystems_list() == True
-              assert pos.cli.list_volume(array_name = array)[0] == True
-              ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-              assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid=raid_list[index],
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array, write_back=False)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array,
+                    num_vol=pos.data_dict["volume"][f"array{str(index+1)}"]["num_vol"],
+                )
+                == True
+            )
+            assert pos.target_utils.get_subsystems_list() == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
+            ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
         for ss in pos.target_utils.ss_temp_list:
-              assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
-            
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
+
         assert pos.client.nvme_list() == True
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10")[0] == True
-        logger.info(" ================================================== ")    
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out,
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
+            )[0]
+            == True
+        )
+        logger.info(" ================================================== ")
     except Exception as e:
-        logger.error(f'Test script failed due to {e}')
+        logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
+
+
 @pytest.mark.sanity
-@pytest.mark.parametrize('raid_type', ['RAID0', 'RAID5'])
+@pytest.mark.parametrize("raid_type", ["RAID0", "RAID5"])
 def test_deleteR0_create_R5Array(raid_type):
     try:
-        logger.info("===================== TEST : test_deleteR0_create_R5Array ============== ")
-        #if previous TC failed load POS from start
+        logger.info(
+            "===================== TEST : test_deleteR0_create_R5Array ============== "
+        )
+        # if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
-            pos.data_dict['array']['phase'] = 'false'
-            pos.data_dict['volume']['array1']['phase'] = 'false'
-            pos.data_dict['volume']['array2']['phase'] == 'false'
-            
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
-        #step 2 create 2 arrays as per config
+            pos.data_dict["array"]["phase"] = "false"
+            pos.data_dict["volume"]["array1"]["phase"] = "false"
+            pos.data_dict["volume"]["array2"]["phase"] == "false"
+
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        # step 2 create 2 arrays as per config
         assert pos.cli.reset_devel()[0] == True
-        array_list = [f'array{str(i)}' for i in range(1,3)]
-        for index,array in enumerate(array_list):
-            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
-            assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol']) == True
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid="RAID0",
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array,
+                    num_vol=pos.data_dict["volume"][f"array{str(index+1)}"]["num_vol"],
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
         for ss in pos.target_utils.ss_temp_list:
-            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
-            
-        #run Block IO    
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
+
+        # run Block IO
         assert pos.client.nvme_list() == True
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10")[0] == True
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out,
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
+            )[0]
+            == True
+        )
         assert pos.client.nvme_disconnect() == True
         assert pos.cli.list_array()[0] == True
         array_list = list(pos.cli.array_dict.keys())
-        #Delete the arrays
+        # Delete the arrays
         for array in array_list:
             assert pos.cli.info_array(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
                 assert pos.cli.delete_array(array_name=array)[0] == True
-        array_list = [f'array{str(i)}' for i in range(1,3)]
-        #Create, mount, unmont and delete R5 arrays using the same drives
-        for i in  range(5):
-            for index,array in enumerate(array_list):
-               assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid=raid_type, array_name= array)[0] == True
-               assert pos.cli.mount_array(array_name = array)[0] == True
-               assert pos.cli.unmount_array(array_name = array)[0] == True
-               assert pos.cli.delete_array(array_name=array)[0] == True
-        logger.info(" ================================================== ")  
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
+        # Create, mount, unmont and delete R5 arrays using the same drives
+        for i in range(5):
+            for index, array in enumerate(array_list):
+                assert (
+                    pos.cli.autocreate_array(
+                        buffer_name=f"uram{str(index)}",
+                        num_data=pos.data_dict["array"][
+                            f"array{str(index+1)}_data_count"
+                        ],
+                        raid=raid_type,
+                        array_name=array,
+                    )[0]
+                    == True
+                )
+                assert pos.cli.mount_array(array_name=array)[0] == True
+                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.delete_array(array_name=array)[0] == True
+        logger.info(" ================================================== ")
     except Exception as e:
-        logger.error(f'Test script failed due to {e}')
+        logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-@pytest.mark.sanity    
+
+
+@pytest.mark.sanity
 def test_Create_delete_R0_R5():
-    """The purpose of this test case is to Create 2 arrays with Raid 0, Create 2 volumes each, Delete first array and create first array with RAID 5 and create volumes on it.
-    """
+    """The purpose of this test case is to Create 2 arrays with Raid 0, Create 2 volumes each, Delete first array and create first array with RAID 5 and create volumes on it."""
     try:
         logger.info(" ================= TEST : test_Create_delete_R0_R5 ==============")
         if pos.target_utils.helper.check_pos_exit() == True:
-            
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
+
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert pos.cli.reset_devel()[0] == True
-        array_list = [f'array{str(i)}' for i in range(1,3)]
-        for index,array in enumerate(array_list):
-            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
-            assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol']) == True
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid="RAID0",
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array,
+                    num_vol=pos.data_dict["volume"][f"array{str(index+1)}"]["num_vol"],
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
         for ss in pos.target_utils.ss_temp_list:
-            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
-            
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
+
         assert pos.client.nvme_list() == True
-        
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --size=100%")[0] == True
+
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out,
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --size=100%",
+            )[0]
+            == True
+        )
         assert pos.client.nvme_disconnect() == True
         assert pos.cli.info_array(array_name="array1")[0] == True
         assert pos.cli.unmount_array(array_name="array1")[0] == True
         assert pos.cli.delete_array(array_name="array1")[0] == True
-        assert pos.cli.autocreate_array(buffer_name=f'uram0', num_data = pos.data_dict['array']['array1_data_count'],raid="RAID5", array_name= "array1")[0] == True
+        assert (
+            pos.cli.autocreate_array(
+                buffer_name=f"uram0",
+                num_data=pos.data_dict["array"]["array1_data_count"],
+                raid="RAID5",
+                array_name="array1",
+            )[0]
+            == True
+        )
         logger.info(" ================================================== ")
-        
+
     except Exception as e:
-        logger.error(f'Test script failed due to {e}')
+        logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-@pytest.mark.sanity    
+
+
+@pytest.mark.sanity
 def test_Create_R0_Do_GC():
-    """The purpose of this test case is to Create 2 arrays with Raid 0, Create 2 volumes on each, connect Initiator and Run block IO and Trigger Gc and verify the system response """
+    """The purpose of this test case is to Create 2 arrays with Raid 0, Create 2 volumes on each, connect Initiator and Run block IO and Trigger Gc and verify the system response"""
     try:
         logger.info(" =============== TEST : test_Create_R0_Do_GC ===================")
-        #if previous TC failed load POS from start
+        # if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
-        #step 2 create 2 arrays as per config
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        # step 2 create 2 arrays as per config
         assert pos.cli.reset_devel()[0] == True
-        array_list = [f'array{str(i)}' for i in range(1,3)]
-        for index,array in enumerate(array_list):
-            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
-            assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol'], size = "10gb") == True
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid="RAID0",
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array,
+                    num_vol=pos.data_dict["volume"][f"array{str(index+1)}"]["num_vol"],
+                    size="10gb",
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
         for ss in pos.target_utils.ss_temp_list:
-            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
         assert pos.client.nvme_list() == True
         assert (
             pos.client.fio_generic_runner(
@@ -253,29 +436,53 @@ def test_Create_R0_Do_GC():
         logger.info(" ================================================== ")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        pos.exit_handler(expected = False)
-    
+        pos.exit_handler(expected=False)
 
-@pytest.mark.sanity            
+
+@pytest.mark.sanity
 def test_AddSpare_R0_Array():
     """The purpose of this test case is to Create 2 arrays with Raid 0, Create 2 volumes on each, Try to add spare to the existing Array and get the proper response for Raid 0 has no fault tolerance"""
     try:
-        logger.info(" ================= TEST : test_AddSpare_R0_Array ================== ")
-        #if previous TC failed load POS from start
+        logger.info(
+            " ================= TEST : test_AddSpare_R0_Array ================== "
+        )
+        # if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
-        #step 2 create 2 arrays as per config
-        array_list = [f'array{str(i)}' for i in range(1,3)]
-        for index,array in enumerate(array_list):
-            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
-            assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol']) == True
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        # step 2 create 2 arrays as per config
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid="RAID0",
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array,
+                    num_vol=pos.data_dict["volume"][f"array{str(index+1)}"]["num_vol"],
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
         for ss in pos.target_utils.ss_temp_list:
-            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
         assert pos.client.nvme_list() == True
         assert (
             pos.client.fio_generic_runner(
@@ -284,74 +491,127 @@ def test_AddSpare_R0_Array():
             )[0]
             == True
         )
-        
+
         assert pos.cli.list_array()[0] == True
         for array in list(pos.cli.array_dict.keys()):
             assert pos.cli.list_device()[0] == True
-            assert pos.cli.addspare_array(pos.cli.system_disks[0], array_name = array)[0] == False
-            assert pos.cli.info_array(array_name= array)[0] == True
+            assert (
+                pos.cli.addspare_array(pos.cli.system_disks[0], array_name=array)[0]
+                == False
+            )
+            assert pos.cli.info_array(array_name=array)[0] == True
         logger.info(" ================================================== ")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        pos.exit_handler(expected = False)
-@pytest.mark.sanity        
+        pos.exit_handler(expected=False)
+
+
+@pytest.mark.sanity
 def test_remove_device_R0_Array():
     """The purpose of this test case is to Create 2 array with Raid 0 , Create 2 volumes on each , Detach 1 data drive and verify the array list and system response(System should not crash)"""
     try:
-        logger.info("================ TEST : test_remove_device_R0_Array ==================")
-       #if previous TC failed load POS from start
+        logger.info(
+            "================ TEST : test_remove_device_R0_Array =================="
+        )
+        # if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
-        #step 2 create 2 arrays as per config
-        array_list = [f'array{str(i)}' for i in range(1,3)]
-        for index,array in enumerate(array_list):
-            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
-            assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = pos.data_dict['volume'][f'array{str(index+1)}']['num_vol']) == True
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        # step 2 create 2 arrays as per config
+        array_list = [f"array{str(i)}" for i in range(1, 3)]
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid="RAID0",
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array,
+                    num_vol=pos.data_dict["volume"][f"array{str(index+1)}"]["num_vol"],
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
         for ss in pos.target_utils.ss_temp_list:
-            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
         assert pos.client.nvme_list() == True
         assert (
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
                 fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
             )[0]
-            == True)
+            == True
+        )
         assert pos.cli.list_array()[0] == True
         for array in list(pos.cli.array_dict.keys()):
             assert pos.cli.list_device()[0] == True
-            assert pos.cli.info_array(array_name = array)[0] == True
-            assert pos.target_utils.device_hot_remove([pos.cli.array_info[array]['data_list'][0]])
-            assert pos.cli.info_array(array_name= array)[0] == True
+            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.target_utils.device_hot_remove(
+                [pos.cli.array_info[array]["data_list"][0]]
+            )
+            assert pos.cli.info_array(array_name=array)[0] == True
         logger.info(" ================================================== ")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        pos.exit_handler(expected = False)
-    
+        pos.exit_handler(expected=False)
+
+
 def test_array_R0_volume_all_Operation():
-    """The purpose of this test case is to Create 2 arrays with RAID 0, 2 volumes of 100GB on each array, Connect initiator, run block IO and perform different volume Operation.
-    """
+    """The purpose of this test case is to Create 2 arrays with RAID 0, 2 volumes of 100GB on each array, Connect initiator, run block IO and perform different volume Operation."""
     try:
-        #if previous TC failed load POS from start
+        # if previous TC failed load POS from start
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
-        #step 2 create 2 arrays as per config
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        # step 2 create 2 arrays as per config
         assert pos.cli.reset_devel()[0] == True
-        array_list = ["posarray1","posarray2"]
-        for index,array in enumerate(array_list):
-            assert pos.cli.autocreate_array(buffer_name=f'uram{str(index)}', num_data = pos.data_dict['array'][f'array{str(index+1)}_data_count'],raid="RAID0", array_name= array)[0] == True
-            assert pos.cli.mount_array(array_name = array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = 2, size="100gb",vol_name="vol") == True
+        array_list = ["posarray1", "posarray2"]
+        for index, array in enumerate(array_list):
+            assert (
+                pos.cli.autocreate_array(
+                    buffer_name=f"uram{str(index)}",
+                    num_data=pos.data_dict["array"][f"array{str(index+1)}_data_count"],
+                    raid="RAID0",
+                    array_name=array,
+                )[0]
+                == True
+            )
+            assert pos.cli.mount_array(array_name=array)[0] == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array, num_vol=2, size="100gb", vol_name="vol"
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
         for ss in pos.target_utils.ss_temp_list:
-            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
         assert pos.client.nvme_list() == True
         assert (
             pos.client.fio_generic_runner(
@@ -361,25 +621,40 @@ def test_array_R0_volume_all_Operation():
             == True
         )
         for array in array_list:
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             for volume in pos.cli.vols:
                 pos.cli.unmount_volume(volumename=volume, array_name=array)
                 pos.cli.delete_volume(volumename=volume, array_name=array)
 
         for array in array_list:
-            assert pos.target_utils.create_volume_multiple(array_name = array, num_vol = 2, size="100gb",vol_name="vol") == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array, num_vol=2, size="100gb", vol_name="vol"
+                )
+                == True
+            )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
-            assert pos.target_utils.mount_volume_multiple(array_name= array,volume_list= pos.cli.vols, nqn_list = ss_list) == True
+            assert (
+                pos.target_utils.mount_volume_multiple(
+                    array_name=array, volume_list=pos.cli.vols, nqn_list=ss_list
+                )
+                == True
+            )
 
         for array in array_list:
-            assert pos.cli.list_volume(array_name = array)[0] == True
+            assert pos.cli.list_volume(array_name=array)[0] == True
             for volume in pos.cli.vols:
-                pos.cli.rename_volume(volname=volume, new_volname="New_Vol_"+volume,array_name=array)
+                pos.cli.rename_volume(
+                    volname=volume, new_volname="New_Vol_" + volume, array_name=array
+                )
 
         for ss in pos.target_utils.ss_temp_list:
-            assert pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158") == True
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
         assert pos.client.nvme_list() == True
 
         assert (
@@ -391,5 +666,5 @@ def test_array_R0_volume_all_Operation():
         )
         assert pos.client.nvme_disconnect() == True
     except Exception as e:
-        logger.error(f'Test script failed due to {e}')
+        logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
