@@ -32,7 +32,6 @@ import time
 import random
 import logger
 from pos import POS
-
 logger = logger.get_logger(__name__)
 
 
@@ -122,14 +121,9 @@ class _Array(POS):
                     "situation"
                 ].lower()
 
-                self.device["data"] = self.cli.array_info[self.name]["data_list"]
-                self.device["spare"] = self.cli.array_info[self.name]["spare_list"]
-                if "Faulty Device" in self.device["data"]:
-
-                    self.device["data"] = list(
-                        set(self.device["data"]) - set(["Faulty Device"])
-                    )
-
+                self.device["data"] = [ dev for dev in self.cli.array_info[self.name]["data_list"] if '[REMOVED]' not in dev]
+                self.device["spare"] = [dev for dev in self.cli.array_info[self.name]["spare_list"] if '[REMOVED]' not in dev]
+                
             else:
                 assert update_next_status(state=None, situation=None) == True
                 self.device["data"].clear()
@@ -167,7 +161,7 @@ class _Array(POS):
         assert self.cli.list_device()[0] == True
         self.total_data_array = len(self.cli.array_info[self.name]["data_list"])
 
-        if self.name == "Trident_POS_Array1":
+        if self.name == "array1":
             self.totalDrivesArray = int(
                 self.data_dict["array"]["array1_data_count"]
             ) + int(
@@ -792,16 +786,10 @@ class _Array(POS):
                     if detach_type == "data":
                         if self.situation["current"] == "rebuilding":
                             self.device["data"].remove(self.device["rebuild"])
-                        if "Faulty Device" in self.device["data"]:
-
-                            temp_list = list(
-                                set(self.device["data"]) - set(["Faulty Device"])
-                            )
-                            if len(temp_list) == 0:
+                        #self.device['data'] = [dev for dev in self.device['data'] if '[REMOVED]' not in dev]
+                        if len(self.device['data']) == 0:
                                 logger.info("no devices Present in Array to remove")
                                 return True
-                            else:
-                                dev_name = random.choice(temp_list)
                         else:
                             dev_name = random.choice(self.device["data"])
 
@@ -1045,7 +1033,7 @@ class _Array(POS):
                     assert (
                         self.client.fio_generic_runner(
                             self.client.nvme_list_out,
-                            fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --size=100%",
+                            fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0",
                         )[0]
                         == True
                     )
