@@ -786,7 +786,7 @@ class _Array(POS):
                     if detach_type == "data":
                         if self.situation["current"] == "rebuilding":
                             self.device["data"].remove(self.device["rebuild"])
-                        self.device['data'] = [dev for dev in self.device['data'] if '[REMOVED]' not in dev]
+                        #self.device['data'] = [dev for dev in self.device['data'] if '[REMOVED]' not in dev]
                         if len(self.device['data']) == 0:
                                 logger.info("no devices Present in Array to remove")
                                 return True
