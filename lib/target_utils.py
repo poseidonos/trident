@@ -868,10 +868,9 @@ class TargetUtils:
         logger.info("=============================SYSTEM==========================")
         assert self.cli.info_system()[0] == True
         logger.info("=============================ARRAY==========================")
-        
-        
+
         assert self.cli.list_array()[0] == True
-        
+
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) != 0:
             for array in array_list:

@@ -21,7 +21,7 @@ def test_array_states(num_array):
         # step ::0 : variable initialization
         data_dict = pos.data_dict
         loop = 1
-        #seed = 10
+        # seed = 10
         seed = random.randint(1, 10)
         random.seed(seed)
         logger.info(

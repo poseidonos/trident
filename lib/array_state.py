@@ -32,6 +32,7 @@ import time
 import random
 import logger
 from pos import POS
+
 logger = logger.get_logger(__name__)
 
 
@@ -121,9 +122,17 @@ class _Array(POS):
                     "situation"
                 ].lower()
 
-                self.device["data"] = [ dev for dev in self.cli.array_info[self.name]["data_list"] if '[REMOVED]' not in dev]
-                self.device["spare"] = [dev for dev in self.cli.array_info[self.name]["spare_list"] if '[REMOVED]' not in dev]
-                
+                self.device["data"] = [
+                    dev
+                    for dev in self.cli.array_info[self.name]["data_list"]
+                    if "[REMOVED]" not in dev
+                ]
+                self.device["spare"] = [
+                    dev
+                    for dev in self.cli.array_info[self.name]["spare_list"]
+                    if "[REMOVED]" not in dev
+                ]
+
             else:
                 assert update_next_status(state=None, situation=None) == True
                 self.device["data"].clear()
@@ -786,10 +795,10 @@ class _Array(POS):
                     if detach_type == "data":
                         if self.situation["current"] == "rebuilding":
                             self.device["data"].remove(self.device["rebuild"])
-                        #self.device['data'] = [dev for dev in self.device['data'] if '[REMOVED]' not in dev]
-                        if len(self.device['data']) == 0:
-                                logger.info("no devices Present in Array to remove")
-                                return True
+                        # self.device['data'] = [dev for dev in self.device['data'] if '[REMOVED]' not in dev]
+                        if len(self.device["data"]) == 0:
+                            logger.info("no devices Present in Array to remove")
+                            return True
                         else:
                             dev_name = random.choice(self.device["data"])
 

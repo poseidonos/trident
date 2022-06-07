@@ -2,7 +2,8 @@ import pytest
 
 from pos import POS
 import logger
-#from pos import POS
+
+# from pos import POS
 
 logger = logger.get_logger(__name__)
 
@@ -19,6 +20,7 @@ def setup_module():
     # assert pos.target_utils.setup_env_pos() == True
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
+
 
 def teardown_function():
 
@@ -37,7 +39,7 @@ def teardown_function():
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
-    #assert pos.cli.reset_devel()[0] == True
+    # assert pos.cli.reset_devel()[0] == True
     logger.info("==========================================")
 
 
@@ -45,21 +47,39 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
+
 @pytest.mark.sanity
 def test_NoRaidArray_256Volumes_BlockIO():
-    logger.info(" ==================== Test : test_NoRaidArray_256Volumes_BlockIO ================== ")
+    logger.info(
+        " ==================== Test : test_NoRaidArray_256Volumes_BlockIO ================== "
+    )
     try:
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.autocreate_array(buffer_name='uram0', num_data = 1,raid=raid_type, array_name= "array1")[0] == True
-        assert pos.cli.mount_array(array_name = "array1")[0] == True
-        assert pos.target_utils.create_volume_multiple(array_name = "array1", num_vol = 256, size = "1gb") == True
+        assert (
+            pos.cli.autocreate_array(
+                buffer_name="uram0", num_data=1, raid=raid_type, array_name="array1"
+            )[0]
+            == True
+        )
+        assert pos.cli.mount_array(array_name="array1")[0] == True
+        assert (
+            pos.target_utils.create_volume_multiple(
+                array_name="array1", num_vol=256, size="1gb"
+            )
+            == True
+        )
         assert pos.target_utils.get_subsystems_list() == True
-        assert pos.cli.list_volume(array_name = "array1")[0] == True
+        assert pos.cli.list_volume(array_name="array1")[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if "array1" in ss]
-        assert pos.target_utils.mount_volume_multiple(array_name= "array1",volume_list= pos.cli.vols, nqn_list = ss_list) == True
-        
+        assert (
+            pos.target_utils.mount_volume_multiple(
+                array_name="array1", volume_list=pos.cli.vols, nqn_list=ss_list
+            )
+            == True
+        )
+
         for ss in pos.target_utils.ss_temp_list:
             assert (
                 pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
@@ -73,18 +93,23 @@ def test_NoRaidArray_256Volumes_BlockIO():
             )[0]
             == True
         )
-        logger.info(" ============================= Test ENDs ======================================")
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 @pytest.mark.sanity
 def test_Autocreate_NoRaid_Array():
-    logger.info( " ======================= Test : test_Autocreate_NoRaid_Array =====================")
+    logger.info(
+        " ======================= Test : test_Autocreate_NoRaid_Array ====================="
+    )
     try:
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict = pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert pos.cli.list_device()[0] == True
         assert (
             pos.cli.autocreate_array(
@@ -133,4 +158,3 @@ def test_Autocreate_NoRaid_Array():
     except Exception as e:
         logger.error(e)
         pos.exit_handler()
-

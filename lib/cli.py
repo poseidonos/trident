@@ -758,7 +758,7 @@ class Cli:
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False, None, None, None, None
-    
+
     def smart_device(self, devicename: str) -> (bool, dict()):
         """
         method to get smart details of a devce
@@ -779,6 +779,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
+
     def smart_log_device(self, devicename: str) -> (bool, dict()):
         """
         method to get smart details of a devce
@@ -1050,7 +1051,9 @@ class Cli:
             logger.error("list volume command failed with exception {}".format(e))
             return False, out
 
-    def info_volume(self, array_name: str = None, vol_name: str = None) -> (bool, dict()):
+    def info_volume(
+        self, array_name: str = None, vol_name: str = None
+    ) -> (bool, dict()):
         """
         Method to get volume information
 
@@ -1061,7 +1064,7 @@ class Cli:
         try:
             if array_name != None:
                 self.array_name = array_name
-            
+
             self.volume_info = {}
             self.volume_info[array_name] = {}
 
@@ -1089,7 +1092,7 @@ class Cli:
                     "array_name": out[1]["data"]["array_name"],
                 }
                 vol_status = self.volume_info[array_name][vol_name]["status"]
-                if vol_status == 'Mounted':
+                if vol_status == "Mounted":
                     cap = out[1]["data"]["remain"]
                     self.volume_info[array_name][vol_name]["remain"] = cap
             else:
@@ -1690,11 +1693,11 @@ class Cli:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False
-    
-    def updateeventwrr_devel(self, name:str, weight:str) -> (bool, dict):
-        
+
+    def updateeventwrr_devel(self, name: str, weight: str) -> (bool, dict):
+
         try:
-            
+
             command = f"update-event-wrr --name {name} --weight {weight}"
             cli_error, jout = self.run_cli_command(command, "devel")
             if cli_error == True:
@@ -1709,12 +1712,11 @@ class Cli:
         except Exception as e:
             logger.error(e)
             return False, jout
-    
-    
+
     def reseteventwrr_devel(self) -> (bool, dict):
-        
+
         try:
-            
+
             command = "reset-event-wrr"
             cli_error, jout = self.run_cli_command(command, "devel")
             if cli_error == True:
@@ -1729,5 +1731,3 @@ class Cli:
         except Exception as e:
             logger.error(e)
             return False, jout
-        
-        
