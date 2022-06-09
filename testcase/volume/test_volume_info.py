@@ -43,7 +43,7 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
-
+@pytest.mark.sanity
 def test_mounted_vol_info():
     array_name = pos.data_dict["array"]["array_name"]
     array_name = "array1"

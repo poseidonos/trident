@@ -13,7 +13,7 @@ def setup_module():
     assert pos.target_utils.pos_bring_up() == True
     yield pos
 
-
+@pytest.mark.sanity
 def test_cli_happypath():
 
     try:
