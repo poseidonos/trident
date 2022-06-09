@@ -436,6 +436,7 @@ class Client:
 
         """
         try:
+            self.ssh_obj.execute("rm -fr fio_parser_pos.json")
             if len(devices) is 1 and IO_mode is True:
                 filename = devices[0]
             elif len(devices) is 1 and IO_mode is False:
@@ -463,7 +464,8 @@ class Client:
                 fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(
                     filename
                 )
-            fio_cli += " --output-format=json"
+            fio_cli += " --output-format=json --output=fio_parser_pos.json"
+            
             if run_async == True:
                 async_out = self.ssh_obj.run_async(fio_cli)
                 return True, async_out
@@ -471,25 +473,27 @@ class Client:
                 outfio = self.ssh_obj.execute(
                     fio_cli, get_pty=True, expected_exit_code=expected_exit_code
                 )
-
-                logger.info("".join(outfio))
-                self.fio_parser(outfio)
-
+                self.fio_parser()
                 return True, outfio
 
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
             return (False, None)
 
-    def fio_parser(self, str_out: str) -> dict():
+    def fio_parser(self) -> dict():
         """
         method to make specific information from fio output
         bw: KiB/s
         iops: iops
         clat: nsec
         """
+        cmd = 'cat fio_parser_pos.json '
+        str_out = self.ssh_obj.execute(cmd)
+        printout = ''.join(str_out)
+        logger.info(printout)
         self.fio_par_out = {}
         str_out = "".join(str_out).replace("\n", "")
+        
         jout = json.loads(str_out)
 
         self.fio_par_out["read"] = {
@@ -502,7 +506,7 @@ class Client:
             "iops": jout["jobs"][0]["write"]["iops"],
             "clat": jout["jobs"][0]["write"]["clat_ns"],
         }
-
+        
         return True
 
     def is_file_present(self, file_path: str) -> bool:
