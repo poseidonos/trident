@@ -3,6 +3,7 @@ import pytest
 from pos import POS
 import logger
 import random
+import time
 
 # from pos import POS
 
@@ -38,6 +39,8 @@ def teardown_function():
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
+    assert pos.target_utils.pci_rescan() == True
+
     # assert pos.cli.reset_devel()[0] == True
     logger.info("==========================================")
 
@@ -62,6 +65,8 @@ def test_wt_array_rebuild_after_BlockIO(raid_type, nr_data_drives):
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
+        if len(system_disks) < (nr_data_drives + 1):
+            pytest.skip(f"Insufficient disk count {system_disks}. Required minimum {nr_data_drives + 1}")
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
         spare_disk_list = [system_disks.pop()]
 
@@ -70,7 +75,7 @@ def test_wt_array_rebuild_after_BlockIO(raid_type, nr_data_drives):
                                     spare=spare_disk_list, raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
-        assert pos.cli.mount_array(array_name=array_name)[0] == True
+        assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
         assert pos.cli.create_volume("pos_vol1", array_name=array_name, size="1gb")[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
@@ -114,7 +119,10 @@ def test_wt_array_rebuild_during_BlockIO(raid_type, nr_data_drives):
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
-        data_disk_list = [system_disks.pos(0) for i in range(nr_data_drives)]
+        if len(system_disks) < (nr_data_drives + 1):
+            pytest.skip(f"Insufficient disk count {system_disks}. Required minimum {nr_data_drives + 1}")
+ 
+        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
         spare_disk_list = [system_disks.pop()]
 
         array_name = "array1"
@@ -122,9 +130,8 @@ def test_wt_array_rebuild_during_BlockIO(raid_type, nr_data_drives):
                                     spare=spare_disk_list, raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
-        assert pos.cli.mount_array(array_name=array_name)[0] == True
-        assert pos.cli.create_volume(array_name=array_name, num_vol=2,
-                                     size="1gb")[0] == True
+        assert pos.cli.mount_array(array_name=array_name, write_back=True)[0] == True
+        assert pos.cli.create_volume("pos_vol1", array_name=array_name, size="1gb")[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
@@ -135,12 +142,13 @@ def test_wt_array_rebuild_during_BlockIO(raid_type, nr_data_drives):
             assert pos.client.nvme_connect(ss, 
                             pos.target_utils.helper.ip_addr[0], "1158") == True
         assert pos.client.nvme_list() == True
-        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10"
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=8 --bs=128k --time_based --runtime=300"
         assert pos.client.fio_generic_runner(pos.client.nvme_list_out,
-                                    fio_user_data=fio_cmd)[0] == True
+                                    fio_user_data=fio_cmd, run_async=True)[0] == True
         
+        time.sleep(120)    # Run IO for atleast 2 minutes before Hot Remove
         assert pos.target_utils.device_hot_remove(device_list=[random.choice(data_disk_list)])
-        assert pos.target_utils.check_rebuild_status(array_name=array_name)
+        assert pos.target_utils.array_rebuild_wait(array_name=array_name)
 
         logger.info(
             " ============================= Test ENDs ======================================"

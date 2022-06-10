@@ -341,7 +341,7 @@ class Cli:
                 raise Exception("list array command execution failed ")
         except Exception as e:
             logger.error("list array command failed with exception {}".format(e))
-            return False, out
+            return False, jout
 
     def create_array(
         self,
