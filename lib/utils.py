@@ -33,6 +33,7 @@
 import logger
 import time
 import re
+import datetime
 import random
 import json
 import traceback
@@ -436,7 +437,7 @@ class Client:
 
         """
         try:
-            self.ssh_obj.execute("rm -fr fio_parser_pos.json")
+            self.json_name = f'fioJsonparseroutfile_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
             if len(devices) is 1 and IO_mode is True:
                 filename = devices[0]
             elif len(devices) is 1 and IO_mode is False:
@@ -461,8 +462,8 @@ class Client:
                 )
             else:
 
-                fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(
-                    filename
+                fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(self.json_name
+                    
                 )
             fio_cli += " --output-format=json --output=fio_parser_pos.json"
             
@@ -487,7 +488,7 @@ class Client:
         iops: iops
         clat: nsec
         """
-        cmd = 'cat fio_parser_pos.json '
+        cmd = f'cat {self.json_name}'
         str_out = self.ssh_obj.execute(cmd)
         printout = ''.join(str_out)
         logger.info(printout)
