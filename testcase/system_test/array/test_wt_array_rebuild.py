@@ -23,7 +23,6 @@ def setup_module():
 
 
 def teardown_function():
-
     logger.info("========== TEAR DOWN AFTER TEST =========")
     assert pos.target_utils.helper.check_system_memory() == True
     if pos.client.ctrlr_list()[1] is not None:
@@ -47,10 +46,7 @@ def teardown_function():
 
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
-@pytest.mark.sanity
+@pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives", 
                          [("RAID5", 3), ("RAID10", 2), ("RAID10", 4)])
 def test_wt_array_rebuild_after_BlockIO(raid_type, nr_data_drives):
@@ -104,7 +100,7 @@ def test_wt_array_rebuild_after_BlockIO(raid_type, nr_data_drives):
 
 
 
-@pytest.mark.sanity
+@pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives", 
                          [("RAID5", 3), ("RAID10", 2), ("RAID10", 4)])
 def test_wt_array_rebuild_during_BlockIO(raid_type, nr_data_drives):
