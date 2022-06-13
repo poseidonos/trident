@@ -505,18 +505,37 @@ class TargetUtils:
             ###system config
 
             if static_dict["system"]["phase"] == "true":
+                
                 assert self.cli.start_system()[0] == True
                 assert self.cli.create_transport_subsystem()[0] == True
+                assert self.cli.scan_device()[0] == True
+                assert self.cli.list_device()[0] == True
+                numa0devlen = len([dev for dev in self.cli.system_disks if self.cli.device_map[dev]['numa'] == '0'])
+                numa1devlen = len([dev for dev in self.cli.system_disks if self.cli.device_map[dev]['numa'] == '1'])
 
             if static_dict["device"]["phase"] == "true":
-                assert self.cli.create_device(uram_name="uram0")[0] == True
-                if (
-                    static_dict["array"]["num_array"] == 2
-                    and static_dict["device"]["phase"] == "true"
-                ):
-                    assert self.cli.create_device(uram_name="uram1")[0] == True
-
+                array1_drive_count = int(static_dict["array"]["array1_data_count"]) + int(static_dict["array"]["array1_spare_count"])
+                if array1_drive_count <= numa0devlen:
+                    numa = 0
+                    numa0devlen = numa0devlen - array1_drive_count
+                elif array1_drive_count <= numa1devlen:
+                    numa = 1
+                    numa1devlen = numa1devlen - array1_drive_count
+                
+                assert self.cli.create_device(uram_name="uram0",numa = numa)[0] == True
+                if static_dict['array']['num_array'] == 2:
+                   array2_drive_count = int(static_dict["array"]["array2_data_count"]) + int(static_dict["array"]["array2_spare_count"])
+                   if array2_drive_count <= numa0devlen:
+                       numa = 0
+                   elif array2_drive_count <= numa1devlen:
+                       numa = 1
+                   else:
+                       logger.error("No Enough drives to start test")
+                       return False
+                   assert self.cli.create_device(uram_name="uram1",numa = numa)[0] == True
+                    
                 assert self.cli.scan_device()[0] == True
+                    
             if static_dict["subsystem"]["phase"] == "true":
                 base_name = static_dict["subsystem"]["base_nqn_name"] + "array1"
                 assert (
@@ -585,6 +604,7 @@ class TargetUtils:
                 self.array_list = []
                 self.array_list.append(f"{array_name}1")
                 if num_array == 2:
+                    
                     assert (
                         self.cli.autocreate_array(
                             array_name=f"{array_name}2",
@@ -972,4 +992,24 @@ class TargetUtils:
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")
+            return False
+    
+    def deleteAllVolumes(self, arrayname):
+        """method to delete all volumes if any in a given array"""
+        try:
+            assert self.cli.list_array()[0] == True
+            if arrayname  in list(self.cli.array_dict.keys()):
+                assert self.cli.list_volume()[0] == True
+                if len(self.cli.vols) == 0:
+                        logger.info("No volumes found")
+                        return True
+                for vol in self.cli.vols:
+                    assert self.cli.info_volume(array_name=arrayname, vol_name=vol)[0] == True
+                    if self.cli.volume_info[arrayname][vol]["status"].lower() == "mounted":
+                        assert self.cli.unmount_volume(volumename=vol, array_name=arrayname)[0] == True
+                    assert self.cli.delete_volume(volumename=vol, array_name=arrayname)[0] == True
+                return True
+                                    
+        except Exception as e:
+            logger.error(e)
             return False

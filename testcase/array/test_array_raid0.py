@@ -5,8 +5,6 @@ import logger
 from pos import POS
 
 logger = logger.get_logger(__name__)
-
-
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
 
@@ -18,8 +16,8 @@ def setup_module():
     # bring devices to user mode, setup core, setup udev, setup max map count
     # assert pos.target_utils.setup_env_pos() == True
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
+    assert pos.cli.reset_devel()[0] == True
     yield pos
-
 
 def teardown_function():
 

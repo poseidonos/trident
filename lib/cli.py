@@ -96,7 +96,7 @@ class Cli:
                     )
                 )
                 out = "".join(out)
-                logger.debug("Raw output of the command {} is {}".format(command, out))
+                #logger.debug("Raw output of the command {} is {}".format(command, out))
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
                         "POS is not running! please start POS and try again!"
@@ -160,12 +160,8 @@ class Cli:
         logger.info(pprint.pformat(out))
         status_code = out["Response"]["result"]["status"]["code"]
         description = out["Response"]["result"]["status"]["description"]
-        logger.info(
-            "status code response from the command {} is {}".format(
-                command, status_code
-            )
-        )
-        logger.info("DESCRIPTION from command {} is {}".format(command, description))
+        #logger.info("status code response from the command {} is {}".format(command, status_code))
+        #logger.info("DESCRIPTION from command {} is {}".format(command, description))
 
         if "data" in out["Response"]["result"]:
             return {
@@ -271,7 +267,8 @@ class Cli:
                 self.ssh_obj.execute(command="pkill -9 pos")
         except Exception as e:
             logger.error("failed due to {}".format(e))
-            return False
+            self.stop_system(grace_shutdown=False)
+            #return False
         return True
 
     def setposproperty_system(self, rebuild_impact: str) -> (bool, dict()):
@@ -707,7 +704,7 @@ class Cli:
             cmd = "list"
             cli_error, out = self.run_cli_command(cmd, command_type="device")
             devices = []
-            device_map = {}
+            self.device_map = {}
             self.device_type = {}
             self.dev_type = {"NVRAM": [], "SSD": []}
 
@@ -715,7 +712,7 @@ class Cli:
                 if out["status_code"] == 0:
                     if out["description"].lower() == "no any device exists":
                         logger.info("No devices listed")
-                        return True, out, devices, device_map, self.dev_type
+                        return True, out, devices, self.device_map, self.dev_type
                     if "data" in out:
                         dev = out["data"]["devicelist"]
                         for device in dev:
@@ -728,23 +725,24 @@ class Cli:
                                 "size": device["size"],
                                 "type": device["type"],
                                 "class": device["class"],
+                                "numa" : device['numa']
                             }
                             if dev_map["type"] in self.dev_type.keys():
                                 self.dev_type[dev_map["type"]].append(dev_map["name"])
-                                device_map.update({device["name"]: dev_map})
+                                self.device_map.update({device["name"]: dev_map})
 
-                        self.NVMe_BDF = device_map
+                        self.NVMe_BDF = self.device_map
                         self.system_disks = [
                             item
-                            for item in device_map
-                            if device_map[item]["class"].lower() == "system"
-                            and device_map[item]["type"].lower() == "ssd"
+                            for item in self.device_map
+                            if self.device_map[item]["class"].lower() == "system"
+                            and self.device_map[item]["type"].lower() == "ssd"
                         ]
                         self.system_buffer = [
                             item
-                            for item in device_map
-                            if device_map[item]["class"].lower() == "system"
-                            and device_map[item]["type"].lower() == "nvram"
+                            for item in self.device_map
+                            if self.device_map[item]["class"].lower() == "system"
+                            and self.device_map[item]["type"].lower() == "nvram"
                         ]
                         return (True, out)
                 else:
@@ -1328,7 +1326,7 @@ class Cli:
             for data in out[1]["data"]["subsystemlist"]:
                 temp = data
                 nvmf_out[data["nqn"]] = temp
-            logger.info(nvmf_out)
+           
             return (True, nvmf_out)
 
         except Exception as e:
