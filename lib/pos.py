@@ -38,6 +38,9 @@ from json import load
 from os import path
 from sys import exit
 import logger
+import pathlib
+import inspect
+
 
 logger = logger.get_logger(__name__)
 
@@ -61,7 +64,15 @@ class POS:
         if config_path is None:
             config_path = "topology.json"
 
-        self.data_dict = self._json_reader(data_path)[1]
+        caller_file = inspect.stack()[1].filename
+        caller_dir = pathlib.Path(caller_file).parent.resolve()
+        is_file_exist = path.exists("{}/config_files/{}".format(caller_dir, data_path))
+        
+        if is_file_exist:
+            data_path = "{}/config_files/{}".format(caller_dir, data_path)
+            self.data_dict = self._json_reader(data_path, abs_path=True)[1]
+        else:
+            self.data_dict = self._json_reader(data_path)[1]
         self.config_dict = self._json_reader(config_path)[1]
 
         self.target_ssh_obj = SSHclient(
@@ -86,14 +97,20 @@ class POS:
             self.config_dict["login"]["initiator"]["password"],
         )
 
-    def _json_reader(self, json_file: str) -> dict:
+    def _json_reader(self, json_file: str, abs_path=False) -> dict:
         """reads json file from /testcase/config_files
+
+        Read the config file from following location: 
         Args:
             json_file (str) json name [No path required]
         """
         try:
-            dir_path = path.dirname(path.realpath(__file__))
-            json_path = f"{dir_path}/../testcase/config_files/{json_file}"
+            if abs_path:
+                json_path = json_file
+            else:
+                dir_path = path.dirname(path.realpath(__file__))
+                json_path = f"{dir_path}/../testcase/config_files/{json_file}"
+                
             logger.info(f"reading json file {json_path}")
             with open(f"{json_path}") as f:
                 json_out = load(f)
