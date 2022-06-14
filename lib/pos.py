@@ -118,7 +118,7 @@ class POS:
             if expected == False:
                 raise Exception(" Test case failed ! Creating core dump and clean up")
             if self.target_utils.helper.check_pos_exit() == False:
-                self.cli.stop_system()
+                self.cli.stop_system(grace_shutdown = False)
 
         except Exception as e:
 
@@ -134,6 +134,6 @@ class POS:
             )
             # time.sleep(10000)
             # self.cli.core_dump()
-            self.cli.stop_system()
+            self.cli.stop_system(grace_shutdown = False)
 
             assert 0
