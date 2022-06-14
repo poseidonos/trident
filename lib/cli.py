@@ -96,7 +96,7 @@ class Cli:
                     )
                 )
                 out = "".join(out)
-                logger.debug("Raw output of the command {} is {}".format(command, out))
+                #logger.debug("Raw output of the command {} is {}".format(command, out))
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
                         "POS is not running! please start POS and try again!"
@@ -112,7 +112,7 @@ class Cli:
                     logger.error("POS os crashed in between ! please check POS logs")
                     return False, out
                 else:
-                    if "volume mount" in cmd or "system start" in cmd:
+                    if "volume mount" in cmd :
                         return (
                             True,
                             out,
@@ -160,13 +160,14 @@ class Cli:
         logger.info(pprint.pformat(out))
         status_code = out["Response"]["result"]["status"]["code"]
         description = out["Response"]["result"]["status"]["description"]
+        """
         logger.info(
             "status code response from the command {} is {}".format(
                 command, status_code
             )
         )
         logger.info("DESCRIPTION from command {} is {}".format(command, description))
-
+        """
         if "data" in out["Response"]["result"]:
             return {
                 "output": out,
@@ -204,28 +205,19 @@ class Cli:
         """
 
         try:
-            out = ""
-            max_running_time = 30 * 60  # 30min
-            start_time = time.time()
-            self.out = self.ssh_obj.run_async(
-                "nohup {}/bin/{} >> {}/script/pos.log".format(
-                    self.pos_path, "poseidonos", self.pos_path
-                )
-            )
-            while True:
-                logger.info("waiting for iBOF logs")
-                time.sleep(5)
-                if self.out.is_complete() is False:
-                    logger.info("Time-consuming : {}".format(time.time() - start_time))
-                    return True, out
-                cur_time = time.time()
-                running_time = cur_time - start_time
-                if running_time > max_running_time:
-                    return False, out
-
+            
+            cli_error, jout = self.run_cli_command("start", command_type="system")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+            
         except Exception as e:
             logger.error("failed due to {}".format(e))
-            return False, out
+            return False, jout
 
     def stop_system(
         self,
@@ -266,7 +258,9 @@ class Cli:
                             else:
                                 break
                             if count == time_out:
-                                raise Exception("failed to kill pos")
+                                logger.error("POS PID taking too much time to exit .. Killing the process")
+                                self.stop_system(grace_shutdown=False)
+                                
             else:
                 self.ssh_obj.execute(command="pkill -9 pos")
         except Exception as e:
@@ -512,6 +506,7 @@ class Cli:
                 array_state = out[1]["data"]["state"]
                 array_size = out[1]["data"]["capacity"]
                 array_situation = out[1]["data"]["situation"]
+                rebuild_progress = out[1]["data"]["rebuilding_progress"]
                 for dev in out[1]["data"]["devicelist"]:
                     if dev["type"] == "DATA":
                         data_dev.append(dev["name"])
@@ -533,6 +528,7 @@ class Cli:
             "state": array_state,
             "size": array_size,
             "situation": array_situation,
+            "rebuilding_progress": rebuild_progress,
             "data_list": data_dev,
             "spare_list": spare_dev,
             "buffer_list": buffer_dev,
