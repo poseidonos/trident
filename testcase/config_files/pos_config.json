@@ -1,72 +1,67 @@
 {
-
-    "system" :
-    {"phase" :  "true"},
-
-    "device" :
-    {
-        "phase" : "true",
-        "uram_name" : "uram0",
-        "bufer_size" : "8388608",
-        "strip_size" : "512",
-        "numa" : "1"
-
+    "system": {
+        "phase": "true"
     },
-
-    
-    "array" :
-    {
-        "phase" : "true",
-        "num_array" :  2,
-        "array_name" :  "array",
-        "array1_data_count" : 3,
-        "array1_spare_count": 1,
-        "array1_raid_type" : "RAID5",
-        "array2_spare_count" : 1,
-        "array2_data_count" : 3,
-        "array2_raid_type" : "RAID5"
-
-      },
-    "volume" :
-    {"array1" :
-    {
-        "phase" : "true",
-        "num_vol": 1,
-        "size": "None",
-        "qos" : {"maxbw": 100000,
-        "minbw": 1000,
-        "maxiops": 10000000,
-        "miniops": 1000}
+    "device": {
+        "phase": "true",
+        "uram": [
+            {
+                "uram_name": "uram0",
+                "bufer_size": "8388608",
+                "strip_size": "512",
+                "numa_node": "0"
+            },
+            {
+                "uram_name": "uram1",
+                "bufer_size": "8388608",
+                "strip_size": "512",
+                "numa_node": "1"
+            }
+        ]
     },
-    "array2" :
-    {
-        "phase" : "true",
-        "num_vol": 1,
-        "size": "None",
-        "qos" : {
-        "maxbw": 112212300000,
-        "minbw": 10312300,
-        "maxiops": 100031340000,
-        "miniops": 1000}
-
+    "array": {
+        "phase": "false",
+        "pos_array": [
+            {
+                "array_name": "array1",
+                "data_device": 3,
+                "spare_device": 1,
+                "raid_type": "RAID5",
+                "uram": "uram0",
+                "auto_create": "false",
+                "mount": "true",
+                "write_back": "true"
+            }
+        ]
+    },
+    "volume": {
+        "phase": "false",
+        "pos_volumes": [
+            {
+                "num_vol": 2,
+                "vol_name_pre": "pos_vol",
+                "array_name": "array1",
+                "size": "1gb",
+                "qos": {
+                    "maxbw": 100000,
+                    "minbw": 1000,
+                    "maxiops": 10000000,
+                    "miniops": 1000
+                },
+                "mount": {
+                    "phase": "true",
+                    "nqn_pre": "nqn.2022-10.pos.subsystem",
+                    "subsystem_range": "1-10"
+                }
+            }
+        ]
+    },
+    "subsystem": {
+        "phase": "true",
+        "nr_subsystems": 2,
+        "base_nqn_name": "nqn.2022-10.pos.",
+        "ns_count": "512",
+        "serial_number": "POS000000000001",
+        "model_name": "POS_VOLUME"
     }
-
-    },
-    "subsystem" :
-    {
-        "phase" : "true",
-        "array1" :  1,
-        "array2" :  1,
-        "base_nqn_name" : "nqn.2022-10.pos",
-        "ns_count" :"512",
-        "serial_number" : "POS000000000001",
-        "model_name" : "POS_VOLUME"
-
-
-    },
-    "array_states" :
-    {
-        "runtime" :60
-    }
-
 }

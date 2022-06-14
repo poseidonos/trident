@@ -59,11 +59,11 @@ class Cli:
     ):
         self.ssh_obj = con
         self.helper = helper.Helper(con)
-        self.data_dict = data_dict
+        #self.data_dict = data_dict
         self.pos_path = pos_path
-        self.array_name = array_name
+        #self.array_name = array_name
         self.new_cli_path = "/bin/poseidonos-cli"  ##path of POS cli
-        self.array_info = {}
+        #self.array_info = {}
         self.cli_history = []
 
     def run_cli_command(
@@ -90,43 +90,37 @@ class Cli:
                 out = self.ssh_obj.execute(cmd, get_pty=True)
 
                 elapsed_time_secs = time.time() - start_time
-                logger.info(
-                    "command execution completed in  : {} secs ".format(
-                        timedelta(seconds=elapsed_time_secs)
-                    )
-                )
+                logger.info("Command execution completed in : {} secs".format(
+                        timedelta(seconds=elapsed_time_secs)))
                 out = "".join(out)
-                #logger.debug("Raw output of the command {} is {}".format(command, out))
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
-                        "POS is not running! please start POS and try again!"
+                        "POS is not running! Please start POS and try again!"
                     )
                     return False, out
                 elif "invalid data metric" in out:
-                    logger.warning("invalid syntax passed to the command ")
+                    logger.warning("Invalid syntax passed to the command ")
                     return False, out
                 elif "invalid json file" in out:
-                    logger.error("passed file contains invalid json data")
+                    logger.error("Passed file contains invalid json data")
                     return False, out
                 elif "Receiving error" in out:
-                    logger.error("POS os crashed in between ! please check POS logs")
+                    logger.error("POS crashed in between! please check POS logs")
                     return False, out
                 else:
                     if "volume mount" in cmd or "system start" in cmd:
-                        return (
-                            True,
-                            out,
-                        )  ##################temp fix .. invalid json obtained for mount volume
+                        return True, out 
+                    
+                    ################## Temp fix .. invalid json obtained for mount volume
                     parse_out = self.parse_out(out, cmd)
                     self.add_cli_history(parse_out)
                     if parse_out["status_code"] == 0:
                         return True, parse_out
                     elif parse_out["status_code"] == 1030:
                         logger.info(
-                            "Poseidonos is in Busy state, status code is {}. Command retry count is {}".format(
-                                parse_out["status_code"], retry_cnt
-                            )
-                        )
+                            "Poseidonos is in Busy state, status code is {}. \
+                            Command retry count is {}".format(
+                                parse_out["status_code"], retry_cnt))
                         retry_cnt += 1
                         time.sleep(5)
                         continue
@@ -198,7 +192,6 @@ class Cli:
         """
         Method to start pos
         """
-
         try:
             out = ""
             max_running_time = 30 * 60  # 30min
@@ -660,10 +653,10 @@ class Cli:
 
     def create_device(
         self,
-        uram_name: str = None,
-        bufer_size: str = None,
+        uram_name: str,
+        bufer_size: str,
         strip_size: str = None,
-        numa: str = None,
+        numa: str = 0,
     ):
         """
         Method to create malloc device
@@ -674,14 +667,6 @@ class Cli:
             num (str) : 1
         """
         try:
-            if uram_name == None:
-                uram_name = self.data_dict["device"]["uram_name"]
-            if bufer_size == None:
-                bufer_size = self.data_dict["device"]["bufer_size"]
-            if strip_size == None:
-                strip_size = self.data_dict["device"]["strip_size"]
-            if numa == None:
-                numa = self.data_dict["device"]["numa"]
             cmd = 'create --device-name {} --num-blocks {} --block-size {} --device-type "uram" --numa {}'.format(
                 uram_name, bufer_size, strip_size, numa
             )
@@ -1277,34 +1262,21 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    #########################################subsystem#################
-    def create_subsystem(
-        self,
-        nqn_name: str,
-        ns_count: str = None,
-        serial_number: str = None,
-        model_name: str = None,
-    ) -> (bool, dict()):
+    ################################## Subsystem ##############################
+    def create_subsystem(self, nqn_name: str, ns_count: str, 
+                        serial_number: str, model_name: str) -> (bool, dict()):
         """
         Method to create nvmf subsystem
         Args:
             nqn_name (str) : name of Subsystem
             ns_count (int) : max namespace
-            model_name (str) : model_number
             serial_number (str) : serial number
-
+            model_name (str) : model_number
         """
         try:
-            if ns_count == None:
-                ns_count = self.data_dict["subsystem"]["ns_count"]
-            if serial_number == None:
-                serial_number = self.data_dict["subsystem"]["serial_number"]
-            if model_name == None:
-                model_name = self.data_dict["subsystem"]["model_name"]
-
-            cmd = "create --subnqn {} --serial-number {} --model-number {} --max-namespaces {} --allow-any-host".format(
-                nqn_name, serial_number, model_name, ns_count
-            )
+            cmd = "create --subnqn {} --serial-number {} --model-number {} \
+                    --max-namespaces {} --allow-any-host".format(
+                                nqn_name, serial_number, model_name, ns_count)
             cli_error, jout = self.run_cli_command(cmd, command_type="subsystem")
             if cli_error == True:
                 if jout["status_code"] == 0:
