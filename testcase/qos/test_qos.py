@@ -112,7 +112,7 @@ def test_qos_set_reset(num_vol):
         for index, array in enumerate(list(pos.cli.array_dict.keys())):
             assert (
                 pos.target_utils.create_volume_multiple(
-                    array_name=array, num_vol=num_vol
+                    array_name=array, num_vol=num_vol, size = "1gb"
                 )
                 == True
             )

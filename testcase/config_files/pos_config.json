@@ -19,12 +19,12 @@
         "phase" : "true",
         "num_array" :  2,
         "array_name" :  "array",
-        "array1_data_count" : 5,
+        "array1_data_count" : 3,
         "array1_spare_count": 1,
         "array1_raid_type" : "RAID5",
-        "array2_spare_count" : 6,
-        "array2_data_count" : 4,
-        "array2_raid_type" : "RAID10"
+        "array2_spare_count" : 1,
+        "array2_data_count" : 3,
+        "array2_raid_type" : "RAID5"
 
       },
     "volume" :

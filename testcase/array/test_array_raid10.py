@@ -6,26 +6,19 @@ import pytest
 from pos import POS
 
 logger = logger.get_logger(__name__)
-
-
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
-    global pos, raid_type, data_dict
+
+    global pos, raid_type, data_dict, data_store
     raid_type = "raid10"
-    pos = POS()
+    pos = POS("array_raid0.json")
+    data_store = {}
     data_dict = pos.data_dict
-    data_dict["system"]["phase"] = "true"
-    data_dict["device"]["phase"] = "true"
-    data_dict["array"]["phase"] = "false"
-    data_dict["subsystem"]["phase"] = "true"
-    data_dict["array"]["num_array"] = 2
-    data_dict["volume"]["array1"]["phase"] = "false"
-    data_dict["volume"]["array2"]["phase"] = "false"
     # bring devices to user mode, setup core, setup udev, setup max map count
     # assert pos.target_utils.setup_env_pos() == True
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
+    assert pos.cli.reset_devel()[0] == True
     yield pos
-
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
@@ -50,8 +43,8 @@ def teardown_function():
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_R5_Rebuilding():
     """The purpose of this test case is to Create 2 arrays with RAID 10 and RAID 0. Delete both Arrays.
     Create new arrays with RAID 0 and RAID 10. Create 2 volumes of 1000 GB on each array, Connect initiator, run block IO.
@@ -165,8 +158,8 @@ def test_Array_R10_R5_Rebuilding():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_16drive_2Array():
     """The purpose of this test case is to Create 2 Arrays using 16 Drives with RAID 10 option.
     Create 2 volumes of Max Size 5 TB on each array and Run Block IO to verify the data integrity."""
@@ -182,7 +175,7 @@ def test_Array_R10_16drive_2Array():
             res = pos.cli.autocreate_array(
                 buffer_name=f"uram{str(index)}",
                 num_spare=0 + index,
-                num_data=14,
+                num_data=5,
                 raid="RAID10",
                 array_name=array,
             )
@@ -221,8 +214,8 @@ def test_Array_R10_16drive_2Array():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_Npor_R5():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity.
     Perform the NPOR operation, then create Array with RAID 5 option and run Block IO again and verify the data integrity."""
@@ -321,8 +314,8 @@ def test_Array_R10_Npor_R5():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_R5():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity.
     Delete and Recreate Array with RAID 5 option, then Run Block IO again and verify the data integrity."""
@@ -343,7 +336,7 @@ def test_Array_R10_R5():
                 array_name=array,
             )
             assert res[0] == True
-            logger.info(json.dumps(res[1], indent=1))
+            
             assert pos.cli.mount_array(array_name=array)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -391,7 +384,7 @@ def test_Array_R10_R5():
                 array_name=array,
             )
             assert res[0] == True
-            logger.info(json.dumps(res[1], indent=1))
+          
             assert pos.cli.mount_array(array_name=array)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -426,8 +419,8 @@ def test_Array_R10_R5():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_Remove_Data_Spare():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity.
     Remove 1 data drive from array 1 and verify the rebuild process.
@@ -448,7 +441,7 @@ def test_Array_R10_Remove_Data_Spare():
                 array_name=array,
             )
             assert res[0] == True
-            logger.info(json.dumps(res[1], indent=1))
+            
             assert pos.cli.mount_array(array_name=array)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -494,8 +487,8 @@ def test_Array_R10_Remove_Data_Spare():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_RemoveSpare():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity.
     Add 1 spare drive to array 1 while IO is running."""
@@ -515,7 +508,7 @@ def test_Array_R10_RemoveSpare():
                 array_name=array,
             )
             assert res[0] == True
-            logger.info(json.dumps(res[1], indent=1))
+           
             assert pos.cli.mount_array(array_name=array)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -557,8 +550,8 @@ def test_Array_R10_RemoveSpare():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_Remove_Data():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity.
     Add 1 data drive to array 1 while IO is running."""
@@ -578,7 +571,7 @@ def test_Array_R10_Remove_Data():
                 array_name=array,
             )
             assert res[0] == True
-            logger.info(json.dumps(res[1], indent=1))
+        
             assert pos.cli.mount_array(array_name=array)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -620,8 +613,8 @@ def test_Array_R10_Remove_Data():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_QoS_256vol():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 256 volumes with QOS policy set on each array and Run Block IO to verify the data integrity and QOS throttling."""
     try:
@@ -640,7 +633,7 @@ def test_Array_R10_QoS_256vol():
                 array_name=array,
             )
             assert res[0] == True
-            logger.info(json.dumps(res[1], indent=1))
+           
             assert pos.cli.mount_array(array_name=array)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -678,8 +671,8 @@ def test_Array_R10_QoS_256vol():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_256vol():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 256 volumes on each array and Run Block IO to verify the data integrity."""
     try:
@@ -698,7 +691,7 @@ def test_Array_R10_256vol():
                 array_name=array,
             )
             assert res[0] == True
-            logger.info(json.dumps(res[1], indent=1))
+          
             assert pos.cli.mount_array(array_name=array)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -732,8 +725,8 @@ def test_Array_R10_256vol():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_AutoCreate_R10():
     """The purpose of this test case is to Auto create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity."""
     try:
@@ -752,7 +745,7 @@ def test_Array_AutoCreate_R10():
                 array_name=array,
             )
             assert res[0] == True
-            logger.info(json.dumps(res[1], indent=1))
+           
             assert pos.cli.mount_array(array_name=array)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -787,8 +780,8 @@ def test_Array_AutoCreate_R10():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_Npor():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity then Perform NPOR.
     Post NPOR the volumes should be back online."""
@@ -844,8 +837,8 @@ def test_Array_R10_Npor():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_Spor():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity then Perform SPOR."""
     try:
@@ -900,8 +893,8 @@ def test_Array_R10_Spor():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10_QoS_2vol():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes with QOS policy set on each array and Run Block IO to verify the data integrity and QOS throttling."""
     try:
@@ -958,8 +951,8 @@ def test_Array_R10_QoS_2vol():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-
-
+@pytest.mark.skip(reason="TC under maintenance")
+@pytest.mark.sanity
 def test_Array_R10():
     """The purpose of this test case is to Create 2 Arrays using four Drive with RAID 10 option. Create 2 volumes on each array and Run Block IO to verify the data integrity."""
     try:
