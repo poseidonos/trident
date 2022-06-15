@@ -134,33 +134,37 @@ class TargetUtils:
             for dev in device_list:
                 pci_addr = dev_map[1][dev]
                 self.dev_addr.append(pci_addr)
-                logger.info(
-                    "pci address {} for the given device is {} ".format(pci_addr, dev)
-                )
-                hot_plug_cmd = "echo 1 > /sys/bus/pci/devices/{}/remove ".format(
-                    pci_addr
-                )
+                logger.info(f"PCIe address {pci_addr} for the given device is {dev}.")
+
+                hot_plug_cmd = f"echo 1 > /sys/bus/pci/devices/{pci_addr}/remove"
                 logger.info("Executing hot plug command {} ".format(hot_plug_cmd))
                 self.ssh_obj.execute(hot_plug_cmd)
-                time.sleep(5)
-                list_dev_out = self.dev_bdf_map()
-                if list_dev_out[0] == False:
-                    logger.error(
-                        "failed to get the device and bdf map after removing the disk"
-                    )
-                    return False
-                if pci_addr in list(list_dev_out[1].values()):
-                    logger.warning(
-                        "failed to hot plug the device {} verifing in list_device ".format(
-                            dev
-                        )
-                    )
-                    assert self.cli.list_device()[0] == True
-                    if dev in self.cli.dev_type["SSD"]:
-                        logger.error("failed to remove device")
+
+                for i in range(10):
+                    wait_time = 3 # 3 seconds
+                    time.sleep(wait_time)
+                    list_dev_out = self.dev_bdf_map()
+                    if list_dev_out[0] == False:
+                        logger.error("Failed to get device bdf map after disk remove.")
                         return False
+
+                    if pci_addr not in list(list_dev_out[1].values()):
+                        break
+
+                    logger.info("Removed device {} still listed. Wait {} sec...".format(
+                                                                dev, wait_time))
+                    
+                if pci_addr in list(list_dev_out[1].values()):
+                    logger.warning("Failed to hot plug the device {}".format(dev))
                 else:
-                    logger.info("Successfully removed the device {} ".format(dev))
+                    logger.info("Device {} is removed from bdf list".format(dev))
+                
+                assert self.cli.list_device()[0] == True
+                if dev in self.cli.dev_type["SSD"]:
+                    logger.error("Failed to remove the device.".format(dev))
+                    return False
+                else:
+                    logger.info("Successfully removed the device {}".format(dev))
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False

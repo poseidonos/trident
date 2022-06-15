@@ -1,5 +1,7 @@
 import pytest
 
+import traceback
+
 from pos import POS
 import logger
 import random
@@ -65,10 +67,10 @@ def wt_test_setup_function(array_name: str, raid_type: str, nr_data_drives: int)
                                     array_name=array_name)[0] == True
 
         assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
-        assert pos.cli.create_volume("pos_vol1", array_name=array_name, size="1gb")[0] == True
+        assert pos.cli.create_volume("pos_vol1", array_name=array_name, size="1000gb")[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
-        ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
+        ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
         assert pos.target_utils.mount_volume_multiple(array_name=array_name,
                             volume_list=pos.cli.vols, nqn_list=ss_list) == True
 
@@ -78,12 +80,15 @@ def wt_test_setup_function(array_name: str, raid_type: str, nr_data_drives: int)
         return True
     except Exception as e:
         logger.error(f"Test setup failed due to {e}")
+        traceback.print_exc()
         return False
 
 @pytest.mark.regression
-@pytest.mark.parametrize("raid_type, nr_data_drives", 
-                         [("RAID5", 3), ("RAID10", 2), ("RAID10", 4)])
-def test_wt_array_rebuild_after_BlockIO(raid_type, nr_data_drives):
+@pytest.mark.parametrize("raid_type, nr_data_drives, file_io", 
+                         [("RAID5", 3, True), ("RAID5", 3, False),
+                          ("RAID10", 2, True), ("RAID10", 2, False),
+                          ("RAID10", 4, True), ("RAID10", 4, False)])
+def test_wt_array_rebuild_after_FIO(raid_type, nr_data_drives, file_io):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
@@ -91,27 +96,46 @@ def test_wt_array_rebuild_after_BlockIO(raid_type, nr_data_drives):
         array_name = "array1"
         assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
         assert pos.client.nvme_list() == True
-        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=8 --bs=128k --time_based --runtime=120"
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out,
-                                    fio_user_data=fio_cmd)[0] == True
+        nvme_devs = pos.client.nvme_list_out
+        if file_io:
+            assert pos.client.create_File_system(nvme_devs, fs_format="xfs")
+            out, mount_point = pos.client.mount_FS(nvme_devs)
+            assert out == True 
+            device_list = mount_point
+            io_mode = False     # Set False this to File IO
+        else:
+            device_list = pos.client.nvme_list_out
+            io_mode = True      # Set False this to Block IO
+
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --bs=128k --time_based --runtime=120 --size=100g"
+        assert pos.client.fio_generic_runner(device_list,
+                                        fio_user_data=fio_cmd, IO_mode=io_mode)[0] == True
 
         assert pos.cli.info_array(array_name=array_name)[0] == True
         remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
         assert pos.target_utils.array_rebuild_wait(array_name=array_name)
 
+        if file_io:
+            assert pos.client.delete_FS(mount_point) == True
+            assert pos.client.unmount_FS(mount_point) == True
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
-
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
+        if file_io:
+            assert pos.client.delete_FS(mount_point) == True
+            assert pos.client.unmount_FS(mount_point) == True
         pos.exit_handler(expected=False)
 
 @pytest.mark.regression
-@pytest.mark.parametrize("raid_type, nr_data_drives", 
-                         [("RAID5", 3), ("RAID10", 2), ("RAID10", 4)])
-def test_wt_array_rebuild_during_BlockIO(raid_type, nr_data_drives):
+@pytest.mark.parametrize("raid_type, nr_data_drives, file_io", 
+                         [("RAID5", 3, True), ("RAID5", 3, False),
+                          ("RAID10", 2, True), ("RAID10", 2, False),
+                          ("RAID10", 4, True), ("RAID10", 4, False)])
+def test_wt_array_rebuild_during_FIO(raid_type, nr_data_drives, file_io):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
@@ -120,7 +144,7 @@ def test_wt_array_rebuild_during_BlockIO(raid_type, nr_data_drives):
         assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
 
         assert pos.client.nvme_list() == True
-        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=8 --bs=128k --time_based --runtime=300"
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=8 --bs=128k --time_based --runtime=300 --size=100g"
         assert pos.client.fio_generic_runner(pos.client.nvme_list_out,
                                     fio_user_data=fio_cmd, run_async=True)[0] == True
         
@@ -131,10 +155,13 @@ def test_wt_array_rebuild_during_BlockIO(raid_type, nr_data_drives):
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
         assert pos.target_utils.array_rebuild_wait(array_name=array_name)
 
+        if file_io:
+            assert pos.client.delete_FS(mount_point) == True
+            assert pos.client.unmount_FS(mount_point) == True
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
-
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)

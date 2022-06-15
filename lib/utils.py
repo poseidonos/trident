@@ -419,7 +419,7 @@ class Client:
 
     def fio_generic_runner(
         self,
-        devices,
+        devices: list,
         fio_user_data=None,
         IO_mode=True,
         expected_exit_code=None,
@@ -437,48 +437,32 @@ class Client:
 
         """
         try:
-            self.json_name = f'fioJsonparseroutfile_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
-            if len(devices) is 1 and IO_mode is True:
-                filename = devices[0]
-            elif len(devices) is 1 and IO_mode is False:
-                filename = devices[0] + "/file.bin"
-            elif len(devices) > 1 and IO_mode is True:
-                filename = ":".join(devices)
-            elif len(devices) > 1 and IO_mode is False:
-                filename = "/file.bin:".join(devices)
-                filename += "/file.bin"
+            self.fio_out_json = f'fio_out_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
+            if not IO_mode:     # File IO
+                devices = list(map(lambda x: f"{x}/file.bin", devices))
+
+            filename = ":".join(devices)
+
+            if fio_user_data:
+                fio_cmd = fio_user_data 
             else:
-                raise Exception("no devices found ")
-            if fio_user_data and IO_mode == False:
+                fio_cmd = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --direct=1"   
 
-                fio_cli = fio_user_data + " --filename={}".format(filename)
-            elif fio_user_data and IO_mode == True:
+            fio_cmd += " --filename={} --output-format=json --output={}".format(
+                                filename, self.fio_out_json)
 
-                fio_cli = fio_user_data + " --filename={}".format(filename)
-            elif IO_mode == False:
-
-                fio_cli = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --filename={}".format(
-                    filename
-                )
-            else:
-
-                fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(self.json_name
-                    
-                )
-            fio_cli += " --output-format=json --output=fio_parser_pos.json"
-            
             if run_async == True:
-                async_out = self.ssh_obj.run_async(fio_cli)
+                async_out = self.ssh_obj.run_async(fio_cmd)
                 return True, async_out
             else:
-                outfio = self.ssh_obj.execute(
-                    fio_cli, get_pty=True, expected_exit_code=expected_exit_code
-                )
+                outfio = self.ssh_obj.execute(fio_cmd, get_pty=True, 
+                                        expected_exit_code=expected_exit_code)
                 self.fio_parser()
                 return True, outfio
 
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
+            traceback.print_exc()
             return (False, None)
 
     def fio_parser(self) -> dict():
@@ -488,7 +472,7 @@ class Client:
         iops: iops
         clat: nsec
         """
-        cmd = f'cat {self.json_name}'
+        cmd = f'cat {self.fio_out_json}'
         str_out = self.ssh_obj.execute(cmd)
         printout = ''.join(str_out)
         logger.info(printout)
