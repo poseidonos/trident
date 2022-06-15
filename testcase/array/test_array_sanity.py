@@ -88,6 +88,7 @@ def test_SanityArray(raid_type, writeback, numvol, fioruntime, spor):
         #assert pos.cli.start_telemetry()[0] == True
         for index,array in enumerate(["array1", "array2"]):
             assert pos.cli.mount_array(array_name=array, write_back=writeback)[0] == True
+           
             assert pos.target_utils.create_volume_multiple(array_name=array, num_vol=numvol, size = None) == True
             assert pos.cli.list_volume(array_name=array)[0] == True
             assert pos.target_utils.mount_volume_multiple(array_name=array, volume_list=pos.cli.vols, nqn_list=[pos.target_utils.ss_temp_list[index]]) == True
@@ -133,18 +134,19 @@ def test_SanityArray(raid_type, writeback, numvol, fioruntime, spor):
         if raid_type not in ["RAID0","no-raid"]:
              disklist = [random.choice(pos.cli.dev_type['SSD'])]
              assert pos.target_utils.device_hot_remove(disklist) == True
-             assert pos.cli.unmount_array(array_name=arrayname)[0] == False
-             assert pos.cli.delete_array(array_name=array)[0] == False
+             #assert pos.cli.unmount_array(array_name=arrayname)[0] == False
+             #assert pos.cli.delete_array(array_name=array)[0] == False
              assert pos.target_utils.array_rebuild_wait(array_name=arrayname) == True
     
         assert pos.cli.info_array(array_name=arrayname)[0] == True
+        
         assert pos.cli.unmount_array(array_name=arrayname)[0] == True
         assert pos.cli.delete_array(array_name=arrayname)[0] == True
         assert pos.cli.list_array()[0] == True         
         #assert pos.cli.stop_telemetry()[0] == True    
         
     except Exception as e:
-        pos.exit_handler()
+        logger.error(f" ======= Test FAILED : RAID {raid_type} writeback {writeback} numvol {numvol} fioruntime {fioruntime} SPOR {spor} ========")
     
     
  
