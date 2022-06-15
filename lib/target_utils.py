@@ -584,7 +584,6 @@ class TargetUtils:
                     if array["auto_create"] == "false":
                         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
                         spare_disk_list = [system_disks.pop()]
-
                         assert self.cli.create_array(write_buffer=array["uram"],
                                                     data=data_disk_list,
                                                     spare=spare_disk_list,
@@ -598,9 +597,17 @@ class TargetUtils:
                                                         num_spare = nr_spare_drives
                                                         )[0] == True
 
+                        assert pos.cli.info_array(array_name=array_name)[0] == True
+                        d_dev = set(pos.cli.array_info[array_name]["data_list"])
+                        s_dev = set(pos.cli.array_info[array_name]["spare_list"])
+                        system_disks = list(set(system_disks) - d_dev.union(s_dev))
+
                     if array["mount"] == "true":
+                        write_back = True
+                        if array["write_back"] == "false":
+                            write_back = False
                         assert self.cli.mount_array(array_name=array_name,
-                                             write_back=array["write_back"])[0] == True
+                                             write_back=write_back)[0] == True
 
             ##### volume config
             if static_dict["volume"]["phase"] == "true":

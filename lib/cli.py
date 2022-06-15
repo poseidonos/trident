@@ -108,24 +108,25 @@ class Cli:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
                 else:
-                    if "volume mount" in cmd or "system start" in cmd:
+                    #if "volume mount" in cmd or "system start" in cmd:
+                    if "volume mount" in cmd:
                         return True, out 
-                    
                     ################## Temp fix .. invalid json obtained for mount volume
-                    parse_out = self.parse_out(out, cmd)
-                    self.add_cli_history(parse_out)
-                    if parse_out["status_code"] == 0:
-                        return True, parse_out
-                    elif parse_out["status_code"] == 1030:
-                        logger.info(
-                            "Poseidonos is in Busy state, status code is {}. \
-                            Command retry count is {}".format(
-                                parse_out["status_code"], retry_cnt))
-                        retry_cnt += 1
-                        time.sleep(5)
-                        continue
-                    else:
-                        return False, parse_out
+
+                parse_out = self.parse_out(out, cmd)
+                self.add_cli_history(parse_out)
+                if parse_out["status_code"] == 0:
+                    return True, parse_out
+                elif parse_out["status_code"] == 1030:
+                    logger.info(
+                        "Poseidonos is in Busy state, status code is {}. \
+                        Command retry count is {}".format(
+                            parse_out["status_code"], retry_cnt))
+                    retry_cnt += 1
+                    time.sleep(5)
+                    continue
+                else:
+                    return False, parse_out
 
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
@@ -157,24 +158,18 @@ class Cli:
         #logger.info("status code response from the command {} is {}".format(command, status_code))
         #logger.info("DESCRIPTION from command {} is {}".format(command, description))
 
+        data = None
         if "data" in out["Response"]["result"]:
-            return {
-                "output": out,
-                "command": command,
-                "status_code": status_code,
-                "description": description,
-                "data": out["Response"]["result"]["data"],
-                "params": param,
-            }
-        else:
-            return {
-                "output": out,
-                "command": command,
-                "status_code": status_code,
-                "description": description,
-                "params": param,
-                "data": None,
-            }
+            data = out["Response"]["result"]["data"]
+
+        return {
+            "output": out,
+            "command": command,
+            "status_code": status_code,
+            "description": description,
+            "data": data,
+            "params": param,
+        }
 
     def _get_pos_logs(self):
         """
@@ -193,25 +188,12 @@ class Cli:
         Method to start pos
         """
         try:
-            out = ""
-            max_running_time = 30 * 60  # 30min
-            start_time = time.time()
-            self.out = self.ssh_obj.run_async(
-                "nohup {}/bin/{} >> {}/script/pos.log".format(
-                    self.pos_path, "poseidonos", self.pos_path
-                )
-            )
-            while True:
-                logger.info("waiting for iBOF logs")
-                time.sleep(5)
-                if self.out.is_complete() is False:
-                    logger.info("Time-consuming : {}".format(time.time() - start_time))
-                    return True, out
-                cur_time = time.time()
-                running_time = cur_time - start_time
-                if running_time > max_running_time:
-                    return False, out
+            out = self.run_cli_command("start", command_type="system")
 
+            if out[0] == True:
+                if out[1]["status_code"] == 0:
+                    return True, out
+                    
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, out
