@@ -331,18 +331,51 @@ class TargetUtils:
         try:
             if array_name == None:
                 array_name = self.array
-            info_status = 0
-            while info_status <= 2300:
-                get_pos_status = self.cli.info_array(array_name=array_name)
-                if get_pos_status[0] == True and get_pos_status[3] == "NORMAL":
-                    logger.info("rebuild status is updated in array info command")
-                    break
+
+            if self.cli.info_array(array_name=array_name)[0]:
+                situation = self.cli.array_info[array_name]["situation"]
+                progress = self.cli.array_info[array_name]["rebuilding_progress"]
+                state = self.cli.array_info[array_name]["state"]
+
+                if situation == "REBUILDING":
+                    logger.info(f"Array '{array_name}' REBUILDING in Progress... [{progress}%]")
                 else:
-                    info_status += 1
-                    logger.info("verifying if rebuilding progress status is 0")
-                    time.sleep(2)
+                    logger.info(f"Array '{array_name}' REBUILDING is Stoped/Not Started!")
+                    logger.info(f"Situation: {situation}, State: {state}")
+                    return False
             else:
-                raise Exception("rebuilding failed for the array {}".format(array_name))
+                logger.error(f"Array '{array_name}' Info command failed.")
+                return False
+        except Exception as e:
+            logger.error("Command execution failed with exception {}".format(e))
+            return False
+        return True
+
+
+    def array_rebuild_wait(self, array_name: str = None, wait_time: int = 5, loop_count: int = 20) -> bool:
+        """
+        Method to check rebuild status
+        Args:
+            array_name (str) "name of the array" (optional)
+        Returns:
+            bool
+        """
+        try:
+            if array_name == None:
+                array_name = self.array
+            counter = 0
+            while counter <= loop_count:
+                if not self.check_rebuild_status(array_name):
+                    # The rebuild is not in progress
+                    break
+                time.sleep(wait_time)
+
+            if counter > loop_count:
+                if not self.check_rebuild_status(array_name):
+                    logger.info(f"Rebuilding wait time completed... {array_name}")
+                    return False
+            else:
+                logger.info(f"Rebuilding completed for the array {array_name}")
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False

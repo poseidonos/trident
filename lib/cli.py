@@ -341,7 +341,7 @@ class Cli:
                 raise Exception("list array command execution failed ")
         except Exception as e:
             logger.error("list array command failed with exception {}".format(e))
-            return False, out
+            return False, jout
 
     def create_array(
         self,
@@ -509,6 +509,7 @@ class Cli:
                 array_state = out[1]["data"]["state"]
                 array_size = out[1]["data"]["capacity"]
                 array_situation = out[1]["data"]["situation"]
+                rebuild_progress = out[1]["data"]["rebuilding_progress"]
                 for dev in out[1]["data"]["devicelist"]:
                     if dev["type"] == "DATA":
                         data_dev.append(dev["name"])
@@ -530,6 +531,7 @@ class Cli:
             "state": array_state,
             "size": array_size,
             "situation": array_situation,
+            "rebuilding_progress": rebuild_progress,
             "data_list": data_dev,
             "spare_list": spare_dev,
             "buffer_list": buffer_dev,
