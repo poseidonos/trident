@@ -18,8 +18,6 @@ def setup_module():
     global pos, data_dict
     pos = POS("wt_array.json")
     data_dict = pos.data_dict
-    # bring devices to user mode, setup core, setup udev, setup max map count
-    # assert pos.target_utils.setup_env_pos() == True
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
 
@@ -144,16 +142,33 @@ def test_wt_array_rebuild_during_FIO(raid_type, nr_data_drives, file_io):
         assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
 
         assert pos.client.nvme_list() == True
+        nvme_devs = pos.client.nvme_list_out
+        if file_io:
+            assert pos.client.create_File_system(nvme_devs, fs_format="xfs")
+            out, mount_point = pos.client.mount_FS(nvme_devs)
+            assert out == True 
+            device_list = mount_point
+            io_mode = False     # Set False this to File IO
+        else:
+            device_list = nvme_devs
+            io_mode = True      # Set False this to Block IO
+
         fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=8 --bs=128k --time_based --runtime=300 --size=100g"
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out,
-                                    fio_user_data=fio_cmd, run_async=True)[0] == True
-        
-        time.sleep(120)    # Run IO for atleast 2 minutes before Hot Remove
+        res, async_out = pos.client.fio_generic_runner(device_list, IO_mode=io_mode,
+                                    fio_user_data=fio_cmd, run_async=True)
+        assert res == True
+
+        time.sleep(180)    # Run IO for 3 minutes before Hot Remove
         
         assert pos.cli.info_array(array_name=array_name)[0] == True
         remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
         assert pos.target_utils.array_rebuild_wait(array_name=array_name)
+
+        # Wait for async FIO completions
+        while(async_out.is_complete() == False):
+            logger.info("FIO is still running. Wait 30 seconds...")
+            time.sleep(30)
 
         if file_io:
             assert pos.client.delete_FS(mount_point) == True
@@ -164,4 +179,7 @@ def test_wt_array_rebuild_during_FIO(raid_type, nr_data_drives, file_io):
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
+        if file_io:
+            assert pos.client.delete_FS(mount_point) == True
+            assert pos.client.unmount_FS(mount_point) == True
         pos.exit_handler(expected=False)
