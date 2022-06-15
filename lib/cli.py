@@ -59,11 +59,11 @@ class Cli:
     ):
         self.ssh_obj = con
         self.helper = helper.Helper(con)
-        #self.data_dict = data_dict
+        self.data_dict = data_dict
         self.pos_path = pos_path
-        #self.array_name = array_name
+        self.array_name = array_name
         self.new_cli_path = "/bin/poseidonos-cli"  ##path of POS cli
-        #self.array_info = {}
+        self.array_info = {}
         self.cli_history = []
 
     def run_cli_command(
@@ -193,7 +193,7 @@ class Cli:
             if out[0] == True:
                 if out[1]["status_code"] == 0:
                     return True, out
-                    
+
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, out
