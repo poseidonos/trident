@@ -50,13 +50,11 @@ class TargetUtils:
 
     """
 
-    def __init__(
-        self, ssh_obj, data_dict: dict, pos_path: str, array_name="POS_ARRAY1"
-    ):
+    def __init__(self, ssh_obj, data_dict: dict, pos_path: str):
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
         self.cli = Cli(ssh_obj, self.static_dict, pos_path)
-        self.array = array_name
+        #self.array = array_name
         self.helper = helper.Helper(ssh_obj)
         self.udev_rule = False
         self.total_required = 0
@@ -423,8 +421,7 @@ class TargetUtils:
         return True
 
     def mount_volume_multiple(
-        self, array_name: str, volume_list: list, nqn_list: list
-    ) -> bool:
+        self, array_name: str, volume_list: list, nqn_list: list) -> bool:
         """
         mount volumes to the SS
         Args:
@@ -434,7 +431,6 @@ class TargetUtils:
         Returns:
             bool
         """
-
         num_ss = len(nqn_list)
         num_vol = len(volume_list)
         temp, num = 0, 0
@@ -446,12 +442,16 @@ class TargetUtils:
                 temp = 0
         return True
 
-    def create_subsystems_multiple(self, ss_count: int, base_name: str = None) -> bool:
-
+    def create_subsystems_multiple(self, ss_count: int, base_name: str, 
+                ns_count: int, serial_number: str, model_name: str) -> bool:
         """
-        method to create more than one SS
+        Method to create more than one SS
         Args:
-            ss_count (int) : number of SS to be created
+            ss_count (int) : Number of SS to be created
+            base_name (str) : Subsystem Base Name
+            ns_count (int) : Number of NS can be supported
+            serial_number (str) : Serial number of subsystem
+            model_number (str) : Model number of subsystem
         Returns:
             bool
         """
@@ -461,7 +461,8 @@ class TargetUtils:
                     ss_name = self.generate_nqn_name(default_nqn_name=base_name)
                 else:
                     ss_name = self.generate_nqn_name()
-                assert self.cli.create_subsystem(ss_name)[0] == True
+                assert self.cli.create_subsystem(ss_name, ns_count,
+                                        serial_number, model_name)[0] == True
             return True
         except Exception as e:
             return False
@@ -525,7 +526,6 @@ class TargetUtils:
         Returns:
             bool
         """
-
         try:
             if data_dict:
                 self.static_dict = data_dict
@@ -535,178 +535,110 @@ class TargetUtils:
             ###system config
 
             if static_dict["system"]["phase"] == "true":
-                
                 assert self.cli.start_system()[0] == True
                 assert self.cli.create_transport_subsystem()[0] == True
-                assert self.cli.scan_device()[0] == True
-                assert self.cli.list_device()[0] == True
-                numa0devlen = len([dev for dev in self.cli.system_disks if self.cli.device_map[dev]['numa'] == '0'])
-                numa1devlen = len([dev for dev in self.cli.system_disks if self.cli.device_map[dev]['numa'] == '1'])
 
             if static_dict["device"]["phase"] == "true":
-                array1_drive_count = int(static_dict["array"]["array1_data_count"]) + int(static_dict["array"]["array1_spare_count"])
-                if array1_drive_count <= numa0devlen:
-                    numa = 0
-                    numa0devlen = numa0devlen - array1_drive_count
-                elif array1_drive_count <= numa1devlen:
-                    numa = 1
-                    numa1devlen = numa1devlen - array1_drive_count
-                
-                assert self.cli.create_device(uram_name="uram0",numa = numa)[0] == True
-                if static_dict['array']['num_array'] == 2:
-                   array2_drive_count = int(static_dict["array"]["array2_data_count"]) + int(static_dict["array"]["array2_spare_count"])
-                   if array2_drive_count <= numa0devlen:
-                       numa = 0
-                   elif array2_drive_count <= numa1devlen:
-                       numa = 1
-                   else:
-                       logger.error("No Enough drives to start test")
-                       return False
-                   assert self.cli.create_device(uram_name="uram1",numa = numa)[0] == True
-                    
+                device_list = static_dict["device"]["uram"]
+                for uram in device_list:
+                    assert self.cli.create_device(uram_name = uram["uram_name"],
+                                            bufer_size = uram["bufer_size"],
+                                            strip_size = uram["strip_size"],
+                                            numa = uram["numa_node"])[0] == True
+
                 assert self.cli.scan_device()[0] == True
-                    
+
             if static_dict["subsystem"]["phase"] == "true":
-                base_name = static_dict["subsystem"]["base_nqn_name"] + "array1"
-                assert (
-                    self.create_subsystems_multiple(
-                        static_dict["subsystem"]["array1"], base_name=base_name
-                    )
-                    == True
-                )
-                if static_dict["array"]["num_array"] == 2:
-                    base_name = static_dict["subsystem"]["base_nqn_name"] + "array2"
-                    assert (
-                        self.create_subsystems_multiple(
-                            static_dict["subsystem"]["array2"], base_name=base_name
-                        )
-                        == True
-                    )
+                ss = static_dict["subsystem"]
+                assert self.create_subsystems_multiple(ss["nr_subsystems"],
+                                        base_name = ss["base_nqn_name"],
+                                        ns_count = ss["ns_count"],
+                                        serial_number = ss["serial_number"],
+                                        model_name = ss["model_name"]) == True
 
                 assert self.get_subsystems_list() == True
 
                 for subsystem in self.ss_temp_list:
-                    assert (
-                        self.cli.add_listner_subsystem(
-                            subsystem, self.helper.ip_addr[0], "1158"
-                        )[0]
-                        == True
-                    )
-            #######array_config
-            assert self.cli.list_device()[0] == True
+                    assert self.cli.add_listner_subsystem(
+                            subsystem, self.helper.ip_addr[0], "1158" )[0] == True
+
+            ####### array_config
             if static_dict["array"]["phase"] == "true":
                 assert self.cli.reset_devel()[0] == True
-                assert self.cli.list_array()[0] == True
+                assert self.cli.list_device()[0] == True
+                system_disks = self.cli.system_disks
 
-                num_array = static_dict["array"]["num_array"]
-                array_name = static_dict["array"]["array_name"]
-                array1_data_count = static_dict["array"]["array1_data_count"]
-                array2_data_count = static_dict["array"]["array2_data_count"]
+                pos_array_list =  static_dict["array"]["pos_array"]
+                for array in pos_array_list:
+                    array_name = array["array_name"]
+                    nr_data_drives = array["data_device"]
+                    nr_spare_drives = array["spare_device"]
 
-                array1_spare_count = static_dict["array"]["array1_spare_count"]
-                array2_spare_count = static_dict["array"]["array2_spare_count"]
+                    if len(system_disks) < (nr_data_drives + nr_spare_drives):
+                        raise Exception("Array '{}' insufficient disk count {}. Required minimum {}".format(
+                            array_name, len(system_disks), nr_data_drives + nr_spare_drives))
 
-                array1_raid_type = static_dict["array"]["array1_raid_type"]
-                array2_raid_type = static_dict["array"]["array2_raid_type"]
-                self.total_required = array1_data_count + array2_data_count
-                if num_array == 2:
-                    self.total_required += array2_spare_count + array1_spare_count
+                    if array["auto_create"] == "false":
+                        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
+                        spare_disk_list = [system_disks.pop()]
+                        assert self.cli.create_array(write_buffer=array["uram"],
+                                                    data=data_disk_list,
+                                                    spare=spare_disk_list,
+                                                    raid_type=array["raid_type"],
+                                                    array_name=array_name)[0] == True
+                    else:
+                        assert self.cli.autocreate_array(array["uram"], 
+                                                        nr_data_drives,
+                                                        array["raid_type"],
+                                                        array_name = array_name,
+                                                        num_spare = nr_spare_drives
+                                                        )[0] == True
 
-                write_buffer = self.cli.dev_type["NVRAM"]
-                data_disks = self.cli.system_disks
-                if len(data_disks) < self.total_required:
-                    raise Exception("not Enough drives to start test")
+                        assert pos.cli.info_array(array_name=array_name)[0] == True
+                        d_dev = set(pos.cli.array_info[array_name]["data_list"])
+                        s_dev = set(pos.cli.array_info[array_name]["spare_list"])
+                        system_disks = list(set(system_disks) - d_dev.union(s_dev))
 
-                spare_disk_list = []
-                if array1_spare_count:
-                    spare_disk_list = data_disks[-(array1_spare_count):]
+                    if array["mount"] == "true":
+                        write_back = True
+                        if array["write_back"] == "false":
+                            write_back = False
+                        assert self.cli.mount_array(array_name=array_name,
+                                             write_back=write_back)[0] == True
 
-                assert (
-                    self.cli.create_array(
-                        write_buffer=write_buffer[0],
-                        data=data_disks[:array1_data_count:],
-                        spare=spare_disk_list,
-                        raid_type=array1_raid_type,
-                        array_name=f"{array_name}1",
-                    )[0]
-                    == True
-                )
-                self.array_list = []
-                self.array_list.append(f"{array_name}1")
-                if num_array == 2:
-                    
-                    assert (
-                        self.cli.autocreate_array(
-                            array_name=f"{array_name}2",
-                            buffer_name=write_buffer[1],
-                            num_data=str(array2_data_count),
-                            num_spare=str(array2_spare_count),
-                            raid=array2_raid_type,
-                        )[0]
-                        == True
-                    )
-                    self.array_list.append(f"{array_name}2")
-                for array_name in self.array_list:
-                    assert self.cli.mount_array(array_name=array_name)[0] == True
-            #####volume config
-            assert self.get_subsystems_list() == True
-            if static_dict["volume"]["array1"]["phase"] == "true":
-                array_name = "array1"
-                num_vol_array1 = static_dict["volume"]["array1"]["num_vol"]
+            ##### volume config
+            if static_dict["volume"]["phase"] == "true":
+                volumes = static_dict["volume"]["pos_volumes"]
+                for vol in volumes:
+                    array_name = vol["array_name"]
+                    assert self.cli.list_volume(array_name)
+                    old_vols = self.cli.vols
+                    assert self.create_volume_multiple(array_name, vol["num_vol"],
+                                                    vol_name=vol["vol_name_pre"],
+                                                    size=vol["size"]) == True
 
-                self.ss_list_array1 = [ss for ss in self.ss_temp_list if "array1" in ss]
+                    assert self.cli.list_volume(array_name)
+                    cur_vols = self.cli.vols
+                    new_vols = list(set(cur_vols) - set(old_vols))
 
-                if num_vol_array1 > 0:
-                    vol_size = (
-                        None
-                        if static_dict["volume"]["array1"]["size"] == "None"
-                        else static_dict["volume"]["array1"]["size"]
-                    )
-                    assert (
-                        self.create_volume_multiple(
-                            array_name, num_vol_array1, vol_name="posvol", size=vol_size
-                        )
-                        == True
-                    )
-                    assert self.cli.list_volume(array_name)[0] == True
+                    if vol["mount"]["phase"]:
+                        subsystem_range = vol["mount"]["subsystem_range"]
+                        nqn_pre = vol["mount"]["nqn_pre"]
+                        start, end = map(int, subsystem_range.split("-"))
+                        nqn_list = [f"{nqn_pre}{s}" for s in range(start, end + 1)]
 
-                    assert (
-                        self.mount_volume_multiple(
-                            array_name, self.cli.vols, self.ss_list_array1
-                        )
-                        == True
-                    )
-
-                if static_dict["volume"]["array2"]["phase"] == "true":
-                    num_vol_array2 = static_dict["volume"]["array2"]["num_vol"]
-                    self.ss_list_array2 = [
-                        ss for ss in self.ss_temp_list if "array2" in ss
-                    ]
-
-                    if num_vol_array2 > 0:
-                        array_name = "array2"
-                        vol_size = (
-                            None
-                            if static_dict["volume"]["array2"]["size"] == "None"
-                            else static_dict["volume"]["array2"]["size"]
-                        )
-                        assert (
-                            self.create_volume_multiple(
-                                array_name,
-                                num_vol_array2,
-                                vol_name="pos_vol",
-                                size=vol_size,
-                            )
-                            == True
-                        )
-                        assert self.cli.list_volume(array_name)
-                        assert self.mount_volume_multiple(
-                            array_name, self.cli.vols, self.ss_list_array2
-                        )
-
+                        """
+                        nqn_list = []
+                        for s in range(start, end + 1):
+                            for subs in self.ss_temp_list:
+                                if f"subsystem{s}" in subs:
+                                    nqn_list.append(subs)
+                        """
+                        assert self.mount_volume_multiple(array_name, 
+                                                    new_vols, nqn_list) == True
             return True
         except Exception as e:
-            logger.error(e)
+            logger.error("POS bring up failed due to {}".format(e))
             return False
 
     def setup_env_pos(
