@@ -108,32 +108,8 @@ class Cli:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
                 else:
-<<<<<<< HEAD
-                    if "volume mount" in cmd :
-                        return (
-                            True,
-                            out,
-                        )  ##################temp fix .. invalid json obtained for mount volume
-                    parse_out = self.parse_out(out, cmd)
-                    self.add_cli_history(parse_out)
-                    if parse_out["status_code"] == 0:
-                        return True, parse_out
-                    elif parse_out["status_code"] == 1030:
-                        logger.info(
-                            "Poseidonos is in Busy state, status code is {}. Command retry count is {}".format(
-                                parse_out["status_code"], retry_cnt
-                            )
-                        )
-                        retry_cnt += 1
-                        time.sleep(5)
-                        continue
-                    else:
-                        return False, parse_out
-=======
-                    #if "volume mount" in cmd or "system start" in cmd:
                     if "volume mount" in cmd:
                         return True, out 
-                    ################## Temp fix .. invalid json obtained for mount volume
 
                 parse_out = self.parse_out(out, cmd)
                 self.add_cli_history(parse_out)
@@ -149,8 +125,6 @@ class Cli:
                     continue
                 else:
                     return False, parse_out
->>>>>>> a44c91e06fb30ef9276ab99d4510ab11a5a69d4a
-
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None
@@ -219,7 +193,6 @@ class Cli:
         Method to start pos
         """
         try:
-<<<<<<< HEAD
             
             cli_error, jout = self.run_cli_command("start", command_type="system")
             if cli_error == True:
@@ -230,14 +203,6 @@ class Cli:
             else:
                 raise Exception("CLI Error")
             
-=======
-            out = self.run_cli_command("start", command_type="system")
-
-            if out[0] == True:
-                if out[1]["status_code"] == 0:
-                    return True, out
-
->>>>>>> a44c91e06fb30ef9276ab99d4510ab11a5a69d4a
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
@@ -262,6 +227,7 @@ class Cli:
                 else:
                     for array in array_list:
                         # assert self.info_array(array_name=array)[0] == True
+                        assert self.wbt_flush(array_name=array)[0] == True
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
 
