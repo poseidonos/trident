@@ -153,5 +153,4 @@ class POS:
             # time.sleep(10000)
             # self.cli.core_dump()
             self.cli.stop_system(grace_shutdown=False)
-
             assert 0

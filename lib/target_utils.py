@@ -305,7 +305,7 @@ class TargetUtils:
         """
         try:
             assert self.cli.wbt_flush()[0] == True
-            assert self.cli.stop_system()[0] == True
+            assert self.cli.stop_system(grace_shutdown=False)[0] == True
             self.ssh_obj.execute(
                 "{}/script/backup_latest_hugepages_for_uram.sh".format(
                     self.cli.pos_path
@@ -336,20 +336,18 @@ class TargetUtils:
                 state = self.cli.array_info[array_name]["state"]
 
                 if situation == "REBUILDING":
-                    logger.info(f"Array '{array_name}' REBUILDING in Progress... [{progress}%]")
+                    logger.info(f" {array_name} REBUILDING in Progress... [{progress}%]")
                 else:
-                    logger.info(f"Array '{array_name}' REBUILDING is Stoped/Not Started!")
+                    logger.info(f" {array_name}  REBUILDING is Stoped/Not Started!")
                     logger.info(f"Situation: {situation}, State: {state}")
                     return False
             else:
-                logger.error(f"Array '{array_name}' Info command failed.")
+                logger.error(f" {array_name}  Info command failed.")
                 return False
         except Exception as e:
             logger.error("Command execution failed with exception {}".format(e))
             return False
         return True
-
-
     def array_rebuild_wait(self, array_name: str = None, wait_time: int = 5, loop_count: int = 20) -> bool:
         """
         Method to check rebuild status
@@ -378,7 +376,6 @@ class TargetUtils:
             logger.error("command execution failed with exception {}".format(e))
             return False
         return True
-
     def create_volume_multiple(
         self,
         array_name: str,
@@ -919,7 +916,53 @@ class TargetUtils:
                                         == True
                                     )
 
-            assert self.cli.stop_system()[0] == True
+            assert self.cli.stop_system() == True
+            time.sleep(10) ## waiting for pos PID to be killed
+            assert self.cli.start_system()[0] == True
+            uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
+            for uram in uram_list:
+                assert self.cli.create_device(uram_name=uram)[0] == True
+            assert self.cli.scan_device()[0] == True
+            self.helper.get_mellanox_interface_ip()
+            assert self.cli.create_transport_subsystem()[0] == True
+            for ss in self.ss_temp_list:
+                assert self.cli.create_subsystem(ss)[0] == True
+                assert (
+                    self.cli.add_listner_subsystem(
+                        nqn_name=ss,
+                        mellanox_interface=self.helper.ip_addr[0],
+                        port="1158",
+                    )[0]
+                    == True
+                )
+            assert self.cli.list_array()[0] == True
+            array_list = list(self.cli.array_dict.keys())
+            if len(array_list) == 0:
+                logger.info("No Array Present in the config")
+                return False
+            else:
+                for index,array in enumerate(array_list):
+                    assert self.cli.mount_array(array_name=array)[0] == True
+                    assert self.cli.list_volume(array_name=array)[0] == True
+                    if len(self.cli.vols) == 0:
+                        logger.info("No volumes found")
+                    else:
+                        ss_list = [ss for ss in self.ss_temp_list if array in ss]
+                        assert (
+                            self.mount_volume_multiple(array_name=array, volume_list=self.cli.vols, nqn_list=[self.ss_temp_list[index]])
+                            == True
+                        )
+
+            return True
+        except Exception as e:
+            logger.error(f"NPOR failed due to {e}")
+            return False
+
+    def Spor(self) -> bool :
+        try:
+            assert self.get_subsystems_list() == True
+            assert self.cli.list_array()[0] == True
+            assert self.spor_prep() == True
             assert self.cli.start_system()[0] == True
             uram_list = [f"uram{str(i)}" for i in len(array_list)]
             for uram in uram_list:
@@ -953,7 +996,6 @@ class TargetUtils:
                             self.mount_volume_multiple(self.cli.vols, nqn_list=ss_list)
                             == True
                         )
-
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")

@@ -108,6 +108,28 @@ class Cli:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
                 else:
+<<<<<<< HEAD
+                    if "volume mount" in cmd :
+                        return (
+                            True,
+                            out,
+                        )  ##################temp fix .. invalid json obtained for mount volume
+                    parse_out = self.parse_out(out, cmd)
+                    self.add_cli_history(parse_out)
+                    if parse_out["status_code"] == 0:
+                        return True, parse_out
+                    elif parse_out["status_code"] == 1030:
+                        logger.info(
+                            "Poseidonos is in Busy state, status code is {}. Command retry count is {}".format(
+                                parse_out["status_code"], retry_cnt
+                            )
+                        )
+                        retry_cnt += 1
+                        time.sleep(5)
+                        continue
+                    else:
+                        return False, parse_out
+=======
                     #if "volume mount" in cmd or "system start" in cmd:
                     if "volume mount" in cmd:
                         return True, out 
@@ -127,6 +149,7 @@ class Cli:
                     continue
                 else:
                     return False, parse_out
+>>>>>>> a44c91e06fb30ef9276ab99d4510ab11a5a69d4a
 
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
@@ -155,6 +178,14 @@ class Cli:
         logger.info(pprint.pformat(out))
         status_code = out["Response"]["result"]["status"]["code"]
         description = out["Response"]["result"]["status"]["description"]
+        """
+        logger.info(
+            "status code response from the command {} is {}".format(
+                command, status_code
+            )
+        )
+        logger.info("DESCRIPTION from command {} is {}".format(command, description))
+        """
         #logger.info("status code response from the command {} is {}".format(command, status_code))
         #logger.info("DESCRIPTION from command {} is {}".format(command, description))
 
@@ -188,15 +219,28 @@ class Cli:
         Method to start pos
         """
         try:
+<<<<<<< HEAD
+            
+            cli_error, jout = self.run_cli_command("start", command_type="system")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+            
+=======
             out = self.run_cli_command("start", command_type="system")
 
             if out[0] == True:
                 if out[1]["status_code"] == 0:
                     return True, out
 
+>>>>>>> a44c91e06fb30ef9276ab99d4510ab11a5a69d4a
         except Exception as e:
             logger.error("failed due to {}".format(e))
-            return False, out
+            return False, jout
 
     def stop_system(
         self,
@@ -237,7 +281,9 @@ class Cli:
                             else:
                                 break
                             if count == time_out:
-                                raise Exception("failed to kill pos")
+                                logger.error("POS PID taking too much time to exit .. Killing the process")
+                                self.stop_system(grace_shutdown=False)
+                                
             else:
                 self.ssh_obj.execute(command="pkill -9 pos")
         except Exception as e:
