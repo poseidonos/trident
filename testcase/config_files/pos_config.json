@@ -20,7 +20,7 @@
         ]
     },
     "array": {
-        "phase": "false",
+        "phase": "true",
         "pos_array": [
             {
                 "array_name": "array1",
@@ -35,7 +35,7 @@
         ]
     },
     "volume": {
-        "phase": "false",
+        "phase": "true",
         "pos_volumes": [
             {
                 "num_vol": 2,
@@ -58,7 +58,7 @@
     },
     "subsystem": {
         "phase": "true",
-        "nr_subsystems": 1,
+        "nr_subsystems": 2,
         "base_nqn_name": "nqn.2022-10.pos",
         "ns_count": "512",
         "serial_number": "POS000000000001",

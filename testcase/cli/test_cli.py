@@ -24,14 +24,14 @@ def test_cli_happypath():
                 == True
             )
         assert pos.client.nvme_list() == True
-        assert (
-            pos.client.fio_generic_runner(
-                pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
-            )[0]
-            == True
-        )
-        assert pos.target_utils.get_pos() == True
+        #assert (
+        #    pos.client.fio_generic_runner(
+        #        pos.client.nvme_list_out,
+        #        fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
+        #    )[0]
+        #    == True
+        #)
+        #assert pos.target_utils.get_pos() == True
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
         logger.info(" ================= DEVICE =================")
         assert pos.cli.list_device()[0] == True
@@ -60,15 +60,21 @@ def test_cli_happypath():
             )[0]
             == True
         )
+        logger.info("====================GC=====================")
+        assert pos.cli.wbt_do_gc()[0] == False
+        assert pos.cli.wbt_get_gc_status(array_name="array1")[0] == True
+        
         logger.info(" ================== logger ================")
         assert pos.cli.get_log_level_logger()[0] == True
         assert pos.cli.info_logger()[0] == True
         assert pos.cli.set_log_level_logger(level="debug")[0] == True
         # assert pos.cli.apply_log_filter()[0] == True
         logger.info(" ==================== Volume ===============")
+        assert  pos.cli.info_volume(array_name="array1", vol_name=pos.cli.vols[0])[0] == True
         assert pos.cli.list_volume(array_name="array1")[0] == True
         # assert pos.cli.rename_volume("newvol", pos.cli.vols[0], "array1")[0] == True
         assert pos.cli.unmount_volume(pos.cli.vols[0], "array1")[0] == True
+        assert  pos.cli.info_volume(array_name="array1", vol_name=pos.cli.vols[0])[0] == True
         assert pos.cli.rename_volume("newvol", pos.cli.vols[0], "array1")[0] == True
         assert pos.cli.delete_volume("newvol", "array1")[0] == True
         logger.info("================== telemetry ===============")

@@ -135,6 +135,7 @@ class POS:
             if expected == False:
                 raise Exception(" Test case failed ! Creating core dump and clean up")
             if self.target_utils.helper.check_pos_exit() == False:
+                assert self.cli.wbt_flush()[0] == True
                 self.cli.stop_system(grace_shutdown=False)
 
         except Exception as e:
