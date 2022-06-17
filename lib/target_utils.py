@@ -573,7 +573,12 @@ class TargetUtils:
                 system_disks = self.cli.system_disks
 
                 pos_array_list =  static_dict["array"]["pos_array"]
-                for array in pos_array_list:
+                nr_pos_array = static_dict["array"]["num_array"]
+                if nr_pos_array != len(pos_array_list):
+                    logger.warning("JSON file data is inconsistent. POS bringup may fail.")
+
+                for array_index in range(nr_pos_array):
+                    array = pos_array_list[array_index]
                     array_name = array["array_name"]
                     nr_data_drives = array["data_device"]
                     nr_spare_drives = array["spare_device"]

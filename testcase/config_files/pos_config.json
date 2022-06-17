@@ -21,6 +21,7 @@
     },
     "array": {
         "phase": "true",
+        "num_array": 2,
         "pos_array": [
             {
                 "array_name": "array1",

@@ -648,19 +648,26 @@ class Cli:
     def create_device(
         self,
         uram_name: str,
-        bufer_size: str,
+        bufer_size: str = None,
         strip_size: str = None,
-        numa: str = 0,
-    ):
+        numa: int = None,
+    ) -> (bool, dict()):
         """
         Method to create malloc device
         Args:
-            uram_name (str) : name of uram
-            buffer_szie (str) : |default 8GB
-            strip_size (str) : 512
-            num (str) : 1
+            uram_name (str) : Name of buffer device
+            buffer_szie (str) : Buffer device size
+            strip_size (str) : Size of the stripe
+            numa (int) : Numa node number
         """
         try:
+            for uram in self.data_dict["device"]["uram"]:
+                if uram["uram_name"] == uram_name:
+                    bufer_size = bufer_size or uram["bufer_size"]
+                    strip_size = strip_size or uram["strip_size"]
+                    numa = numa or uram["numa_node"]
+                    break
+
             cmd = 'create --device-name {} --num-blocks {} --block-size {} --device-type "uram" --numa {}'.format(
                 uram_name, bufer_size, strip_size, numa
             )
@@ -1257,17 +1264,27 @@ class Cli:
             return False, jout
 
     ################################## Subsystem ##############################
-    def create_subsystem(self, nqn_name: str, ns_count: str, 
-                        serial_number: str, model_name: str) -> (bool, dict()):
+    def create_subsystem(
+        self,
+        nqn_name: str, 
+        ns_count: str = None, 
+        serial_number: str = None,
+        model_name: str = None
+    ) -> (bool, dict()):
         """
         Method to create nvmf subsystem
         Args:
-            nqn_name (str) : name of Subsystem
-            ns_count (int) : max namespace
-            serial_number (str) : serial number
-            model_name (str) : model_number
+            nqn_name (str) : Name of subsystem
+            ns_count (int) : Max namespace supported by subsystem
+            serial_number (str) : Serial number of subsystem
+            model_name (str) : Model number of subsystem
         """
         try:
+            subsystem = self.data_dict["subsystem"]
+            ns_count = ns_count or subsystem["ns_count"]
+            serial_number = serial_number or subsystem["serial_number"]
+            model_name = model_name or subsystem["model_name"]
+
             cmd = "create --subnqn {} --serial-number {} --model-number {} \
                     --max-namespaces {} --allow-any-host".format(
                                 nqn_name, serial_number, model_name, ns_count)
