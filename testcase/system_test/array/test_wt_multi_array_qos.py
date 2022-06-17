@@ -44,7 +44,7 @@ def teardown_function():
 
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
-
+    pos.exit_handler(expected=True)
 
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives,IO",
@@ -102,17 +102,19 @@ def test_wt_multi_array_qos(raid_type, nr_data_drives,IO):
                 assert status == True
 
                 fio_cmd = "fio --name=Rand_RW  --runtime=300 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
+
                 status,fio_out = pos.client.fio_generic_runner(mount_point, fio_user_data=fio_cmd, IO_mode=False, run_async=True)
                 assert status == True
                 logger.info(fio_out)
+
                 assert pos.client.unmount_FS(mount_point) == True
                 assert pos.client.delete_FS(mount_point) == True
 
         else:
-                fio_out = pos.client.fio_generic_runner(pos.client.nvme_list_out,fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=300", run_async=True)
-                assert fio_out[0] == True
-                # logger.info(fio_out[2])
-                # pos.cli.fio_verify_qos(qos_max_bw=10, qos_max_iops=10, fio_out=fio_out[2], num_vol=512)
+
+            fio_out = pos.client.fio_generic_runner(pos.client.nvme_list_out,fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=300", run_async=True)
+            assert fio_out[0] == True
+
 
         logger.info(
             " ============================= Test ENDs ======================================"
