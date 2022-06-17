@@ -634,20 +634,19 @@ class Client:
             else:
                 for mnt in fs_mount_pt:
                     umount_cmd = "umount {}".format(mnt)
-                    self.ssh_obj.execute(umount_cmd)
-                    logger.info("Successfully mount point {} is unmounted".format(mnt))
-                    verify = self.ssh_obj.execute("mount")
-                    for mount_pts_devices in verify:
-                        if mnt in mount_pts_devices:
-                            raise Exception(
-                                "failed to unmount the mount point {}".format(mnt)
+                    out = self.ssh_obj.execute(umount_cmd)
+                    if out:
+                        raise Exception(
+                                f"Failed to unmount '{mnt}'. Cli Error: '{out}'"
                             )
-                        else:
-                            logger.info("deleting filesystem after unmounting")
-                            self.delete_FS(fs_mount_pt=mnt)
+                    else:
+                        logger.info(f"Successfully unmounted '{mnt}'")
+
+                    logger.info("Deleting filesystem after unmounting")
+                    assert self.delete_FS(fs_mount_pt=mnt) == True
                 return True
         except Exception as e:
-            logger.error("command execution failed with exception {}".format(e))
+            logger.error("Unmount FS failed with exception {}".format(e))
             logger.error(traceback.format_exc())
             return False
 
@@ -662,13 +661,18 @@ class Client:
         """
         try:
             rm_cmd = "rm -fr {}".format(fs_mount_pt)
-            self.ssh_obj.execute(rm_cmd)
+            out = self.ssh_obj.execute(rm_cmd)
+            if out:
+                raise Exception(
+                        f"Failed to delete '{fs_mount_pt}'. Cli Error: '{out}'"
+                    )
+
             if self.is_dir_present(fs_mount_pt) is True:
-                raise Exception("file system found after deletion")
+                raise Exception("File found after deletion")
             else:
                 return True
         except Exception as e:
-            logger.error("command excution failed with exception {}".format(e))
+            logger.error("Delete FS failed with exception {}".format(e))
 
             return False
 
