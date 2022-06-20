@@ -942,7 +942,7 @@ class TargetUtils:
             logger.error(f"NPOR failed due to {e}")
             return False
 
-    def npor_and_recover(self) -> bool:
+    def Npor(self) -> bool:
         """method to perform NPOR
         Returns:
             bool
