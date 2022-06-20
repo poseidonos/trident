@@ -38,6 +38,7 @@ def teardown_function():
 
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
+    pos.exit_handler(expected=True)
 
 def wt_test_setup_function(array_name: str, raid_type: str, nr_data_drives: int):
     try:
@@ -78,10 +79,16 @@ def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
     )
     try:
         array_name = "array1"
+        vol_size = '2200mb'     # Volume Size
+        io_size = '2g'      # FIO IO size
+        if raid_type in ("NORAID", "RAID10") and nr_data_drives <= 2:
+            vol_size = '1200mb'
+            io_size = '1g'
+
         assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
 
         assert pos.target_utils.create_volume_multiple(array_name, 256, "pos_vol",
-                                                    size='1g') == True
+                                                    size=vol_size) == True
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
@@ -96,8 +103,8 @@ def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
         nvme_devs = pos.client.nvme_list_out
 
         # Run File IO and Block IO Parallely
-        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write \
-            --iodepth=64 --direct=1 --bs=128k --time_based --runtime=5 --size=1g"
+        fio_cmd = f"fio --name=sequential_write --ioengine=libaio --rw=write \
+                    --iodepth=64 --direct=1 --bs=128k --size={io_size}"
         
         file_io_devs = nvme_devs[0:128]
         block_io_devs = nvme_devs[128:256]
