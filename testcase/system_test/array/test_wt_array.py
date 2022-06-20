@@ -33,6 +33,7 @@ def teardown_function():
 
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
+    pos.exit_handler(expected=True)
 
 
 @pytest.mark.regression
