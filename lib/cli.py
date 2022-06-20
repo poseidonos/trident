@@ -108,11 +108,12 @@ class Cli:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
                 else:
+                    
                     if "volume mount" in cmd:
-                        return True, out 
-
+                        return True, out
                 parse_out = self.parse_out(out, cmd)
                 self.add_cli_history(parse_out)
+                   
                 if parse_out["status_code"] == 0:
                     return True, parse_out
                 elif parse_out["status_code"] == 1030:
@@ -193,7 +194,23 @@ class Cli:
         Method to start pos
         """
         try:
-            
+            out = ''
+            max_running_time = 30 * 60 #30min
+            start_time = time.time()
+            self.out = self.ssh_obj.run_async("nohup {}/bin/{} >> {}/script/pos.log".format(self.pos_path, "poseidonos", self.pos_path))
+            while True:
+                logger.info("waiting for POS logs")
+                time.sleep(5)
+                if self.out.is_complete() is False:
+                    logger.info("Time-consuming : {}".format(time.time() - start_time))
+                    return True, out
+                cur_time = time.time()
+                running_time = cur_time - start_time
+                if running_time > max_running_time:
+                    return False, out
+
+            """
+            #to use the CLI to start the
             cli_error, jout = self.run_cli_command("start", command_type="system")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -202,6 +219,8 @@ class Cli:
                     raise Exception(jout["description"])
             else:
                 raise Exception("CLI Error")
+            """
+
             
         except Exception as e:
             logger.error("failed due to {}".format(e))
@@ -227,7 +246,7 @@ class Cli:
                 else:
                     for array in array_list:
                         # assert self.info_array(array_name=array)[0] == True
-                        assert self.wbt_flush(array_name=array)[0] == True
+                        
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
 
@@ -239,6 +258,7 @@ class Cli:
                         count = 0
                         while True:
 
+                            """
                             out = self.helper.check_pos_exit()
                             if out == False:
                                 logger.warning("POS PID is still active")
@@ -249,6 +269,12 @@ class Cli:
                             if count == time_out:
                                 logger.error("POS PID taking too much time to exit .. Killing the process")
                                 self.stop_system(grace_shutdown=False)
+                            """
+                            out = self.helper.check_pos_exit()
+                            if out == False:
+                                logger.warning("POS PID is still active!!kiling PID to continue")
+                                self.stop_system(grace_shutdown=False)
+                                break
                                 
             else:
                 self.ssh_obj.execute(command="pkill -9 pos")

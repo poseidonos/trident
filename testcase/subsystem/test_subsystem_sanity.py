@@ -11,13 +11,14 @@ def setup_module():
     pos = POS()
     data_store = {}
     data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "True"
-    data_dict['subsystem']["nr_subsystems"] = 64
+    data_dict["array"]["phase"] = "true"
+    data_dict['subsystem']["nr_subsystems"] = 512
+    data_dict['volume']["pos_volumes"][0]["num_vol"] = 256
+    data_dict['volume']["pos_volumes"][1]["num_vol"] = 256
     # bring devices to user mode, setup core, setup udev, setup max map count
     # assert pos.target_utils.setup_env_pos() == True
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.reset_devel()[0] == True
-
+    
     yield pos
 
 
@@ -40,15 +41,10 @@ def test_sanitySubsystem():
         assert pos.target_utils.get_subsystems_list() == True
        
         assert pos.cli.list_array()[0] == True
-        for index, array in enumerate(list(pos.cli.array_dict.keys())):
-            for i in range(256):
-               volname = f'{array}_vol_{str(i)}'
-               assert pos.cli.create_volume(array_name=array,volumename= volname,size = "1gb")[0] == True
-               assert pos.cli.mount_volume(array_name=array, volumename=volname, nqn= pos.target_utils.ss_temp_list[index])[0] == True
         for array in list(pos.cli.array_dict.keys()):
-            assert pos.cli.list_volume(array_name=array)[0] == True
-            for vol in pos.cli.vols:
-                assert pos.cli.unmount_volume(volumename=vol, array_name=array)[0] == True
+            assert pos.cli.list_volume(array)[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
+            
             
     except Exception as e:
         logger.error(f"TC failed due to {e}")

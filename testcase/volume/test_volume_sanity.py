@@ -1,3 +1,4 @@
+from multiprocessing.context import assert_spawning
 import pytest
 import random
 import logger
@@ -66,8 +67,8 @@ raid = {"RAID0": {"spare" : 0, "data" : 2},
 @pytest.mark.sanity
 @pytest.mark.parametrize("writeback" , [True, False])
 @pytest.mark.parametrize("raid_type", list(raid.keys()))
-@pytest.mark.parametrize("numvol", [1,256,257])
-@pytest.mark.parametrize("volsize" ,["1mb", None, "1kb", "1gb"]) #None means max size of the array/num of vols per array
+@pytest.mark.parametrize("numvol", [1,256])
+@pytest.mark.parametrize("volsize" ,["1mb", None, "1gb"]) #None means max size of the array/num of vols per array
 
 def test_SanityVolume(raid_type, writeback, numvol,volsize):
     try:
@@ -106,13 +107,15 @@ def test_SanityVolume(raid_type, writeback, numvol,volsize):
         for array in ["array1", "array2"]:
             assert pos.cli.list_volume(array_name=array)[0] == True
             for vol in pos.cli.vols:
-             rlist = [i for i in range(1,255)]   
+             rlist = [i for i in range(10,255)]   
              newname = random_string(random.choice(rlist))
+             assert pos.cli.mount_volume(array_name=array,volumename=vol)[0] == True
              assert pos.cli.info_volume(array_name=array, vol_name=vol)[0] == True
              assert pos.cli.rename_volume(new_volname=newname, volname=vol, array_name= array)[0] == True
              assert pos.cli.unmount_volume(volumename=newname, array_name=array)[0] == True
              assert pos.cli.info_volume(array_name=array, vol_name=newname)[0] == True
              assert pos.cli.delete_volume(volumename=newname, array_name=array)[0] == True
+             assert pos.cli.mount_volume(array_name=array,volumename=vol)[0] == True
               
         arrayname = "array1"
         assert pos.cli.info_array(array_name=arrayname)[0] == True
@@ -136,3 +139,21 @@ def test_SanityVolume(raid_type, writeback, numvol,volsize):
         assert 0
     
  
+@pytest.mark.sanity()
+def test_volumesanity257vols():
+    try:
+        if pos.target_utils.helper.check_pos_exit() == True:
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.cli.reset_devel()[0] == True
+            assert pos.target_utils.pci_rescan() == True
+        assert pos.cli.list_device()[0] == True
+        assert pos.cli.create_array(array_name="array1", data=pos.cli.dev_type['SSD'][0:5], write_buffer= pos.cli.dev_type['NVRAM'][0], raid_type= "RAID5", spare = [])[0] == True
+        assert pos.cli.mount_array(array_name="array1")[0] == True
+        for i in range(256):
+            vname = f'array1_vol{str(i)}'
+            assert pos.cli.create_volume(volumename=vname, array_name="array1",size = "1gb")[0] == True
+        assert pos.cli.create_volume(volumename="invalidvol", array_name="array1",size = "1gb")[0] == False
+        
+    except Exception as e:
+        logger.info("test failed")
+        assert 0

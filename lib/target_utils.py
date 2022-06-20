@@ -603,9 +603,9 @@ class TargetUtils:
                                                         num_spare = nr_spare_drives
                                                         )[0] == True
 
-                        assert pos.cli.info_array(array_name=array_name)[0] == True
-                        d_dev = set(pos.cli.array_info[array_name]["data_list"])
-                        s_dev = set(pos.cli.array_info[array_name]["spare_list"])
+                        assert self.cli.info_array(array_name=array_name)[0] == True
+                        d_dev = set(self.cli.array_info[array_name]["data_list"])
+                        s_dev = set(self.cli.array_info[array_name]["spare_list"])
                         system_disks = list(set(system_disks) - d_dev.union(s_dev))
 
                     if array["mount"] == "true":
@@ -930,12 +930,12 @@ class TargetUtils:
             assert self.cli.start_system()[0] == True
             uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
             for uram in uram_list:
-                assert self.cli.create_device(uram_name=uram)[0] == True
+                assert self.cli.create_device(uram_name=uram,bufer_size="8388608",strip_size="512")[0] == True
             assert self.cli.scan_device()[0] == True
             self.helper.get_mellanox_interface_ip()
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in self.ss_temp_list:
-                assert self.cli.create_subsystem(ss)[0] == True
+                assert self.cli.create_subsystem(ss,ns_count= 512,serial_number="POS000000000001",model_name="POS_VOLUME")[0] == True
                 assert (
                     self.cli.add_listner_subsystem(
                         nqn_name=ss,
