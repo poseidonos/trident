@@ -40,12 +40,14 @@ from sys import exit
 import logger
 import pathlib
 import inspect
+from typing import Final
 
 
 logger = logger.get_logger(__name__)
 
 # TODO add support for multi initiaor client object
 
+Max_Client_Cnt : Final = 256 # Maximum number of client that can connect
 
 class POS:
     """Class  object contains object for
@@ -95,7 +97,7 @@ class POS:
         )
 
         self.client_cnt = self.config_dict['login']['initiator']['number']
-        if self.client_cnt >= 1 and self.client_cnt < 256:
+        if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:
             for client_cnt in range(self.config_dict['login']['initiator']['number']):
                 ip = self.config_dict["login"]["initiator"]["client"][client_cnt]["ip"]
                 username = self.config_dict["login"]["initiator"]["client"][client_cnt]["username"]
