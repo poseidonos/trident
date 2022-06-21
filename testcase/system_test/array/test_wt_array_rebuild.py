@@ -45,6 +45,7 @@ def teardown_function():
 
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
+    pos.exit_handler(expected=True)
 
 def wt_test_setup_function(array_name: str, raid_type: str, nr_data_drives: int):
     try:
