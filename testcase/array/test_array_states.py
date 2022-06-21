@@ -1,6 +1,8 @@
 import pytest
 import time
 import random
+import os
+import json
 
 # sys.path.insert(0, '../')
 # sys.path.insert(0, '/root/poseidon/ibot')
@@ -10,7 +12,10 @@ from pos import POS
 from array_state import _Array as array
 
 logger = logger.get_logger(__name__)
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
+with open("{}/config.json".format(dir_path)) as f:
+    config_dict = json.load(f)
 
 @pytest.mark.parametrize("num_array", [1, 2])
 def test_array_states(num_array):
@@ -41,7 +46,6 @@ def test_array_states(num_array):
         pos.target_utils.udev_install()
         assert pos.target_utils.check_udev_rule() == True
         data_dict["array"]["num_array"] = 2 if num_array == 2 else 1
-        data_dict["volume"]["array2"]["phase"] = "false" if num_array == 1 else "true"
         assert pos.target_utils.pos_bring_up(data_dict) == True
 
         assert pos.cli.list_array()[0] == True
@@ -61,7 +65,7 @@ def test_array_states(num_array):
 
         # step ::2 : time setup
         start_time = time.time()
-        run_time = int(data_dict["array_states"]["runtime"])
+        run_time = int(config_dict["test_ArrayStates"]["runtime"])
         end_time = start_time + (60 * run_time)
         logger.info("RunTime is {} minutes".format(run_time))
 

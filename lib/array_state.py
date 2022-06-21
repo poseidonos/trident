@@ -169,18 +169,11 @@ class _Array(POS):
         assert init_obj() == True
         assert self.cli.list_device()[0] == True
         self.total_data_array = len(self.cli.array_info[self.name]["data_list"])
-
-        if self.name == "array1":
-            self.totalDrivesArray = int(
-                self.data_dict["array"]["array1_data_count"]
-            ) + int(
-                self.data_dict["array"]["array1_spare_count"]
-            )  ##Num Spare + Num Data
-        else:
-            self.totalDrivesArray = int(
-                self.data_dict["array"]["array2_data_count"]
-            ) + int(self.data_dict["array"]["array2_spare_count"])
-
+        array_dict = self.data_dict["array"]["pos_array"]
+        for array in array_dict:
+            if self.name == array["array_name"]:
+                self.totalDrivesArray = int(array["data_device"]) + int(array["spare_device"])
+        
         if "wait_for_rebuild" == self.func["name"]:
             if "rebuilding" == self.situation["current"]:
                 assert (
@@ -912,13 +905,14 @@ class _Array(POS):
                 index = int(self.name[-1:])
 
                 sysdev_list = select_system_device(dev_num=self.totalDrivesArray)
-                data_dev = sysdev_list[0 : self.data_dict["array"]["array1_data_count"]]
-                spare_dev = sysdev_list[
-                    self.data_dict["array"]["array1_data_count"] : self.data_dict[
-                        "array"
-                    ]["array1_data_count"]
-                    + self.data_dict["array"]["array1_spare_count"]
-                ]
+                array_dict = self.data_dict["array"]["pos_array"]
+                for array in array_dict:
+                    if self.name == array["array_name"]:
+                        data_dev = sysdev_list[0 : array["data_device"]]
+                        spare_dev = sysdev_list[
+                                                array["data_device"] : array["data_device"]
+                    +                           array["data_device"]
+                                               ]
                 device_list = data_dev + spare_dev
                 get_buffer_data()
                 buffer_dev = self.buffer_data
@@ -985,11 +979,10 @@ class _Array(POS):
             assert self.target_utils.get_subsystems_list() == True
             if self.func["expected"] == True:
                 assert self.cli.list_volume(array_name=self.name)[0] == True
-                base_name = base_name = (
-                    self.data_dict["subsystem"]["base_nqn_name"] + self.name
-                )
+                base_name = self.data_dict["subsystem"]["base_nqn_name"] + self.name
+                
                 self.target_utils.create_subsystems_multiple(
-                    ss_count=self.data_dict["subsystem"][self.name], base_name=base_name
+                    ss_count=self.data_dict["subsystem"]["nr_subsystems"], base_name=base_name
                 ) == True
                 self.target_utils.get_subsystems_list()
                 self.subsystem = [
@@ -1010,11 +1003,15 @@ class _Array(POS):
                     )
 
                 else:
+                    for index in range(len(self.data_dict["volume"]["pos_volumes"])):
+                        if self.data_dict["volume"]["pos_volumes"][index]["array_name"] == self.name:
+                            numvol = self.data_dict["volume"]["pos_volumes"][index]["num_vol"]
+                            size = self.data_dict["volume"]["pos_volumes"][index]["size"]
                     assert (
                         self.target_utils.create_volume_multiple(
                             array_name=self.name,
-                            num_vol=self.data_dict["volume"][self.name]["num_vol"],
-                            size=self.data_dict["volume"][self.name]["size"],
+                            num_vol=numvol,
+                            size=size,
                         )
                         == True
                     )
