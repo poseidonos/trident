@@ -457,8 +457,8 @@ class Client:
             else:
                 outfio = self.ssh_obj.execute(fio_cmd, get_pty=True, 
                                         expected_exit_code=expected_exit_code)
-                self.fio_parser()
-                return True, outfio
+                value = self.fio_parser()
+                return True, outfio ,value[1]
 
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
@@ -492,7 +492,8 @@ class Client:
             "clat": jout["jobs"][0]["write"]["clat_ns"],
         }
         
-        return True
+        return True , self.fio_par_out
+
 
     def is_file_present(self, file_path: str) -> bool:
         """

@@ -87,12 +87,12 @@ def test_wt_array_Npor(raid_type, nr_data_drives):
         assert (
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=50",
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=300",
             )[0]
             == True
         )
 
-        assert pos.target_utils.npor_and_recover() == True
+        assert pos.target_utils.Npor() == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )
