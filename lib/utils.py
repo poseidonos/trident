@@ -748,7 +748,7 @@ class Client:
         for i in temp:
             if i not in final:
                 final.append(i)
-        logger.info(final)
+        
 
         return (True, final)
 
@@ -792,13 +792,13 @@ class Client:
                     logger.info("Nvme disconnect passed")
                     return True
                 else:
-                    logger.info("retrying disconnect in 10 seconds")
-                    count += 10
-                    time.sleep(10)
+                    logger.info("retrying disconnect in 5 seconds")
+                    count += 5
+                    time.sleep(5)
                     if count > timeout:
                         break
-                if len(self.nvme_list_out) != 0:
-                    raise Exception("nvme disconnect failed")
+            if len(self.nvme_list_out) != 0:
+                raise Exception("nvme disconnect failed")
         except Exception as e:
             logger.error("command failed wth exception {}".format(e))
             logger.error(traceback.format_exc())

@@ -447,7 +447,7 @@ class TargetUtils:
         return True
 
     def create_subsystems_multiple(self, ss_count: int, base_name: str, 
-                ns_count: int, serial_number: str, model_name: str) -> bool:
+                ns_count: int = 512, serial_number: str = "POS000000000001", model_name: str = "POS_VOLUME") -> bool:
         """
         Method to create more than one SS
         Args:
@@ -617,7 +617,11 @@ class TargetUtils:
 
             ##### volume config
             if static_dict["volume"]["phase"] == "true":
-                volumes = static_dict["volume"]["pos_volumes"]
+                assert self.cli.list_array()[0] == True
+                if len(list(self.cli.array_dict.keys())) == 2:
+                    volumes = static_dict["volume"]["pos_volumes"]
+                else:
+                    volumes = [static_dict["volume"]["pos_volumes"][0]]
                 for vol in volumes:
                     array_name = vol["array_name"]
                     assert self.cli.list_volume(array_name)
