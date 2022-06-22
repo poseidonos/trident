@@ -13,9 +13,7 @@ def setup_module():
     data_store = {}
     data_dict = pos.data_dict
     data_dict["array"]["phase"] = "false"
-    data_dict["array"]["num_array"] = 2
-    data_dict["volume"]["array1"]["phase"] = "false"
-    data_dict["volume"]["array2"]["phase"] = "false"
+    data_dict["volume"]["phase"] = "false"
        # bring devices to user mode, setup core, setup udev, setup max map count
     # assert pos.target_utils.setup_env_pos() == True
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
@@ -38,6 +36,7 @@ def teardown_function():
     else:
         for array in array_list:
             assert pos.cli.info_array(array_name=array)[0] == True
+            #assert pos.cli.wbt_flush(array_name=array)[0] == True ## for code coverage
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
@@ -148,5 +147,16 @@ def test_SanityArray(raid_type, writeback, numvol, fioruntime, spor):
     except Exception as e:
         logger.error(f" ======= Test FAILED : RAID {raid_type} writeback {writeback} numvol {numvol} fioruntime {fioruntime} SPOR {spor} ========")
     
-    
- 
+@pytest.mark.sanity   
+def test_Create_Array_alldrives():
+    try:
+        if pos.target_utils.helper.check_pos_exit() == True:
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.cli.reset_devel()[0] == True
+            assert pos.target_utils.pci_rescan() == True
+        assert pos.cli.list_device()[0] == True
+        assert pos.cli.create_array(array_name="array1", data=pos.cli.dev_type['SSD'], write_buffer= pos.cli.dev_type['NVRAM'][0], raid_type= "RAID5", spare = [])[0] == False
+    except Exception as e:
+        logger.error("Test case failed due to {e}")
+        assert 0
+        

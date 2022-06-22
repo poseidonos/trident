@@ -447,7 +447,7 @@ class TargetUtils:
         return True
 
     def create_subsystems_multiple(self, ss_count: int, base_name: str, 
-                ns_count: int, serial_number: str, model_name: str) -> bool:
+                ns_count: int = 512, serial_number: str = "POS000000000001", model_name: str = "POS_VOLUME") -> bool:
         """
         Method to create more than one SS
         Args:
@@ -573,7 +573,12 @@ class TargetUtils:
                 system_disks = self.cli.system_disks
 
                 pos_array_list =  static_dict["array"]["pos_array"]
-                for array in pos_array_list:
+                nr_pos_array = static_dict["array"]["num_array"]
+                if nr_pos_array != len(pos_array_list):
+                    logger.warning("JSON file data is inconsistent. POS bringup may fail.")
+
+                for array_index in range(nr_pos_array):
+                    array = pos_array_list[array_index]
                     array_name = array["array_name"]
                     nr_data_drives = array["data_device"]
                     nr_spare_drives = array["spare_device"]
@@ -598,9 +603,9 @@ class TargetUtils:
                                                         num_spare = nr_spare_drives
                                                         )[0] == True
 
-                        assert pos.cli.info_array(array_name=array_name)[0] == True
-                        d_dev = set(pos.cli.array_info[array_name]["data_list"])
-                        s_dev = set(pos.cli.array_info[array_name]["spare_list"])
+                        assert self.cli.info_array(array_name=array_name)[0] == True
+                        d_dev = set(self.cli.array_info[array_name]["data_list"])
+                        s_dev = set(self.cli.array_info[array_name]["spare_list"])
                         system_disks = list(set(system_disks) - d_dev.union(s_dev))
 
                     if array["mount"] == "true":
@@ -612,7 +617,11 @@ class TargetUtils:
 
             ##### volume config
             if static_dict["volume"]["phase"] == "true":
-                volumes = static_dict["volume"]["pos_volumes"]
+                assert self.cli.list_array()[0] == True
+                if len(list(self.cli.array_dict.keys())) == 2:
+                    volumes = static_dict["volume"]["pos_volumes"]
+                else:
+                    volumes = [static_dict["volume"]["pos_volumes"][0]]
                 for vol in volumes:
                     array_name = vol["array_name"]
                     assert self.cli.list_volume(array_name)
@@ -924,7 +933,7 @@ class TargetUtils:
             assert self.cli.start_system()[0] == True
             uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
             for uram in uram_list:
-                assert self.cli.create_device(uram_name=uram)[0] == True
+                assert self.cli.create_device(uram_name=uram,bufer_size="8388608",strip_size="512")[0] == True
             assert self.cli.scan_device()[0] == True
             assert self.cli.list_array()[0] == True
             array_list = list(self.cli.array_dict.keys())
@@ -952,7 +961,7 @@ class TargetUtils:
             assert self.helper.get_mellanox_interface_ip()[0] == True
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in self.ss_temp_list:
-                assert self.cli.create_subsystem(ss)[0] == True
+                assert self.cli.create_subsystem(ss,ns_count= 512,serial_number="POS000000000001",model_name="POS_VOLUME")[0] == True
                 assert (
                     self.cli.add_listner_subsystem(
                         nqn_name=ss,

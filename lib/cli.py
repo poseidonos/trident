@@ -110,11 +110,12 @@ class Cli:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
                 else:
+                    
                     if "volume mount" in cmd:
-                        return True, out 
-
+                        return True, out
                 parse_out = self.parse_out(out, cmd)
                 self.add_cli_history(parse_out)
+                   
                 if parse_out["status_code"] == 0:
                     return True, parse_out
                 elif parse_out["status_code"] == 1030:
@@ -195,7 +196,23 @@ class Cli:
         Method to start pos
         """
         try:
-            
+            out = ''
+            max_running_time = 30 * 60 #30min
+            start_time = time.time()
+            self.out = self.ssh_obj.run_async("nohup {}/bin/{} >> {}/script/pos.log".format(self.pos_path, "poseidonos", self.pos_path))
+            while True:
+                logger.info("waiting for POS logs")
+                time.sleep(5)
+                if self.out.is_complete() is False:
+                    logger.info("Time-consuming : {}".format(time.time() - start_time))
+                    return True, out
+                cur_time = time.time()
+                running_time = cur_time - start_time
+                if running_time > max_running_time:
+                    return False, out
+
+            """
+            #to use the CLI to start the
             cli_error, jout = self.run_cli_command("start", command_type="system")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -204,6 +221,8 @@ class Cli:
                     raise Exception(jout["description"])
             else:
                 raise Exception("CLI Error")
+            """
+
             
         except Exception as e:
             logger.error("failed due to {}".format(e))
@@ -229,7 +248,7 @@ class Cli:
                 else:
                     for array in array_list:
                         # assert self.info_array(array_name=array)[0] == True
-                        assert self.wbt_flush(array_name=array)[0] == True
+                        
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
 
@@ -241,6 +260,7 @@ class Cli:
                         count = 0
                         while True:
 
+                            """
                             out = self.helper.check_pos_exit()
                             if out == False:
                                 logger.warning("POS PID is still active")
@@ -251,6 +271,12 @@ class Cli:
                             if count == time_out:
                                 logger.error("POS PID taking too much time to exit .. Killing the process")
                                 self.stop_system(grace_shutdown=False)
+                            """
+                            out = self.helper.check_pos_exit()
+                            if out == False:
+                                logger.warning("POS PID is still active!!kiling PID to continue")
+                                self.stop_system(grace_shutdown=False)
+                                break
                                 
             else:
                 self.ssh_obj.execute(command="pkill -9 pos")
@@ -651,19 +677,26 @@ class Cli:
     def create_device(
         self,
         uram_name: str,
-        bufer_size: str,
+        bufer_size: str = None,
         strip_size: str = None,
-        numa: str = 0,
-    ):
+        numa: int = None,
+    ) -> (bool, dict()):
         """
         Method to create malloc device
         Args:
-            uram_name (str) : name of uram
-            buffer_szie (str) : |default 8GB
-            strip_size (str) : 512
-            num (str) : 1
+            uram_name (str) : Name of buffer device
+            buffer_szie (str) : Buffer device size
+            strip_size (str) : Size of the stripe
+            numa (int) : Numa node number
         """
         try:
+            for uram in self.data_dict["device"]["uram"]:
+                if uram["uram_name"] == uram_name:
+                    bufer_size = bufer_size or uram["bufer_size"]
+                    strip_size = strip_size or uram["strip_size"]
+                    numa = numa or uram["numa_node"]
+                    break
+
             cmd = 'create --device-name {} --num-blocks {} --block-size {} --device-type "uram" --numa {}'.format(
                 uram_name, bufer_size, strip_size, numa
             )
@@ -1260,17 +1293,27 @@ class Cli:
             return False, jout
 
     ################################## Subsystem ##############################
-    def create_subsystem(self, nqn_name: str, ns_count: str, 
-                        serial_number: str, model_name: str) -> (bool, dict()):
+    def create_subsystem(
+        self,
+        nqn_name: str, 
+        ns_count: str = None, 
+        serial_number: str = None,
+        model_name: str = None
+    ) -> (bool, dict()):
         """
         Method to create nvmf subsystem
         Args:
-            nqn_name (str) : name of Subsystem
-            ns_count (int) : max namespace
-            serial_number (str) : serial number
-            model_name (str) : model_number
+            nqn_name (str) : Name of subsystem
+            ns_count (int) : Max namespace supported by subsystem
+            serial_number (str) : Serial number of subsystem
+            model_name (str) : Model number of subsystem
         """
         try:
+            subsystem = self.data_dict["subsystem"]
+            ns_count = ns_count or subsystem["ns_count"]
+            serial_number = serial_number or subsystem["serial_number"]
+            model_name = model_name or subsystem["model_name"]
+
             cmd = "create --subnqn {} --serial-number {} --model-number {} \
                     --max-namespaces {} --allow-any-host".format(
                                 nqn_name, serial_number, model_name, ns_count)

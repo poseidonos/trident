@@ -21,11 +21,12 @@
     },
     "array": {
         "phase": "true",
+        "num_array": 2,
         "pos_array": [
             {
                 "array_name": "array1",
                 "data_device": 3,
-                "spare_device": 0,
+                "spare_device": 1,
                 "raid_type": "RAID5",
                 "uram": "uram0",
                 "auto_create": "false",
@@ -35,9 +36,9 @@
             {
                 "array_name": "array2",
                 "data_device": 3,
-                "spare_device": 0,
+                "spare_device": 1,
                 "raid_type": "RAID5",
-                "uram": "uram0",
+                "uram": "uram1",
                 "auto_create": "false",
                 "mount": "true",
                 "write_back": "true"
@@ -51,6 +52,24 @@
                 "num_vol": 2,
                 "vol_name_pre": "pos_vol",
                 "array_name": "array1",
+                "size": "1gb",
+                "qos": {
+                    "maxbw": 100000,
+                    "minbw": 1000,
+                    "maxiops": 10000000,
+                    "miniops": 1000
+                },
+                "mount": {
+                    "phase": "true",
+                    "nqn_pre": "nqn.2022-10.pos:subsystem",
+                    "subsystem_range": "1-1"
+                }
+            },
+
+            {
+                "num_vol": 2,
+                "vol_name_pre": "pos_vol",
+                "array_name": "array2",
                 "size": "1gb",
                 "qos": {
                     "maxbw": 100000,

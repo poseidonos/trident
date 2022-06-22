@@ -53,7 +53,7 @@ class POS:
     """Class  object contains object for
     1, cli.py
     2, target_utils.py
-    3, Client.py
+    3, utils.py
     Args:
         data_path : path of pos_config data json | default = None if None read from testcase/config_files/pos_config.json
         config_path : path of toplogy file | default = None
@@ -142,7 +142,6 @@ class POS:
                     assert (
                         self.client_handle[client_cnt].nvme_disconnect(self.target_utils.ss_temp_list) == True
                     )
-
             if expected == False:
                 raise Exception(" Test case failed ! Creating core dump and clean up")
             if self.target_utils.helper.check_pos_exit() == False:
