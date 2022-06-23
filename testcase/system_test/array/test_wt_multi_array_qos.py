@@ -45,7 +45,7 @@ def teardown_function():
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
-
+    
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives,IO",
                          [ ("no-raid", 1,"Block"), ("RAID0", 2,"Block"), ("RAID10", 4,"Block"), ("RAID10", 2,"Block"),("no-raid", 1,"File"), ("RAID0", 2,"File"), ("RAID10", 4,"File"), ("RAID10", 2,"File")])
@@ -111,9 +111,9 @@ def test_wt_multi_array_qos(raid_type, nr_data_drives,IO):
                 assert pos.client.delete_FS(mount_point) == True
 
         else:
-
             fio_out = pos.client.fio_generic_runner(pos.client.nvme_list_out,fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=300", run_async=True)
             assert fio_out[0] == True
+
 
 
         logger.info(

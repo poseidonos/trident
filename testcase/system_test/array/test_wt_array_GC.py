@@ -44,15 +44,16 @@ def teardown_function():
 
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
+    pos.exit_handler(expected=True)
 
 
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives",
                          [("no-raid", 1), ("RAID0", 2), ("RAID10", 4)])
-def test_wt_array_nvme_flush(raid_type, nr_data_drives):
+def test_wt_array_GC(raid_type, nr_data_drives):
     """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
     logger.info(
-        " ==================== Test : test_wt_array_nvme_flush ================== "
+        " ==================== Test : test_wt_array_GC ================== "
     )
     try:
         if pos.target_utils.helper.check_pos_exit() == True:

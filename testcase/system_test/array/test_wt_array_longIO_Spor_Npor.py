@@ -45,6 +45,7 @@ def teardown_function():
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
+
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives,por",
                          [ ("no-raid", 1,Npor), ("RAID0", 2,Npor), ("RAID10", 4,Npor),("no-raid", 1,Spor), ("RAID0", 2,Spor), ("RAID10", 4,Spor)])
