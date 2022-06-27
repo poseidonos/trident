@@ -53,7 +53,7 @@ def teardown_module():
 def test_wt_wb_multi_array_file_Block_IO(raid_type, nr_data_drives):
     """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
     logger.info(
-        " ==================== Test : test_wt_array_long_fileIO ================== "
+        " ==================== Test : test_wt_array ================== "
     )
     try:
         if pos.target_utils.helper.check_pos_exit() == True:
