@@ -40,12 +40,14 @@ from sys import exit
 import logger
 import pathlib
 import inspect
+from typing import Final
 
 
 logger = logger.get_logger(__name__)
 
 # TODO add support for multi initiaor client object
 
+Max_Client_Cnt : Final = 256 # Maximum number of client that can connect
 
 class POS:
     """Class  object contains object for
@@ -64,6 +66,9 @@ class POS:
         if config_path is None:
             config_path = "topology.json"
 
+        self.client_cnt = 0
+        self.client_handle = []
+
         caller_file = inspect.stack()[1].filename
         caller_dir = pathlib.Path(caller_file).parent.resolve()
         is_file_exist = path.exists("{}/config_files/{}".format(caller_dir, data_path))
@@ -74,11 +79,11 @@ class POS:
         else:
             self.data_dict = self._json_reader(data_path)[1]
         self.config_dict = self._json_reader(config_path)[1]
-
+        
         self.target_ssh_obj = SSHclient(
-            self.config_dict["login"]["target"]["ip"],
-            self.config_dict["login"]["target"]["username"],
-            self.config_dict["login"]["target"]["password"],
+            self.config_dict["login"]["target"]["server"][0]["ip"],
+            self.config_dict["login"]["target"]["server"][0]["username"],
+            self.config_dict["login"]["target"]["server"][0]["password"],
         )
         self.cli = Cli(
             self.target_ssh_obj,
@@ -91,11 +96,17 @@ class POS:
             self.config_dict["login"]["paths"]["pos_path"],
         )
 
-        self.client = Client(
-            self.config_dict["login"]["initiator"]["ip"],
-            self.config_dict["login"]["initiator"]["username"],
-            self.config_dict["login"]["initiator"]["password"],
-        )
+        self.client_cnt = self.config_dict['login']['initiator']['number']
+        if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:
+            for client_cnt in range(self.config_dict['login']['initiator']['number']):
+                ip = self.config_dict["login"]["initiator"]["client"][client_cnt]["ip"]
+                username = self.config_dict["login"]["initiator"]["client"][client_cnt]["username"]
+                password = self.config_dict["login"]["initiator"]["client"][client_cnt]["password"]
+                self.client_handle.append(Client(ip, username, password))
+        else:
+            assert 0
+        if(self.client_cnt == 1):
+            self.client = self.client_handle[0]
 
     def _json_reader(self, json_file: str, abs_path=False) -> dict:
         """reads json file from /testcase/config_files
@@ -126,15 +137,14 @@ class POS:
         try:
 
             assert self.target_utils.helper.check_system_memory() == True
-
-            if self.client.ctrlr_list()[1] is not None:
-                self.client.nvme_disconnect(self.target_utils.ss_temp_list) 
-                
-
+            for client_cnt in range(self.config_dict['login']['initiator']['number']):
+                if self.client_handle[client_cnt].ctrlr_list()[1] is not None:
+                    assert (
+                        self.client_handle[client_cnt].nvme_disconnect(self.target_utils.ss_temp_list) == True
+                    )
             if expected == False:
                 raise Exception(" Test case failed ! Creating core dump and clean up")
             if self.target_utils.helper.check_pos_exit() == False:
-               
                 self.cli.stop_system(grace_shutdown=True)
 
         except Exception as e:

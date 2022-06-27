@@ -37,6 +37,8 @@ import string
 import random
 import math
 import datetime
+import os
+import codecs
 
 logger = logger.get_logger(__name__)
 
@@ -329,3 +331,15 @@ class Helper:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False
+
+    def generate_pattern(self, num_digits):
+        """
+        Method to generate random number of given num_digits digits
+        """
+        try:
+            pattern = codecs.encode(os.urandom(int(num_digits / 2)), "hex").decode()
+        except:
+            logger.info("could not generate pattern!!!")
+            raise Exception("could not generate pattern!!!")
+        return pattern
+

@@ -898,8 +898,8 @@ class TargetUtils:
         assert self.cli.list_subsystem()[0] == True
         return True
 
-    def Npor(self) -> bool:
-        """method to perform NPOR
+    def npor_and_save_state(self) -> bool:
+        """Method to perform NPOR
         Returns:
             bool
         """
@@ -930,13 +930,35 @@ class TargetUtils:
                                     )
 
             assert self.cli.stop_system() == True
-            time.sleep(10) ## waiting for pos PID to be killed
             assert self.cli.start_system()[0] == True
             uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
             for uram in uram_list:
                 assert self.cli.create_device(uram_name=uram,bufer_size="8388608",strip_size="512")[0] == True
             assert self.cli.scan_device()[0] == True
-            self.helper.get_mellanox_interface_ip()
+            assert self.cli.list_array()[0] == True
+            array_list = list(self.cli.array_dict.keys())
+            if len(array_list) == 0:
+                logger.info("No Array Present in the config")
+                return False
+            else:
+                for array in array_list:
+                    assert self.cli.mount_array(array_name=array)[0] == True
+                    assert self.cli.list_volume(array_name=array)[0] == True
+                    if len(self.cli.vols) == 0:
+                        logger.info("No volumes found")
+            return True
+        except Exception as e:
+            logger.error(f"NPOR failed due to {e}")
+            return False
+
+    def Npor(self) -> bool:
+        """method to perform NPOR
+        Returns:
+            bool
+        """
+        try:
+            assert self.npor_and_save_state() == True
+            assert self.helper.get_mellanox_interface_ip()[0] == True
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in self.ss_temp_list:
                 assert self.cli.create_subsystem(ss,ns_count= 512,serial_number="POS000000000001",model_name="POS_VOLUME")[0] == True
@@ -950,26 +972,28 @@ class TargetUtils:
                 )
             assert self.cli.list_array()[0] == True
             array_list = list(self.cli.array_dict.keys())
-            if len(array_list) == 0:
-                logger.info("No Array Present in the config")
-                return False
-            else:
-                for index,array in enumerate(array_list):
-                    assert self.cli.mount_array(array_name=array)[0] == True
+            if len(array_list) > 0:
+                for array in array_list:
                     assert self.cli.list_volume(array_name=array)[0] == True
                     if len(self.cli.vols) == 0:
                         logger.info("No volumes found")
                     else:
                         ss_list = [ss for ss in self.ss_temp_list if array in ss]
                         assert (
-                            self.mount_volume_multiple(array_name=array, volume_list=self.cli.vols, nqn_list=[self.ss_temp_list[index]])
+                            self.mount_volume_multiple(
+                                array_name=array,
+                                volume_list=self.cli.vols,
+                                nqn_list=ss_list,
+                            )
                             == True
                         )
-
+            else:
+                logger.info("No array found")
             return True
         except Exception as e:
-            logger.error(f"NPOR failed due to {e}")
+            logger.error(f"NPOR and recovery failed due to {e}")
             return False
+
 
     def Spor(self) -> bool :
         try:

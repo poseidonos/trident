@@ -1,7 +1,54 @@
 {
-    "login": {
-    "target" :  {"ip":"172.17.50.22","username":"root", "password":"qwe123!@#"},
-    "initiator" :{"ip":"172.17.50.21","username":"root", "password":"qwe123!@#"},
-    "paths"  : {"pos_path": "/root/pos-0.11.0-rc-5/ibofos"}
+    "login":
+    {
+        "target":
+        {
+            "number": 1,
+            "server":
+            [
+                {
+                    "ip":"172.17.50.24",
+                    "username":"root",
+                    "password":"qwe123!@#"
+                }
+            ]
+        },
+        "initiator":
+        {
+            "number": 1,
+            "client":
+            [
+                {
+                    "ip":"172.17.50.23",
+                    "username":"root",
+                    "password":"qwe123!@#"
+                },{
+                    "ip":"172.17.50.23",
+                    "username":"root",
+                    "password":"qwe123!@#"
+                },{
+                    "ip":"172.17.50.23",
+                    "username":"root",
+                    "password":"qwe123!@#"
+                },{
+                    "ip":"172.17.50.23",
+                    "username":"root",
+                    "password":"qwe123!@#"
+                },{
+                    "ip":"172.17.50.23",
+                    "username":"root",
+                    "password":"qwe123!@#"
+                },{
+                    "ip":"172.17.50.23",
+                    "username":"root",
+                    "password":"qwe123!@#"
+                }
+
+	    ]
+        },
+	"paths": 
+	{
+		"pos_path": "/root/poseidon/pos"
+	}
     }
 }

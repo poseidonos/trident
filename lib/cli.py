@@ -38,6 +38,7 @@ import json
 import pprint
 from datetime import timedelta
 from threading import Thread
+from threading import Lock
 
 
 logger = logger.get_logger(__name__)
@@ -65,6 +66,7 @@ class Cli:
         self.new_cli_path = "/bin/poseidonos-cli"  ##path of POS cli
         self.array_info = {}
         self.cli_history = []
+        self.lock = Lock()
 
     def run_cli_command(
         self, command: str, command_type: str = "request", timeout=30
@@ -537,6 +539,7 @@ class Cli:
             else:
                 logger.error("failed to execute list_array_device command")
                 return False, out[1]
+            self.normal_data_disks = list([dev for dev in data_dev if 'REMOVED' not in dev])
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None, None, None
@@ -1458,6 +1461,10 @@ class Cli:
             if cli_error == True:
                 if jout["status_code"] == 0:
                     logger.error(jout["description"])
+                    seg_info = jout["output"]["Response"]["result"]["data"]["gc"]["segment"]
+                    self.free_segments, self.total_segments, self.used_segments = [
+                            value for value in seg_info.values()
+                            ]
                     return True, jout
                 else:
                     raise Exception(jout["description"])
@@ -1466,6 +1473,30 @@ class Cli:
         except Exception as e:
             logger.error(e)
             return False, jout
+
+    def wbt_set_gc_threshold(self, array_name: str = None, normal: int = None, urgent: int = None):
+        """
+        Method to set gc threshold value to the given array
+        """
+        try:
+            if array_name == None:
+                array_name = self.array_name
+            if normal == None or urgent == None:
+                logger.error("normal and urgent are mandatory params for set_gc_threshold")
+            cmd = "set_gc_threshold --array {} --normal {} --urgent {}".format(array_name, normal, urgent)
+            cli_error, jout = self.run_cli_command(cmd, "wbt")
+            if cli_error == True:
+                if jout["status_code"] == 0:
+                    logger.info(jout["description"])
+                    return True, jout
+                else:
+                    raise Exception(jout["description"])
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error(e)
+            return False, jout
+        
 
     def wbt_get_gc_threshold(self, array_name: str = None):
         """
@@ -1479,6 +1510,8 @@ class Cli:
             if cli_error == True:
                 if jout["status_code"] == 0:
                     logger.info(jout["description"])
+                    threshold = jout['output']['Response']['result']['data']['gc_threshold']
+                    self.gc_normal, self.gc_urgent = [ value for value in threshold.values()]
                     return True, jout
                 else:
                     raise Exception(jout["description"])
