@@ -308,8 +308,8 @@ class TargetUtils:
             bool
         """
         try:
-            assert self.cli.wbt_flush()[0] == True
-            assert self.cli.stop_system(grace_shutdown=False)[0] == True
+            # assert self.cli.wbt_flush()[0] == True
+            assert self.cli.stop_system(grace_shutdown=False) == True
             self.ssh_obj.execute(
                 "{}/script/backup_latest_hugepages_for_uram.sh".format(
                     self.cli.pos_path

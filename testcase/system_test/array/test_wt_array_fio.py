@@ -71,7 +71,7 @@ def wt_test_setup_function(array_name: str, raid_type: str, nr_data_drives: int)
         return False
 
 @pytest.mark.regression
-@pytest.mark.parametrize("raid_type, nr_data_drives", 
+@pytest.mark.parametrize("raid_type, nr_data_drives",
                         [("NORAID", 1), ("RAID0", 2), ("RAID5", 3),
                          ("RAID10", 2), ("RAID10", 4)])
 def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
@@ -106,14 +106,14 @@ def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
         # Run File IO and Block IO Parallely
         fio_cmd = f"fio --name=sequential_write --ioengine=libaio --rw=write \
                     --iodepth=64 --direct=1 --bs=128k --size={io_size}"
-        
+
         file_io_devs = nvme_devs[0:128]
         block_io_devs = nvme_devs[128:256]
         assert pos.client.create_File_system(file_io_devs, fs_format="xfs")
         out, mount_point = pos.client.mount_FS(file_io_devs)
-        assert out == True 
+        assert out == True
         io_mode = False     # Set False this to File IO
-        out, async_file_io = pos.client.fio_generic_runner(mount_point, 
+        out, async_file_io = pos.client.fio_generic_runner(mount_point,
                     fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True)
         assert out == True
 
@@ -141,7 +141,7 @@ def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
             break
         #assert pos.client.delete_FS(mount_point) == True
         assert pos.client.unmount_FS(mount_point) == True
-        
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -219,4 +219,42 @@ def test_wt_array_one_hour_FIO(raid_type, nr_data_drives, io_type):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         #assert pos.client.unmount_FS(mount_point) == True
+        pos.exit_handler(expected=False)
+
+
+@pytest.mark.regression
+@pytest.mark.parametrize("raid_type, nr_data_drives",
+                         [("no-raid", 1), ("RAID0", 2), ("RAID5", 3),
+                          ("RAID10", 2), ("RAID10", 4)])
+def test_wt_array_block_IO(raid_type, nr_data_drives):
+    logger.info(
+        " ==================== Test : test_wt_array_block_IO ================== "
+    )
+    try:
+        array_name = "posarray1"
+        assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
+
+        assert pos.target_utils.create_volume_multiple(array_name, 256, "pos_vol",
+                                                       size="2gb") == True
+        assert pos.target_utils.get_subsystems_list() == True
+        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
+        assert pos.target_utils.mount_volume_multiple(array_name=array_name,
+                                                      volume_list=pos.cli.vols, nqn_list=ss_list) == True
+
+        for ss in pos.target_utils.ss_temp_list:
+            assert pos.client.nvme_connect(ss,
+                                           pos.target_utils.helper.ip_addr[0], "1158") == True
+
+        assert pos.client.nvme_list() == True
+
+        # Run Block IO for an Hour
+        fio_out = pos.client.fio_generic_runner(pos.client.nvme_list_out,fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=3600")
+        assert fio_out[0] == True
+
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
