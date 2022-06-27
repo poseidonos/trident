@@ -301,22 +301,30 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    def spor_prep(self) -> bool:
+    def spor_prep(self, wbt_flush: bool=False, uram_backup: bool=True) -> bool:
         """
         Method to spor preparation
+        wbt_flush : If true, Issue the wbt flush command
+        uram_backup : If true, run script to take uram backup
+
         Returns:
             bool
         """
         try:
-            # assert self.cli.wbt_flush()[0] == True
-            assert self.cli.stop_system(grace_shutdown=False) == True
-            self.ssh_obj.execute(
-                "{}/script/backup_latest_hugepages_for_uram.sh".format(
+            if wbt_flush:
+                assert self.cli.wbt_flush()[0] == True
+
+            assert self.cli.stop_system(grace_shutdown=False)[0] == True
+
+            if uram_backup:
+                self.ssh_obj.execute(
+                    "{}/script/backup_latest_hugepages_for_uram.sh".format(
                     self.cli.pos_path
-                ),
+                    ),
                 get_pty=True,
             )
-            self.ssh_obj.execute("rm -fr /dev/shm/ibof*", get_pty=True)
+            #self.ssh_obj.execute("rm -fr /dev/shm/ibof*", get_pty=True)
+            return True
 
         except Exception as e:
             logger.error(e)
@@ -352,6 +360,7 @@ class TargetUtils:
             logger.error("Command execution failed with exception {}".format(e))
             return False
         return True
+
     def array_rebuild_wait(self, array_name: str = None, wait_time: int = 5, loop_count: int = 20) -> bool:
         """
         Method to check rebuild status
@@ -556,6 +565,8 @@ class TargetUtils:
                                             numa = uram["numa_node"])[0] == True
 
                 assert self.cli.scan_device()[0] == True
+                assert self.cli.list_device()[0] == True
+
 
             if static_dict["subsystem"]["phase"] == "true":
                 ss = static_dict["subsystem"]
@@ -1000,44 +1011,66 @@ class TargetUtils:
             return False
 
 
-    def Spor(self) -> bool :
+    def Spor(self, uram_backup=True) -> bool :
+        """
+        Method to spor
+        uram_backup : If true, run script to take uram backup
+
+        Returns:
+            bool
+        """    
         try:
+            # Store Device Information
+            assert self.cli.list_device()[0] == True
+            uram_dev_list = self.cli.system_buffer + self.cli.array_buffer
+            logger.debug("Buffer Device List: {}".format(uram_dev_list))
+
+            # Store Subsystem Information
             assert self.get_subsystems_list() == True
+            subsystem_list = self.ss_temp_list
+            logger.debug("Subsystem List: {}".format(subsystem_list))
+
+            # Store the Array Information
             assert self.cli.list_array()[0] == True
-            assert self.spor_prep() == True
-            assert self.cli.start_system()[0] == True
-            uram_list = [f"uram{str(i)}" for i in len(array_list)]
-            for uram in uram_list:
-                assert self.cli.create_device(uram_name=uram)[0] == True
-            assert self.cli.scan_device()[0] == True
-            self.helper.get_mellanox_interface_ip()
-            for ss in self.ss_temp_list:
-                assert self.cli.create_subsystem(ss)[0] == True
-                assert (
-                    self.cli.add_listner_subsystem(
-                        nqn_name=ss,
-                        mellanox_interface=self.helper.ip_addr[0],
-                        port="1158",
-                    )[0]
-                    == True
-                )
-            assert self.cli.list_array()[0] == True
-            array_list = list(self.cli.array_dict.keys())
+            array_list = self.cli.array_dict.keys()
             if len(array_list) == 0:
                 logger.info("No Array Present in the config")
                 return False
-            else:
-                for array in array_list:
-                    assert self.cli.mount_array(array_name=array)[0] == True
-                    assert self.cli.list_volume(array_name=array)[0] == True
-                    if len(self.cli.vols) == 0:
-                        logger.info("No volumes found")
-                    else:
-                        ss_list = [ss for ss in self.ss_temp_list if array in ss]
-                        assert (
-                            self.mount_volume_multiple(self.cli.vols, nqn_list=ss_list)
-                            == True
-                        )
+
+            logger.debug("Array List {}".format(array_list))
+
+            # Store IP Address
+            self.helper.get_mellanox_interface_ip()
+            
+            # Stop POS
+            assert self.spor_prep(uram_backup=uram_backup) == True
+            ip_addr=self.helper.ip_addr[0]
+
+            # Start The POS system
+            assert self.cli.start_system()[0] == True
+
+            # Create the URAM device
+            for uram in uram_dev_list:
+                assert self.cli.create_device(uram_name=uram)[0] == True
+
+            assert self.cli.scan_device()[0] == True
+
+            # Create subsystem and Add listner
+            assert self.cli.create_transport_subsystem()[0] == True
+            for ss in subsystem_list:
+                assert self.cli.create_subsystem(ss)[0] == True
+                assert self.cli.add_listner_subsystem(nqn_name=ss,
+                            mellanox_interface=ip_addr, port="1158")[0] == True
+    
+            # Restore Array and Volumes
+            for array in array_list:
+                assert self.cli.mount_array(array_name=array)[0] == True
+                assert self.cli.list_volume(array_name=array)[0] == True
+                if len(self.cli.vols) == 0:
+                    logger.info("No volumes found")
+                for vol in self.cli.vols:
+                    # TODO skip mount volumes those were not mounted.
+                    assert self.cli.mount_volume(vol, array)[0] == True
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")
