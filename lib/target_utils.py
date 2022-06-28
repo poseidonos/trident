@@ -1022,7 +1022,7 @@ class TargetUtils:
         try:
             # Store Device Information
             assert self.cli.list_device()[0] == True
-            uram_dev_list = self.cli.system_buffer + self.cli.array_buffer
+            uram_dev_list = self.cli.dev_type["NVRAM"]
             logger.debug("Buffer Device List: {}".format(uram_dev_list))
 
             # Store Subsystem Information

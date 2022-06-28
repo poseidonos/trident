@@ -759,25 +759,11 @@ class Cli:
                             and self.device_map[item]["type"].lower() == "ssd"
                         ]
 
-                        self.system_buffer = [
-                            item
-                            for item in self.device_map
-                            if self.device_map[item]["class"].lower() == "system"
-                            and self.device_map[item]["type"].lower() == "nvram"
-                        ]
-
                         self.array_disks = [
                             item
                             for item in self.device_map
                             if self.device_map[item]["class"].lower() == "array"
                             and self.device_map[item]["type"].lower() == "ssd"
-                        ]
-
-                        self.array_buffer = [
-                            item
-                            for item in self.device_map
-                            if self.device_map[item]["class"].lower() == "array"
-                            and self.device_map[item]["type"].lower() == "nvram"
                         ]
 
                         return (True, out)
