@@ -945,7 +945,7 @@ class TargetUtils:
                                         == True
                                     )
 
-            assert self.cli.stop_system() == True
+            assert self.cli.stop_system()[0] == True
             assert self.cli.start_system()[0] == True
             uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
             for uram in uram_list:
@@ -974,35 +974,28 @@ class TargetUtils:
         """
         try:
             assert self.npor_and_save_state() == True
+
             assert self.helper.get_mellanox_interface_ip()[0] == True
+            ip_addr = self.helper.ip_addr[0]
+
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in self.ss_temp_list:
-                assert self.cli.create_subsystem(ss,ns_count= 512,serial_number="POS000000000001",model_name="POS_VOLUME")[0] == True
-                assert (
-                    self.cli.add_listner_subsystem(
-                        nqn_name=ss,
-                        mellanox_interface=self.helper.ip_addr[0],
-                        port="1158",
-                    )[0]
-                    == True
-                )
+                assert self.cli.create_subsystem(ss)[0] == True
+                assert self.cli.add_listner_subsystem(nqn_name=ss,
+                            mellanox_interface=ip_addr, port="1158")[0] == True
+
             assert self.cli.list_array()[0] == True
-            array_list = list(self.cli.array_dict.keys())
+            array_list = self.cli.array_dict.keys()
             if len(array_list) > 0:
                 for array in array_list:
                     assert self.cli.list_volume(array_name=array)[0] == True
                     if len(self.cli.vols) == 0:
                         logger.info("No volumes found")
                     else:
-                        ss_list = [ss for ss in self.ss_temp_list if array in ss]
-                        assert (
-                            self.mount_volume_multiple(
-                                array_name=array,
-                                volume_list=self.cli.vols,
-                                nqn_list=ss_list,
-                            )
-                            == True
-                        )
+                        for vol in self.cli.vols:
+                        #ss_list = [ss for ss in self.ss_temp_list if array in ss]
+                        # TODO skip mount volumes those were not mounted.
+                            assert self.cli.mount_volume(vol, array)[0] == True
             else:
                 logger.info("No array found")
             return True

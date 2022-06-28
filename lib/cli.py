@@ -255,31 +255,28 @@ class Cli:
                             assert self.unmount_array(array_name=array)[0] == True
 
                 out = self.run_cli_command("stop --force", command_type="system")
+                if out[0] == False:
+                    logger.error("POS system stop command failed.")
+                    return False, out
+                
+                if out[1]["output"]["Response"]["result"]["status"]["code"] != 0:
+                    logger.error("POS graceful shutdown failed.")
+                    return False, out
 
-                if out[0] == True:
-                    if out[1]["output"]["Response"]["result"]["status"]["code"] == 0:
-                        logger.info("POS was stopped successfully!!! verifying PID")
-                        count = 0
-                        while True:
-
-                            """
-                            out = self.helper.check_pos_exit()
-                            if out == False:
-                                logger.warning("POS PID is still active")
-                                time.sleep(10)
-                                count += 10
-                            else:
-                                break
-                            if count == time_out:
-                                logger.error("POS PID taking too much time to exit .. Killing the process")
-                                self.stop_system(grace_shutdown=False)
-                            """
-                            out = self.helper.check_pos_exit()
-                            if out == False:
-                                logger.warning("POS PID is still active!!kiling PID to continue")
-                                self.stop_system(grace_shutdown=False)
-                                break
-                                
+                logger.info("POS graceful shutdown successful. Verifying PID...")
+                count = 0
+                while True:
+                    out = self.helper.check_pos_exit()
+                    if out == False:
+                        logger.warning("POS PID is still active")
+                        time.sleep(10)
+                        count += 10
+                    else:
+                        break
+                            
+                if count == time_out:
+                    logger.error(f"POS PID is still active after {count} seconds.")
+                    return False, out
             else:
                 out = self.ssh_obj.execute(command="pkill -9 pos")
         except Exception as e:
