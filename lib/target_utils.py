@@ -437,13 +437,18 @@ class TargetUtils:
         """
         num_ss = len(nqn_list)
         num_vol = len(volume_list)
+        logger.info("nqn {} and vols {} ".format(str(nqn_list), str(volume_list)))
+
         temp, num = 0, 0
         for num in range(num_vol):
             ss = nqn_list[temp] if len(nqn_list) > 1 else nqn_list[0]
+            logger.info("ss {} and temp {} ".format(ss, str(temp)))
             assert self.cli.mount_volume(volume_list[num], array_name, ss)[0] == True
-            temp += 1
+
             if temp == num_ss - 1:
                 temp = 0
+            else:
+                temp += 1
         return True
 
     def create_subsystems_multiple(self, ss_count: int, base_name: str, 
