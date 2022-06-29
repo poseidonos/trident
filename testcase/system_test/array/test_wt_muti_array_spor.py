@@ -85,11 +85,10 @@ def wt_test_multi_array_setup(array_list: list):
         return False
 
 
-array1 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)]
-array2 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)]
+array1 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
+array2 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
 
 @pytest.mark.regression
-@pytest.mark.parametrize("writeback" , [True, False])
 @pytest.mark.parametrize("array2", array2)
 @pytest.mark.parametrize("array1", array1)
 def test_wt_multi_array_FIO_SPOR_NPOR(array1, array2, writeback):
@@ -107,6 +106,7 @@ def test_wt_multi_array_FIO_SPOR_NPOR(array1, array2, writeback):
         array_name2 = "array2"
 
         array_raid_disk = (array1, array2)
+        writeback = [False, True]
 
         array_list = []
         for id, array_name in enumerate((array_name1, array_name2)):
@@ -115,7 +115,7 @@ def test_wt_multi_array_FIO_SPOR_NPOR(array1, array2, writeback):
                 "buffer_dev": f"uram{id}",
                 "raid_type": array_raid_disk[id][0],
                 "nr_data_drives": array_raid_disk[id][1],
-                "write_back": writeback
+                "write_back": writeback[id]
                 }
             )
 
