@@ -45,6 +45,7 @@ def teardown_function():
 
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
+    pos.exit_handler(expected=True)
 
 
 @pytest.mark.regression
@@ -53,8 +54,9 @@ def teardown_module():
 def test_wt_wb_multi_array_file_Block_IO(raid_type, nr_data_drives):
     """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
     logger.info(
-        " ==================== Test : test_wt_array ================== "
+        " ==================== Test : test_wt_wb_multi_array_file_Block_IO ================== "
     )
+    mount_point =  None
     try:
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
@@ -70,32 +72,21 @@ def test_wt_wb_multi_array_file_Block_IO(raid_type, nr_data_drives):
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem" in ss]
 
 
-        #Create array1, volume and mount
-        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
+        for i in range(2):
+            array_name = "posarray" + str(i)
+            uram = 'uram' + str(i)
+            # Create array1, volume and mount in WT
+            data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
 
-        array_name = "posarray1"
-        assert pos.cli.create_array(write_buffer="uram0", data=data_disk_list,
-                                    spare=None, raid_type=raid_type,
-                                    array_name=array_name)[0] == True
-
-        assert pos.cli.mount_array(array_name=array_name, write_back=True)[0] == True
-        assert pos.target_utils.create_volume_multiple( array_name = array_name, num_vol = 256, size = "5GB") == True
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
-        assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                                                      volume_list=pos.cli.vols, nqn_list=ss_list) == True
-
-
-        # Create array2, volume and mount
-        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-        array_name = "posarray2"
-        assert pos.cli.create_array(write_buffer="uram1", data=data_disk_list,
-                                    spare=None, raid_type=raid_type,
-                                    array_name=array_name)[0] == True
-        assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
-        assert pos.target_utils.create_volume_multiple( array_name = array_name, num_vol = 256, size = "5GB") == True
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
-        assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                            volume_list=pos.cli.vols, nqn_list=ss_list) == True
+            assert pos.cli.create_array(write_buffer=uram, data=data_disk_list,
+                                        spare=None, raid_type=raid_type,
+                                        array_name=array_name)[0] == True
+            wb_flag = True if i % 2 else False
+            assert pos.cli.mount_array(array_name=array_name, write_back=wb_flag)[0] == True
+            assert pos.target_utils.create_volume_multiple(array_name=array_name, num_vol=256, size="5GB") == True
+            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.target_utils.mount_volume_multiple(array_name=array_name,
+                                                          volume_list=pos.cli.vols, nqn_list=ss_list) == True
 
         #Connect client
         for ss in pos.target_utils.ss_temp_list:
@@ -145,7 +136,7 @@ def test_wt_wb_multi_array_file_Block_IO(raid_type, nr_data_drives):
                 continue
             break
         # assert pos.client.delete_FS(mount_point) == True
-        assert pos.client.unmount_FS(mount_point) == True
+        #assert pos.client.unmount_FS(mount_point) == True
         pos.client.check_system_memory()
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -154,4 +145,8 @@ def test_wt_wb_multi_array_file_Block_IO(raid_type, nr_data_drives):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
+    finally:
+        if mount_point is not None:
+            assert pos.client.unmount_FS(mount_point) == True
 
