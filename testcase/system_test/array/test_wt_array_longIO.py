@@ -202,7 +202,7 @@ def test_wt_wb_array_long_fileIO(raid_type, nr_data_drives):
         status, mount_point = pos.client.mount_FS(dev)
         assert status == True
 
-        fio_cmd = "fio --name=Rand_RW  --runtime=43000 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
+        fio_cmd = "fio --name=Rand_RW  --runtime=43 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
         status , io_pro = pos.client.fio_generic_runner(mount_point, fio_user_data=fio_cmd, IO_mode=False, run_async=True)
         assert status == True
 
@@ -300,7 +300,7 @@ def test_wb_wt_array_long_fileIO(raid_type, nr_data_drives):
         status, mount_point = pos.client.mount_FS(dev)
         assert status == True
 
-        fio_cmd = "fio --name=Rand_RW  --runtime=43000 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
+        fio_cmd = "fio --name=Rand_RW  --runtime=43 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
         status , io_pro = pos.client.fio_generic_runner(mount_point, fio_user_data=fio_cmd, IO_mode=False, run_async=True)
         assert status == True
 

@@ -87,7 +87,8 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives,por):
         status, mount_point = pos.client.mount_FS(dev)
         assert status == True
 
-        fio_cmd = "fio --name=Rand_RW  --runtime=43 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
+        fio_cmd = "fio --name=Rand_RW  --runtime=42 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
+
 
         status , io_pro = pos.client.fio_generic_runner(mount_point, fio_user_data=fio_cmd, IO_mode=False, run_async=True)
         assert status == True
@@ -111,7 +112,7 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives,por):
 
 
         array_name = "posarray2"
-        assert pos.cli.create_array(write_buffer="uram0", data=data_disk_list,
+        assert pos.cli.create_array(write_buffer="uram1", data=data_disk_list,
                                     spare=None, raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
@@ -124,22 +125,24 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives,por):
                                                       volume_list=pos.cli.vols, nqn_list=ss_list) == True
 
         assert pos.client.nvme_connect(ss_list[0],
-                                           pos.target_utils.helper.ip_addr[0], "1158") == True
+                                       pos.target_utils.helper.ip_addr[0], "1158") == True
         assert pos.client.nvme_list() == True
         dev = [pos.client.nvme_list_out[0]]
         assert pos.client.create_File_system(dev, fs_format="xfs") == True
         status, mount_point_new = pos.client.mount_FS(dev)
         assert status == True
 
-        fio_cmd = "fio --name=Rand_RW  --runtime=43 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=10g bs=32kb --direct=1 --verify=md5"
+
+        fio_cmd = "fio --name=Rand_RW  --runtime=43 --ramp_time=60 --ioengine=sync  --iodepth=32 --rw=write --size=10g bs=32kb --direct=1 --verify=md5"
+
         status , io_pro = pos.client.fio_generic_runner(mount_point_new, fio_user_data=fio_cmd, IO_mode=False, run_async=True)
         assert status == True
         assert pos.client.unmount_FS(mount_point_new) == True
         assert pos.client.delete_FS(mount_point_new) == True
 
-        logger.info(
-            " ============================= Test ENDs ======================================"
-        )
+
+        logger.info(" ============================= Test ENDs ======================================")
+
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
