@@ -63,7 +63,6 @@ raid = {"RAID0": {"spare" : 0, "data" : 2},
         "RAID5" : {"spare" : 1, "data" : 3}
         }
 
-
 @pytest.mark.sanity
 @pytest.mark.parametrize("writeback" , [True, False])
 @pytest.mark.parametrize("raid_type", list(raid.keys()))
@@ -109,14 +108,12 @@ def test_SanityVolume(raid_type, writeback, numvol,volsize):
             for vol in pos.cli.vols:
              rlist = [i for i in range(10,255)]   
              newname = random_string(random.choice(rlist))
-             assert pos.cli.mount_volume(array_name=array,volumename=vol)[0] == True
              assert pos.cli.info_volume(array_name=array, vol_name=vol)[0] == True
              assert pos.cli.rename_volume(new_volname=newname, volname=vol, array_name= array)[0] == True
              assert pos.cli.unmount_volume(volumename=newname, array_name=array)[0] == True
              assert pos.cli.info_volume(array_name=array, vol_name=newname)[0] == True
              assert pos.cli.delete_volume(volumename=newname, array_name=array)[0] == True
-             assert pos.cli.mount_volume(array_name=array,volumename=vol)[0] == True
-              
+            
         arrayname = "array1"
         assert pos.cli.info_array(array_name=arrayname)[0] == True
         if raid_type not in ["RAID0","no-raid"]:

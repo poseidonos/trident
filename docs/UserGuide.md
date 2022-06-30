@@ -19,16 +19,16 @@ However, test cases are developed using pytest framework. The software architect
 Since it is developed on top of free and open technologies, Trident is both open and extensible.
 
 ### Open. 
-Source code is available open for anyone to explore at following link http://ssirgitlab.samsungds.net/root/open_ibot.git. 
+Source code is available open for anyone to explore at following link https://github.com/poseidonos/trident . 
 User can develop their own test cases utilising framework independent python libraries. 
 As the framework for test cases is based on pytest, all advantages of pytest can be utilised by user to have efficient test cases.
 
 ### Extensible. 
 Test suite provides core, intermediate APIs and following set of test cases:
-* Array, Volume management (create, delete, rename single and multi-arrays)
-* User IO (Block, File IO, various IO types e.g. sync/async)
+* Array, Volume, SubSystem, QOS management (create, delete, rename single and multi-arrays)
 * Array rebuild (SSD hot plug)
 * GC and flush
+* Other POS functionalities
 
 ## Preparing system for Trident Open source tool
 ### Software requirements 
@@ -38,7 +38,7 @@ Test suite provides core, intermediate APIs and following set of test cases:
 * SPDK/DPDK: 20.10 / 20.08
 
 #### Trident 
-* Python 3.x
+* Python 3.6.9
 * Pytest (Ubuntu 18.04 repo)
 * Paramiko (Python3 module)
 
@@ -78,7 +78,7 @@ node.py|APIs needed for implementing paramiko module
 proc.py|Process related API
 utils.py|APIs related to various operations such as creating/mounting file-systems, NVMe commands, threading and many more.
 target_utils.py|Target side API wrappers
-
+helper.py| methods contains API wrappers that can be used on both target and the host
 
 ### Docs: 
 To generate API documentation of libraries, Doxygen tool is to be used. It can be done by installing doxygen: 
@@ -95,10 +95,11 @@ Each test driver file implements methods which work as one or more test cases.
 
 File or Folder|Description
 --------------|-----------
-conftest.py|Defined the fixture functions in this file to make them accessible across multiple test files. 
+conftest.py|Defined common fixtures to setup test infra(pytest infra). 
 array|All array management TCs
 volume| All volume management TCs
-user-io| All IO test cases
+user-io| All GC/flush test cases
+subsystem | All Subsystem managment TCs
 config_files| This directory has topology.json which holds setup parameters such as target/initiator IP addresses etc
 
 ### Utils: 
@@ -108,20 +109,6 @@ This directory contains setup_tool.py, a tool to check user setup has SSDs suppo
 Pytest provides features which enable tester to write test code in well organised way. Following features of pytest are utilised here: fixtures and parametrization. 
 Hence Trident uses pytest as base framework. Libraries are developed in pure python and do not depend on pytest. But the Test cases depend on pytest framework. 
 If user decides to use any other test runner such as Avocado, he can still use the lib folder as is. 
-
-## Fixtures
-Pytest fixtures are powerful tools which make resources available across all the test methods. Trident open source test tool provides following fixtures
-
-Fixture | Scope | Description
---------|-------|------------
-start_pos|Module| Common code to start and stopp POS
-scan_dev| Module| Code for test cases that require starting POS and steps till scan device. TCs can focus on steps post scan devices. 
-array_management|Module|Code for test cases that require starting POS and steps till creation of array. TCs can focus on steps post array creation.  
-mount_array|Module|Code for test cases that require starting POS and steps till mounting of array. TCs can focus on steps after array is mounted
-vol_fixture|Module|Code for test cases that require steps till creation of volumes. TCs can focus on steps after volumes are created
-nvmf_transport|Module|Code for test cases that require steps till subsystem creation and listening on to one port. TCs can focus on steps after target is setup.
-user_io|Module| Code covers target setup and connect from initiator. TC can simply focus on what user IO to exercise.
-
 
 # Execution
 Poseidon OS requires two systems, target and minimum one initiator. A target is any commodity server or PC with Ubuntu 18.04 server with kernel version 5.3.0-19-generic. 
@@ -135,68 +122,52 @@ Test can also be run on single system by updating local loop IP for target, init
 Setup tool present in utils directory can be used to make sure, multi system setup that user has selected is good enough to run the tests.
 
 ## Executing test cases using pytest runner
-Navigate to iBot directory after cloning the test tool
+Navigate to Trident directory after cloning the test tool
 ### Executing all available test cases
-`python3 -m pytest -v testcase/`
-### Executing only user IO test cases
-`python3 -m pytest -v testcase/user-io/`
-### Executing test cases from particular test driver file
-`python3 -m pytest -v testcase/user-io/test_user_io.py`
-### Executing particular method in particular driver file
-`python3 -m pytest -v testcase/user-io/test_user_io.py::test_run_file_io`
-### In case of parametrization, following method enables executing one of the combination
-`python3 -m pytest -v testcase/user-io/test_user_io.py::test_run_file_io[posixaio-xfs]`
+`python3 -m pytest -v -s testcase/`
+### Executing only sanity suite
+`python3 -m pytest -v -s testcase/ -m 'sanity' `
 
 # Test case examples
-In this section we will see some examples of test script, more can be seen from folder testcases in the package.
+In this section we will see some examples of test script and the scope provided, more can be seen from folder testcases in the package.
 
-Example 1. Hello world (creating a POS array)
+Example 1.Array Management
 
-In the below example TC, intension is to just test array creation operation without having a spare evice.
+In the below example TC, The parameters mentioned creates all possible combinations of test to validate array management
 ```
-def test_create_array_with_out_spare(scan_dev):
-    try:
-        assert scan_dev.cli.create_array(spare=None) == True
-    except Exception as e:
-        logger.error("Testcase failed due to {}".format(e))
-        assert 0
+@pytest.mark.sanity
+@pytest.mark.parametrize("writeback" , [True, False])
+@pytest.mark.parametrize("raid_type", list(raid.keys()))
+@pytest.mark.parametrize("numvol", [1,256])
+@pytest.mark.parametrize("fioruntime", [10])
+@pytest.mark.parametrize("spor", [False]) #To enable SPOR add True in the list
+def test_SanityArray(raid_type, writeback, numvol, fioruntime, spor):
 ```
 
-Example 2 Volume operations
+Example 2 Volume Management
 
-In below example test method is passed vol_fixture, so that test can concentrate only on task at hand which is to unmount and delete the volumes. 
-All pre-requisites are run as part of vol_fixture, any failures in fixture will skip the test case stating the error scenario.
- 
+The Below Test provides a sample Scenario which requests the POS cli to create a 257th volume which is intended to fail as POS only supports 256 Vols per array
  ```
- def test_vol_mount_unmount_delete(vol_fixture):
+  
+@pytest.mark.sanity()
+def test_volumesanity257vols():
     try:
-        vols = []
-        out = vol_fixture.cli.list_vol(array_name="POS_ARRAY1")
-        for vol_data in out[2]:
-            assert vol_fixture.cli.unmount_vol(vol_data, "POS_ARRAY1") == True
-            assert vol_fixture.cli.delete_vol(vol_data, "POS_ARRAY1") == True
+        if pos.target_utils.helper.check_pos_exit() == True:
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.cli.reset_devel()[0] == True
+            assert pos.target_utils.pci_rescan() == True
+        assert pos.cli.list_device()[0] == True
+        assert pos.cli.create_array(array_name="array1", data=pos.cli.dev_type['SSD'][0:5], write_buffer= pos.cli.dev_type['NVRAM'][0], raid_type= "RAID5", spare = [])[0] == True
+        assert pos.cli.mount_array(array_name="array1")[0] == True
+        for i in range(256):
+            vname = f'array1_vol{str(i)}'
+            assert pos.cli.create_volume(volumename=vname, array_name="array1",size = "1gb")[0] == True
+        assert pos.cli.create_volume(volumename="invalidvol", array_name="array1",size = "1gb")[0] == False
+        
     except Exception as e:
-        logger.error("test case failed with exception {}".format(e))
+        logger.info(f"Test failed due to {e}")
         assert 0
-```
-Example 3 File-system IO
-This example demonstrates IO on Poseidon volume connected via NVMeOf, by formatting the volume in 3 file-systems and 3 IO types, totally 9 combinations.
 
-```
-@pytest.mark.parametrize("fs_type", ["ext3","ext4","xfs"])
-@pytest.mark.parametrize("io_engine", ["posixaio", "sync", "libaio"])
-def test_run_file_io(user_io,fs_type,io_engine):
-    try:
-        dev_list = user_io["client_setup"].nvme_list_out
-        user_io["client_setup"].create_FS(dev_list = dev_list, format_type=fs_type)
-        dev_fs_list = user_io["client_setup"].mount_FS(dev_list = dev_list)[1]
-        fio_cmd = "fio --name=S_W --runtime=5 --ioengine={} --iodepth=16 --rw=write --size=1g --bs=1m ".format(io_engine)
-        user_io["client_setup"].fio_generic_runner(devices  = dev_fs_list, fio_data = fio_cmd, io_mode = False)
-        user_io["client_setup"].unmount_FS(unmount_dir = dev_fs_list)
-    except Exception as e:
-        logger.error("test case failed with exception {}".format(e))
-        user_io["client_setup"].unmount_FS(unmount_dir = dev_fs_list)
-        assert 0
 ```
 
 # Contributing
