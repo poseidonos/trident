@@ -83,11 +83,14 @@ def wt_test_multi_array_setup(array_list: list):
         traceback.print_exc()
         return False
 
-array = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)]
+array1 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)]
+array2 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)]
 @pytest.mark.regression
 @pytest.mark.parametrize("io_type", ["block", "file"])
-@pytest.mark.parametrize("raid_type, nr_data_drives", array)
-def test_wt_multi_array_QOS_FIO(raid_type, nr_data_drives, io_type):
+@pytest.mark.parametrize("array2_raid, array2_num_disk", array2)
+@pytest.mark.parametrize("array1_raid, array1_num_disk", array1)
+def test_wt_multi_array_QOS_FIO(array1_raid, array1_num_disk,
+                                array2_raid, array2_num_disk, io_type):
     """
     Test Multi-Array of same RAID types mounted in WT mode
     1. Create 256 volumes to utilize total capacity of array
@@ -101,13 +104,16 @@ def test_wt_multi_array_QOS_FIO(raid_type, nr_data_drives, io_type):
         array_name1, array_name2 = "array1", "array2"
         mount_point = []
 
+        arrays_raid_type = (array1_raid, array2_raid)
+        arrays_num_disk = (array1_num_disk, array2_num_disk)
+
         array_list = []
         for id, array_name in enumerate((array_name1, array_name2)):
             array_list.append({
                 "array_name": array_name,
                 "buffer_dev": f"uram{id}",
-                "raid_type": raid_type,
-                "nr_data_drives": nr_data_drives,
+                "raid_type": arrays_raid_type[id],
+                "nr_data_drives": arrays_num_disk[id],
                 "write_back": False
                 }
             )
