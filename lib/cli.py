@@ -197,6 +197,7 @@ class Cli:
         """
         try:
             out = ''
+            """
             max_running_time = 30 * 60 #30min
             start_time = time.time()
             self.out = self.ssh_obj.run_async("nohup {}/bin/{} >> {}/script/pos.log".format(self.pos_path, "poseidonos", self.pos_path))
@@ -221,7 +222,7 @@ class Cli:
                     raise Exception(jout["description"])
             else:
                 raise Exception("CLI Error")
-            """
+            #"""
 
             
         except Exception as e:
@@ -240,6 +241,7 @@ class Cli:
             time_out (int) "timeout to wait POS map" (optional) | (default =300)
         """
         try:
+            out = None
             if grace_shutdown:
                 assert self.list_array()[0] == True
                 array_list = list(self.array_dict.keys())
@@ -253,38 +255,35 @@ class Cli:
                             assert self.unmount_array(array_name=array)[0] == True
 
                 out = self.run_cli_command("stop --force", command_type="system")
+                if out[0] == False:
+                    logger.error("POS system stop command failed.")
+                    return False, out
+                
+                if out[1]["output"]["Response"]["result"]["status"]["code"] != 0:
+                    logger.error("POS graceful shutdown failed.")
+                    return False, out
 
-                if out[0] == True:
-                    if out[1]["output"]["Response"]["result"]["status"]["code"] == 0:
-                        logger.info("POS was stopped successfully!!! verifying PID")
-                        count = 0
-                        while True:
-
-                            """
-                            out = self.helper.check_pos_exit()
-                            if out == False:
-                                logger.warning("POS PID is still active")
-                                time.sleep(10)
-                                count += 10
-                            else:
-                                break
-                            if count == time_out:
-                                logger.error("POS PID taking too much time to exit .. Killing the process")
-                                self.stop_system(grace_shutdown=False)
-                            """
-                            out = self.helper.check_pos_exit()
-                            if out == False:
-                                logger.warning("POS PID is still active!!kiling PID to continue")
-                                self.stop_system(grace_shutdown=False)
-                                break
-                                
+                logger.info("POS graceful shutdown successful. Verifying PID...")
+                count = 0
+                while True:
+                    out = self.helper.check_pos_exit()
+                    if out == False:
+                        logger.warning("POS PID is still active")
+                        time.sleep(10)
+                        count += 10
+                    else:
+                        break
+                            
+                if count == time_out:
+                    logger.error(f"POS PID is still active after {count} seconds.")
+                    return False, out
             else:
-                self.ssh_obj.execute(command="pkill -9 pos")
+                out = self.ssh_obj.execute(command="pkill -9 pos")
         except Exception as e:
             logger.error("failed due to {}".format(e))
-            self.stop_system(grace_shutdown=False)
-            #return False
-        return True
+            #self.stop_system(grace_shutdown=False)
+            return False, out
+        return True, out
 
     def setposproperty_system(self, rebuild_impact: str) -> (bool, dict()):
         """
@@ -749,18 +748,21 @@ class Cli:
                                 self.device_map.update({device["name"]: dev_map})
 
                         self.NVMe_BDF = self.device_map
+
                         self.system_disks = [
                             item
                             for item in self.device_map
                             if self.device_map[item]["class"].lower() == "system"
                             and self.device_map[item]["type"].lower() == "ssd"
                         ]
-                        self.system_buffer = [
+
+                        self.array_disks = [
                             item
                             for item in self.device_map
-                            if self.device_map[item]["class"].lower() == "system"
-                            and self.device_map[item]["type"].lower() == "nvram"
+                            if self.device_map[item]["class"].lower() == "array"
+                            and self.device_map[item]["type"].lower() == "ssd"
                         ]
+
                         return (True, out)
                 else:
                     raise Exception(
@@ -1029,7 +1031,7 @@ class Cli:
             return False, jout
 
     ###################################################volume#############################
-    def list_volume(self, array_name: str = "POSARRAY1") -> (bool, dict()):
+    def list_volume(self, array_name: str=None) -> (bool, dict()):
         """
         Method to list volumes
         Args:
@@ -1181,7 +1183,7 @@ class Cli:
             return False, jout
 
     def mount_volume(
-        self, volumename: str, array_name: str = None, nqn: str = None
+        self, volumename: str, array_name: str, nqn: str=None
     ) -> (bool, dict()):
         """
         Method to mount volume
@@ -1192,9 +1194,7 @@ class Cli:
 
         """
         try:
-            if array_name != None:
-                self.array_name = array_name
-            cmd = "mount -v {} -a {} --force".format(volumename, self.array_name)
+            cmd = "mount -v {} -a {} --force".format(volumename, array_name)
             if nqn:
                 cmd += " --subnqn {}".format(nqn)
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
