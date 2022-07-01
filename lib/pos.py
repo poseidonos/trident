@@ -40,14 +40,14 @@ from sys import exit
 import logger
 import pathlib
 import inspect
-from typing import Final
+
 
 
 logger = logger.get_logger(__name__)
 
 # TODO add support for multi initiaor client object
 
-Max_Client_Cnt : Final = 256 # Maximum number of client that can connect
+Max_Client_Cnt = 256 # Maximum number of client that can connect
 
 class POS:
     """Class  object contains object for
@@ -83,7 +83,8 @@ class POS:
         self.target_ssh_obj = SSHclient(
             self.config_dict["login"]["target"]["server"][0]["ip"],
             self.config_dict["login"]["target"]["server"][0]["username"],
-            self.config_dict["login"]["target"]["server"][0]["password"],
+            self.config_dict["login"]["target"]["server"][0]["password"]
+            
         )
         self.cli = Cli(
             self.target_ssh_obj,
@@ -93,7 +94,8 @@ class POS:
         self.target_utils = TargetUtils(
             self.target_ssh_obj,
             self.data_dict,
-            self.config_dict["login"]["paths"]["pos_path"],
+            self.config_dict["login"]["paths"]["pos_path"]
+            
         )
 
         self.client_cnt = self.config_dict['login']['initiator']['number']
@@ -139,6 +141,7 @@ class POS:
             assert self.target_utils.helper.check_system_memory() == True
             for client_cnt in range(self.config_dict['login']['initiator']['number']):
                 if self.client_handle[client_cnt].ctrlr_list()[1] is not None:
+                    assert self.target_utils.get_subsystems_list() == True
                     assert (
                         self.client_handle[client_cnt].nvme_disconnect(self.target_utils.ss_temp_list) == True
                     )
