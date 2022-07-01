@@ -47,12 +47,12 @@ def teardown_module():
     pos.exit_handler(expected=True)
 
 @pytest.mark.regression
-@pytest.mark.parametrize("raid_type, nr_data_drives",
-                         [ ("no-raid", 1), ("RAID0", 2), ("RAID10", 4), ("RAID10", 2)])
-def test_wt_array_Npor(raid_type, nr_data_drives):
-    """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
+@pytest.mark.parametrize("raid_type, nr_data_drives,por",
+                         [("no-raid", 1, "Npor"), ("RAID0", 2, "Npor"), ("RAID10", 4, "Npor"), ("RAID10", 2, "Npor"), ("no-raid", 1, "Spor"),("RAID0", 2, "Spor"), ("RAID10", 4, "Spor"),("RAID10", 2, "Spor")])
+def test_wt_array_Npor_Spor_nobackup(raid_type, nr_data_drives,por):
+
     logger.info(
-        " ==================== Test : test_wt_array_Npor ================== "
+        " ==================== Test : test_wt_array_Npor_Spor_nobackup ================== "
     )
     try:
         if pos.target_utils.helper.check_pos_exit() == True:
@@ -88,12 +88,15 @@ def test_wt_array_Npor(raid_type, nr_data_drives):
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
 
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=50",
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=500",
 
             )[0]
             == True
         )
-        assert pos.target_utils.Npor() == True
+        if por == "Npor":
+            assert pos.target_utils.Npor() == True
+        else:
+            assert pos.target_utils.Spor(uram_backup=False) == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )

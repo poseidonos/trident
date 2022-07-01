@@ -48,9 +48,9 @@ def teardown_module():
 
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives,por",
-                         [ ("no-raid", 1,Npor), ("RAID0", 2,Npor), ("RAID10", 4,Npor),("no-raid", 1,Spor), ("RAID0", 2,Spor), ("RAID10", 4,Spor)])
+                         [ ("no-raid", 1,"Npor"), ("RAID0", 2,"Npor"), ("RAID10", 4,"Npor"),("no-raid", 1,"Spor"), ("RAID0", 2,"Spor"), ("RAID10", 4,"Spor")])
 def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives,por):
-    """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
+
     logger.info(
         " ==================== Test : test_wb_wt_array_long_fileIO_Npor_Spor ================== "
     )
@@ -87,7 +87,7 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives,por):
         status, mount_point = pos.client.mount_FS(dev)
         assert status == True
 
-        fio_cmd = "fio --name=Rand_RW  --runtime=42 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
+        fio_cmd = "fio --name=Rand_RW  --runtime=42000 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=1000g bs=32kb --direct=1 --verify=md5"
 
 
         status , io_pro = pos.client.fio_generic_runner(mount_point, fio_user_data=fio_cmd, IO_mode=False, run_async=True)
@@ -98,7 +98,8 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives,por):
         if por == "Npor":
             assert pos.target_utils.Npor() == True
         else:
-            assert pos.target_utils.Spor() == True
+            assert pos.target_utils.Spor(uram_backup=True) == True
+
         # unmount and delete array and volume
 
 
@@ -112,7 +113,7 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives,por):
 
 
         array_name = "posarray2"
-        assert pos.cli.create_array(write_buffer="uram1", data=data_disk_list,
+        assert pos.cli.create_array(write_buffer="uram0", data=data_disk_list,
                                     spare=None, raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
@@ -133,7 +134,7 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives,por):
         assert status == True
 
 
-        fio_cmd = "fio --name=Rand_RW  --runtime=43 --ramp_time=60 --ioengine=sync  --iodepth=32 --rw=write --size=10g bs=32kb --direct=1 --verify=md5"
+        fio_cmd = "fio --name=Rand_RW  --runtime=43000 --ramp_time=60 --ioengine=sync  --iodepth=32 --rw=write --size=10g bs=32kb --direct=1 --verify=md5"
 
         status , io_pro = pos.client.fio_generic_runner(mount_point_new, fio_user_data=fio_cmd, IO_mode=False, run_async=True)
         assert status == True
