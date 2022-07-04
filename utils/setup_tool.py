@@ -5,6 +5,7 @@ import json
 import argparse
 import re
 import subprocess
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../lib")))
 from functools import reduce
 from node import SSHclient
@@ -46,14 +47,20 @@ class setup_config_tool:
         self.tar_ip = config_dict["login"]["target"]["server"][0]["ip"]
         self.tar_user = config_dict["login"]["target"]["server"][0]["username"]
         self.tar_passwd = config_dict["login"]["target"]["server"][0]["password"]
-        client_count = config_dict['login']['initiator']['number']
+        client_count = config_dict["login"]["initiator"]["number"]
         self.init_ip = config_dict["login"]["initiator"]["client"][client_count]["ip"]
-        self.init_user = config_dict["login"]["initiator"]["client"][client_count]["username"]
-        self.init_passwd = config_dict["login"]["initiator"]["client"][client_count]["password"]
+        self.init_user = config_dict["login"]["initiator"]["client"][client_count][
+            "username"
+        ]
+        self.init_passwd = config_dict["login"]["initiator"]["client"][client_count][
+            "password"
+        ]
         self.pos_path = config_dict["login"]["paths"]["pos_path"]
         self.tar_mlnx_ip = config_dict["login"]["target"]["server"][0]["Data_Ip"]
-        self.init_mlnx_ip = config_dict["login"]["initiator"]["client"][client_count]["Data_Ip"]
-        
+        self.init_mlnx_ip = config_dict["login"]["initiator"]["client"][client_count][
+            "Data_Ip"
+        ]
+
     def Validate_IP(self, IP):
         regex = "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"
         regex1 = "((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4}"
@@ -107,8 +114,8 @@ class setup_config_tool:
             )
             self.summary.append(self.tar_ssh_summary)
         else:
-            self.tar_ssh_summary = "Successfully taken ssh for the target: {}  machine".format(
-                self.tar_ip
+            self.tar_ssh_summary = (
+                "Successfully taken ssh for the target: {}  machine".format(self.tar_ip)
             )
             self.summary.append(self.tar_ssh_summary)
         try:
@@ -143,8 +150,10 @@ class setup_config_tool:
             )
             self.summary.append(self.init_ssh_summary)
         else:
-            self.init_ssh_summary = "Successfully taken ssh for the initiator : {}  machine".format(
-                self.init_ip
+            self.init_ssh_summary = (
+                "Successfully taken ssh for the initiator : {}  machine".format(
+                    self.init_ip
+                )
             )
             self.summary.append(self.init_ssh_summary)
         if self.init_ssh_obj and self.tar_ssh_obj:
@@ -200,7 +209,9 @@ class setup_config_tool:
                 return True
         flag_4 = True
         if flag_1 and flag_3 and flag_4:
-            self.ssd_summary = "All the connected nvme devices satisfies the POS requirements"
+            self.ssd_summary = (
+                "All the connected nvme devices satisfies the POS requirements"
+            )
             self.summary.append(self.ssd_summary)
 
     def verify_kernel_version(self):
@@ -243,8 +254,10 @@ class setup_config_tool:
                 lambda x, y: int(x) + int(y), target_kernel_version.split(".")[0:2]
             )
             if tar_version_sum >= config_ver_sum:
-                tar_krnl_msg = "kernel version requirement satisfied on target machine {}".format(
-                    self.tar_ip
+                tar_krnl_msg = (
+                    "kernel version requirement satisfied on target machine {}".format(
+                        self.tar_ip
+                    )
                 )
                 self.summary.append(tar_krnl_msg)
             else:
@@ -268,7 +281,6 @@ class setup_config_tool:
                     self.init_ip
                 )
                 self.summary.append(init_krnl_msg)
-
 
     def verify_data_ip_ping(self):
         try:
@@ -301,7 +313,7 @@ class setup_config_tool:
             return False
         tcp = set(["tcp", "t"])
         while True:
-            choice = 'tcp'
+            choice = "tcp"
             if choice in tcp:
                 out = self.tar_ssh_obj.execute(
                     "ping -c 5 {} ".format(self.init_mlnx_ip)
@@ -329,17 +341,19 @@ class setup_config_tool:
                     self.summary.append(tcp_ping_summary_1)
                     return False
                 if flag_1 and flag_2:
-                    tot_tcp_summary = "TCP : data ip ping is successfull b/w initiator & target"
+                    tot_tcp_summary = (
+                        "TCP : data ip ping is successfull b/w initiator & target"
+                    )
                     self.summary.append(tot_tcp_summary)
                     break
-    
+
     def usermode_prep(self):
-        user_mode = f'{self.pos_path}/script/setup_env.sh'
+        user_mode = f"{self.pos_path}/script/setup_env.sh"
         self.tar_ssh_obj = SSHclient(
-                hostname=self.tar_ip, username=self.tar_user, password=self.tar_passwd
-            )
+            hostname=self.tar_ip, username=self.tar_user, password=self.tar_passwd
+        )
         self.tar_ssh_obj.execute(user_mode)
-                
+
 
 def main():
     flag = False
@@ -370,5 +384,7 @@ def main():
         print(":::::::::::::::::Summary of the result is #:::::::::::: ")
         print(*obj.summary, sep="\n")
         print("::::::::::::::::::::::::::::::::::::::::::::::::::::::: ")
+
+
 if __name__ == "__main__":
     main()

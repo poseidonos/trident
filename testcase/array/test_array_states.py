@@ -17,6 +17,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 with open("{}/config.json".format(dir_path)) as f:
     config_dict = json.load(f)
 
+
 @pytest.mark.parametrize("num_array", [1, 2])
 def test_array_states(num_array):
     try:

@@ -437,26 +437,30 @@ class Client:
 
         """
         try:
-            self.fio_out_json = f'fio_out_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
-            if not IO_mode:     # File IO
+            self.fio_out_json = (
+                f'fio_out_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
+            )
+            if not IO_mode:  # File IO
                 devices = list(map(lambda x: f"{x}/file.bin", devices))
 
             filename = ":".join(devices)
 
             if fio_user_data:
-                fio_cmd = fio_user_data 
+                fio_cmd = fio_user_data
             else:
-                fio_cmd = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --direct=1"   
+                fio_cmd = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --direct=1"
 
             fio_cmd += " --filename={} --output-format=json --output={}".format(
-                                filename, self.fio_out_json)
+                filename, self.fio_out_json
+            )
 
             if run_async == True:
                 async_out = self.ssh_obj.run_async(fio_cmd)
                 return True, async_out
             else:
-                outfio = self.ssh_obj.execute(fio_cmd, get_pty=True, 
-                                        expected_exit_code=expected_exit_code)
+                outfio = self.ssh_obj.execute(
+                    fio_cmd, get_pty=True, expected_exit_code=expected_exit_code
+                )
                 self.fio_parser()
                 return True, outfio
 
@@ -472,13 +476,13 @@ class Client:
         iops: iops
         clat: nsec
         """
-        cmd = f'cat {self.fio_out_json}'
+        cmd = f"cat {self.fio_out_json}"
         str_out = self.ssh_obj.execute(cmd)
-        printout = ''.join(str_out)
+        printout = "".join(str_out)
         logger.info(printout)
         self.fio_par_out = {}
         str_out = "".join(str_out).replace("\n", "")
-        
+
         jout = json.loads(str_out)
 
         self.fio_par_out["read"] = {
@@ -491,7 +495,7 @@ class Client:
             "iops": jout["jobs"][0]["write"]["iops"],
             "clat": jout["jobs"][0]["write"]["clat_ns"],
         }
-        
+
         return True
 
     def fio_verify_qos(self, qos_data: dict, fio_out: dict, num_dev: int) -> bool:
@@ -508,22 +512,28 @@ class Client:
         bs, kiops = 4096, 1000
         qos_max_bw = qos_data["max_iops"]
         qos_max_iops = qos_data["max_bw"]
-        fio_bw = fio_out['bw']
-        fio_iops = fio_out['iops']
+        fio_bw = fio_out["bw"]
+        fio_iops = fio_out["iops"]
 
         avg_fio_bw = float(fio_bw) / num_dev
         avg_fio_iops = float(fio_iops) / num_dev
         result = False
 
         if qos_max_bw < (qos_max_iops * bs * kiops / (1024 * 1024)):
-            logger.info("avg fio bw: {} ({}/{} - total bw/num of device). qos max bw {}".format(
-                        avg_fio_bw, fio_bw, num_dev, qos_max_bw))
-            if avg_fio_bw < qos_max_bw and avg_fio_bw >  qos_max_bw * .95:
+            logger.info(
+                "avg fio bw: {} ({}/{} - total bw/num of device). qos max bw {}".format(
+                    avg_fio_bw, fio_bw, num_dev, qos_max_bw
+                )
+            )
+            if avg_fio_bw < qos_max_bw and avg_fio_bw > qos_max_bw * 0.95:
                 result = True
         else:
-            logger.info("avg fio iops: {} ({}/{} - total iops/num of device). qos max iops {}".format(
-                        avg_fio_iops, fio_iops, num_dev, qos_max_iops))
-            if avg_fio_iops < qos_max_iops and avg_fio_iops > qos_max_iops * .95:
+            logger.info(
+                "avg fio iops: {} ({}/{} - total iops/num of device). qos max iops {}".format(
+                    avg_fio_iops, fio_iops, num_dev, qos_max_iops
+                )
+            )
+            if avg_fio_iops < qos_max_iops and avg_fio_iops > qos_max_iops * 0.95:
                 result = True
 
         return result
@@ -671,8 +681,8 @@ class Client:
                     out = self.ssh_obj.execute(umount_cmd)
                     if out:
                         raise Exception(
-                                f"Failed to unmount '{mnt}'. Cli Error: '{out}'"
-                            )
+                            f"Failed to unmount '{mnt}'. Cli Error: '{out}'"
+                        )
                     else:
                         logger.info(f"Successfully unmounted '{mnt}'")
 
@@ -697,9 +707,7 @@ class Client:
             rm_cmd = "rm -fr {}".format(fs_mount_pt)
             out = self.ssh_obj.execute(rm_cmd)
             if out:
-                raise Exception(
-                        f"Failed to delete '{fs_mount_pt}'. Cli Error: '{out}'"
-                    )
+                raise Exception(f"Failed to delete '{fs_mount_pt}'. Cli Error: '{out}'")
 
             if self.is_dir_present(fs_mount_pt) is True:
                 raise Exception("File found after deletion")
@@ -782,7 +790,6 @@ class Client:
         for i in temp:
             if i not in final:
                 final.append(i)
-        
 
         return (True, final)
 
