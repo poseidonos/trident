@@ -1,5 +1,10 @@
-import sys, os, csv, time, random, json, argparse, re, subprocess
-
+import sys
+import os
+import time
+import json
+import argparse
+import re
+import subprocess
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../lib")))
 from functools import reduce
 from node import SSHclient
@@ -38,16 +43,17 @@ args = parser.parse_args()
 class setup_config_tool:
     def __init__(self, config_dict):
         self.summary = []
-        self.tar_ip = config_dict["login"]["target"]["ip"]
-        self.tar_user = config_dict["login"]["target"]["username"]
-        self.tar_passwd = config_dict["login"]["target"]["password"]
-        self.init_ip = config_dict["login"]["initiator"]["ip"]
-        self.init_user = config_dict["login"]["initiator"]["username"]
-        self.init_passwd = config_dict["login"]["initiator"]["password"]
+        self.tar_ip = config_dict["login"]["target"]["server"][0]["ip"]
+        self.tar_user = config_dict["login"]["target"]["server"][0]["username"]
+        self.tar_passwd = config_dict["login"]["target"]["server"][0]["password"]
+        client_count = config_dict['login']['initiator']['number']
+        self.init_ip = config_dict["login"]["initiator"]["client"][client_count]["ip"]
+        self.init_user = config_dict["login"]["initiator"]["client"][client_count]["username"]
+        self.init_passwd = config_dict["login"]["initiator"]["client"][client_count]["password"]
         self.pos_path = config_dict["login"]["paths"]["pos_path"]
-        self.tar_mlnx_ip = config_dict["login"]["tar_mlnx_ip"]
-        self.init_mlnx_ip = config_dict["login"]["init_mlnx_ip"]
-
+        self.tar_mlnx_ip = config_dict["login"]["target"]["server"][0]["Data_Ip"]
+        self.init_mlnx_ip = config_dict["login"]["initiator"]["client"][client_count]["Data_Ip"]
+        
     def Validate_IP(self, IP):
         regex = "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"
         regex1 = "((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4}"
@@ -164,7 +170,7 @@ class setup_config_tool:
             "lspci -D | grep 'Non-V' | awk '{print $1}'"
         )
         if len(nvme_cnt) < 3:
-            cnt_ssd_summary = "required number of ssd's are not there to start ibofos"
+            cnt_ssd_summary = "required number of ssd's are not there to start POS"
             self.summary.append(cnt_ssd_summary)
             flag_1 = False
             return False
@@ -175,10 +181,10 @@ class setup_config_tool:
         size_cmd = "lsblk -o NAME,SIZE | grep 'nvme' |  awk '{print $2}'"
         size_out = self.tar_ssh_obj.execute(size_cmd)
         if len(list(set(size_out))) > 10:
-            size_summary = "Different size nvme devices exists ... Please try to insert all drives with equal size"
+            size_summary = "Different size nvme devices exists ... "
             self.summary.append(size_summary)
-            flag_3 = False
-            return False
+            flag_3 = True
+            return True
         flag_3 = True
         dev_cmd = "nvme list | grep 'nvme' | awk '{print $1}'"
         dev_list = self.tar_ssh_obj.execute(dev_cmd)
@@ -188,12 +194,10 @@ class setup_config_tool:
             )
             bs_out = self.tar_ssh_obj.execute(bs_cmd)
             if int(bs_out[0].strip()) != 512:
-                bs_summary = "device {} is having a block size of {}B which is not supported by pos ... Please re format to 512 ... ssd verification failed".format(
-                    dev.strip(), bs_out[0].strip()
-                )
+                bs_summary = f"device {dev.strip()} is having a block size of { bs_out[0].strip()}B which is not supported by pos ..."
                 self.summary.append(bs_summary)
-                flag_4 = False
-                return False
+                flag_4 = True
+                return True
         flag_4 = True
         if flag_1 and flag_3 and flag_4:
             self.ssd_summary = "All the connected nvme devices satisfies the POS requirements"
@@ -228,7 +232,7 @@ class setup_config_tool:
             )
             self.summary.append(ssh_krnl_summary_1)
             return False
-        req_krnl_ver = "5.0.0"
+        req_krnl_ver = "5.3.0"
         config_ver_sum = reduce(
             lambda x, y: int(x) + int(y), req_krnl_ver.split(".")[0:2]
         )
@@ -296,11 +300,8 @@ class setup_config_tool:
             self.summary.append(ssh_ping_summary_1)
             return False
         tcp = set(["tcp", "t"])
-        rdma = set(["rdma", "r"])
         while True:
-            choice = input(
-                "please select any option in b/w tcp & rdma (tcp,rdma)"
-            ).lower()
+            choice = 'tcp'
             if choice in tcp:
                 out = self.tar_ssh_obj.execute(
                     "ping -c 5 {} ".format(self.init_mlnx_ip)
@@ -331,53 +332,14 @@ class setup_config_tool:
                     tot_tcp_summary = "TCP : data ip ping is successfull b/w initiator & target"
                     self.summary.append(tot_tcp_summary)
                     break
-            elif choice in rdma:
-                tar_rping = "nohup rping -s -a {} -v -V -d -C 5 &".format(
-                    self.tar_mlnx_ip
-                )
-                self.tar_ssh_obj.shell_execute(command=tar_rping, send_inputs=["\n"])
-                self.init_ssh_obj.execute(
-                    "modprobe rdma_cm; modprobe rdma_ucm; modprobe nvme_rdma"
-                )
-                ls_mod_cmd = "lsmod | grep 'mlx4 \| mlx5 \| rdma'"
-                ls_mod_out = self.init_ssh_obj.execute(ls_mod_cmd)
-                if not ls_mod_out:
-                    rdma_mod_summary = "required modules are not loaded on initiator machine {} ".format(
-                        self.init_ip
-                    )
-                    self.summary.append(rdma_mod_summary)
-                    return False
-                init_rping = self.init_ssh_obj.execute(
-                    "rping -c -a {} -v -V -d -C 5".format(self.tar_mlnx_ip)
-                )
-                for data in init_rping:
-                    if "waiting for addr/route resolution state 1\n" in data:
-                        rdma_ping_summary = (
-                            "rping to data ip {} failed from initiator {} ".format(
-                                self.tar_mlnx_ip, self.init_ip
-                            )
-                        )
-                        self.summary.append(rdma_ping_summary)
-                        return False
-                    else:
-                        flag_rdma = True
-                if flag_rdma:
-                    tot_rdma_ping_summary = (
-                        "RDMA : rping is successfull"
-                    )
-                    self.summary.append(tot_rdma_ping_summary)
-                    break
-            else:
-                print("please respond either with 'rdma' or 'tcp'")
-        if choice in rdma:
-            try:
-                out = self.tar_ssh_obj.execute("pidof rping")
-                if len(out) != 0:
-                    for proc in out:
-                        self.tar_ssh_obj.execute("kill -9 {}".format(proc.strip()))
-            except:
-                pass
-
+    
+    def usermode_prep(self):
+        user_mode = f'{self.pos_path}/script/setup_env.sh'
+        self.tar_ssh_obj = SSHclient(
+                hostname=self.tar_ip, username=self.tar_user, password=self.tar_passwd
+            )
+        self.tar_ssh_obj.execute(user_mode)
+                
 
 def main():
     flag = False
@@ -403,6 +365,7 @@ def main():
     if args.verify_data_ip:
         flag = True
         ping_out = obj.verify_data_ip_ping()
+    obj.usermode_prep()
     if flag == True:
         print(":::::::::::::::::Summary of the result is #:::::::::::: ")
         print(*obj.summary, sep="\n")
