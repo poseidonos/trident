@@ -494,6 +494,39 @@ class Client:
         
         return True
 
+    def fio_verify_qos(self, qos_data: dict, fio_out: dict, num_dev: int) -> bool:
+        """
+        Method to verify the fio output in adhare the qos throttling
+        qos_data: QOS data dictionary
+                    {max_iops, max_bw}
+        fio_out: FIO output dictionary
+                    {bw, iops, clat}
+        num_dev: Number of nvme device listed
+        """
+        logger.info(f"Compare fio output '{fio_out}' and qos values '{qos_data}'")
+
+        bs, kiops = 4096, 1000
+        qos_max_bw = qos_data["max_iops"]
+        qos_max_iops = qos_data["max_bw"]
+        fio_bw = fio_out['bw']
+        fio_iops = fio_out['iops']
+
+        avg_fio_bw = float(fio_bw) / num_dev
+        avg_fio_iops = float(fio_iops) / num_dev
+        result = False
+
+        if qos_max_bw < (qos_max_iops * bs * kiops / (1024 * 1024)):
+            logger.info("avg fio bw: {} ({}/{} - total bw/num of device). qos max bw {}".format(
+                        avg_fio_bw, fio_bw, num_dev, qos_max_bw))
+            if avg_fio_bw < qos_max_bw and avg_fio_bw >  qos_max_bw * .95:
+                result = True
+        else:
+            logger.info("avg fio iops: {} ({}/{} - total iops/num of device). qos max iops {}".format(
+                        avg_fio_iops, fio_iops, num_dev, qos_max_iops))
+            if avg_fio_iops < qos_max_iops and avg_fio_iops > qos_max_iops * .95:
+                result = True
+
+        return result
 
     def is_file_present(self, file_path: str) -> bool:
         """
