@@ -92,8 +92,11 @@ class Cli:
                 out = self.ssh_obj.execute(cmd, get_pty=True)
 
                 elapsed_time_secs = time.time() - start_time
-                logger.info("Command execution completed in : {} secs".format(
-                        timedelta(seconds=elapsed_time_secs)))
+                logger.info(
+                    "Command execution completed in : {} secs".format(
+                        timedelta(seconds=elapsed_time_secs)
+                    )
+                )
                 out = "".join(out)
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
@@ -110,19 +113,21 @@ class Cli:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
                 else:
-                    
+
                     if "volume mount" in cmd:
                         return True, out
                 parse_out = self.parse_out(out, cmd)
                 self.add_cli_history(parse_out)
-                   
+
                 if parse_out["status_code"] == 0:
                     return True, parse_out
                 elif parse_out["status_code"] == 1030:
                     logger.info(
                         "Poseidonos is in Busy state, status code is {}. \
                         Command retry count is {}".format(
-                            parse_out["status_code"], retry_cnt))
+                            parse_out["status_code"], retry_cnt
+                        )
+                    )
                     retry_cnt += 1
                     time.sleep(5)
                     continue
@@ -163,8 +168,8 @@ class Cli:
         )
         logger.info("DESCRIPTION from command {} is {}".format(command, description))
         """
-        #logger.info("status code response from the command {} is {}".format(command, status_code))
-        #logger.info("DESCRIPTION from command {} is {}".format(command, description))
+        # logger.info("status code response from the command {} is {}".format(command, status_code))
+        # logger.info("DESCRIPTION from command {} is {}".format(command, description))
 
         data = None
         if "data" in out["Response"]["result"]:
@@ -196,7 +201,7 @@ class Cli:
         Method to start pos
         """
         try:
-            out = ''
+            out = ""
             """
             max_running_time = 30 * 60 #30min
             start_time = time.time()
@@ -213,7 +218,7 @@ class Cli:
                     return False, out
 
             """
-            #to use the CLI to start the
+            # to use the CLI to start the
             cli_error, jout = self.run_cli_command("start", command_type="system")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -222,9 +227,8 @@ class Cli:
                     raise Exception(jout["description"])
             else:
                 raise Exception("CLI Error")
-            #"""
+            # """
 
-            
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
@@ -250,7 +254,7 @@ class Cli:
                 else:
                     for array in array_list:
                         # assert self.info_array(array_name=array)[0] == True
-                        
+
                         if self.array_dict[array].lower() == "mounted":
                             assert self.unmount_array(array_name=array)[0] == True
 
@@ -258,7 +262,7 @@ class Cli:
                 if out[0] == False:
                     logger.error("POS system stop command failed.")
                     return False, out
-                
+
                 if out[1]["output"]["Response"]["result"]["status"]["code"] != 0:
                     logger.error("POS graceful shutdown failed.")
                     return False, out
@@ -273,7 +277,7 @@ class Cli:
                         count += 10
                     else:
                         break
-                            
+
                 if count == time_out:
                     logger.error(f"POS PID is still active after {count} seconds.")
                     return False, out
@@ -281,7 +285,7 @@ class Cli:
                 out = self.ssh_obj.execute(command="pkill -9 pos")
         except Exception as e:
             logger.error("failed due to {}".format(e))
-            #self.stop_system(grace_shutdown=False)
+            # self.stop_system(grace_shutdown=False)
             return False, out
         return True, out
 
@@ -538,7 +542,9 @@ class Cli:
             else:
                 logger.error("failed to execute list_array_device command")
                 return False, out[1]
-            self.normal_data_disks = list([dev for dev in data_dev if 'REMOVED' not in dev])
+            self.normal_data_disks = list(
+                [dev for dev in data_dev if "REMOVED" not in dev]
+            )
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None, None, None
@@ -741,7 +747,7 @@ class Cli:
                                 "size": device["size"],
                                 "type": device["type"],
                                 "class": device["class"],
-                                "numa" : device['numa']
+                                "numa": device["numa"],
                             }
                             if dev_map["type"] in self.dev_type.keys():
                                 self.dev_type[dev_map["type"]].append(dev_map["name"])
@@ -1031,7 +1037,7 @@ class Cli:
             return False, jout
 
     ###################################################volume#############################
-    def list_volume(self, array_name: str=None) -> (bool, dict()):
+    def list_volume(self, array_name: str = None) -> (bool, dict()):
         """
         Method to list volumes
         Args:
@@ -1183,7 +1189,7 @@ class Cli:
             return False, jout
 
     def mount_volume(
-        self, volumename: str, array_name: str, nqn: str=None
+        self, volumename: str, array_name: str, nqn: str = None
     ) -> (bool, dict()):
         """
         Method to mount volume
@@ -1295,10 +1301,10 @@ class Cli:
     ################################## Subsystem ##############################
     def create_subsystem(
         self,
-        nqn_name: str, 
-        ns_count: str = None, 
+        nqn_name: str,
+        ns_count: str = None,
         serial_number: str = None,
-        model_name: str = None
+        model_name: str = None,
     ) -> (bool, dict()):
         """
         Method to create nvmf subsystem
@@ -1316,7 +1322,8 @@ class Cli:
 
             cmd = "create --subnqn {} --serial-number {} --model-number {} \
                     --max-namespaces {} --allow-any-host".format(
-                                nqn_name, serial_number, model_name, ns_count)
+                nqn_name, serial_number, model_name, ns_count
+            )
             cli_error, jout = self.run_cli_command(cmd, command_type="subsystem")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -1340,7 +1347,7 @@ class Cli:
             for data in out[1]["data"]["subsystemlist"]:
                 temp = data
                 nvmf_out[data["nqn"]] = temp
-           
+
             return (True, nvmf_out)
 
         except Exception as e:
@@ -1461,10 +1468,12 @@ class Cli:
             if cli_error == True:
                 if jout["status_code"] == 0:
                     logger.error(jout["description"])
-                    seg_info = jout["output"]["Response"]["result"]["data"]["gc"]["segment"]
+                    seg_info = jout["output"]["Response"]["result"]["data"]["gc"][
+                        "segment"
+                    ]
                     self.free_segments, self.total_segments, self.used_segments = [
-                            value for value in seg_info.values()
-                            ]
+                        value for value in seg_info.values()
+                    ]
                     return True, jout
                 else:
                     raise Exception(jout["description"])
@@ -1474,7 +1483,9 @@ class Cli:
             logger.error(e)
             return False, jout
 
-    def wbt_set_gc_threshold(self, array_name: str = None, normal: int = None, urgent: int = None):
+    def wbt_set_gc_threshold(
+        self, array_name: str = None, normal: int = None, urgent: int = None
+    ):
         """
         Method to set gc threshold value to the given array
         """
@@ -1482,8 +1493,12 @@ class Cli:
             if array_name == None:
                 array_name = self.array_name
             if normal == None or urgent == None:
-                logger.error("normal and urgent are mandatory params for set_gc_threshold")
-            cmd = "set_gc_threshold --array {} --normal {} --urgent {}".format(array_name, normal, urgent)
+                logger.error(
+                    "normal and urgent are mandatory params for set_gc_threshold"
+                )
+            cmd = "set_gc_threshold --array {} --normal {} --urgent {}".format(
+                array_name, normal, urgent
+            )
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
                 if jout["status_code"] == 0:
@@ -1496,7 +1511,6 @@ class Cli:
         except Exception as e:
             logger.error(e)
             return False, jout
-        
 
     def wbt_get_gc_threshold(self, array_name: str = None):
         """
@@ -1510,8 +1524,12 @@ class Cli:
             if cli_error == True:
                 if jout["status_code"] == 0:
                     logger.info(jout["description"])
-                    threshold = jout['output']['Response']['result']['data']['gc_threshold']
-                    self.gc_normal, self.gc_urgent = [ value for value in threshold.values()]
+                    threshold = jout["output"]["Response"]["result"]["data"][
+                        "gc_threshold"
+                    ]
+                    self.gc_normal, self.gc_urgent = [
+                        value for value in threshold.values()
+                    ]
                     return True, jout
                 else:
                     raise Exception(jout["description"])

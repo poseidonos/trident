@@ -164,11 +164,13 @@ class Helper:
             dir_path = os.path.dirname(os.path.realpath(__file__))
             json_path = f"{dir_path}/../testcase/config_files/topology.json"
             self.json_reader(json_path)
-           
-            if self.static_dict["login"]["target"]["server"][0]["Data_Ip"] != 'None':
-                self.ip_addr = [self.static_dict["login"]["target"]["server"][0]["Data_Ip"]]
+
+            if self.static_dict["login"]["target"]["server"][0]["Data_Ip"] != "None":
+                self.ip_addr = [
+                    self.static_dict["login"]["target"]["server"][0]["Data_Ip"]
+                ]
                 return (True, self.ip_addr)
-            
+
             mlx_inter = []
 
             self.cnctd_mlx_inter = []
@@ -350,4 +352,3 @@ class Helper:
             logger.info("could not generate pattern!!!")
             raise Exception("could not generate pattern!!!")
         return pattern
-

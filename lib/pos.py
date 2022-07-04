@@ -42,12 +42,12 @@ import pathlib
 import inspect
 
 
-
 logger = logger.get_logger(__name__)
 
 # TODO add support for multi initiaor client object
 
-Max_Client_Cnt = 256 # Maximum number of client that can connect
+Max_Client_Cnt = 256  # Maximum number of client that can connect
+
 
 class POS:
     """Class  object contains object for
@@ -72,19 +72,18 @@ class POS:
         caller_file = inspect.stack()[1].filename
         caller_dir = pathlib.Path(caller_file).parent.resolve()
         is_file_exist = path.exists("{}/config_files/{}".format(caller_dir, data_path))
-        
+
         if is_file_exist:
             data_path = "{}/config_files/{}".format(caller_dir, data_path)
             self.data_dict = self._json_reader(data_path, abs_path=True)[1]
         else:
             self.data_dict = self._json_reader(data_path)[1]
         self.config_dict = self._json_reader(config_path)[1]
-        
+
         self.target_ssh_obj = SSHclient(
             self.config_dict["login"]["target"]["server"][0]["ip"],
             self.config_dict["login"]["target"]["server"][0]["username"],
-            self.config_dict["login"]["target"]["server"][0]["password"]
-            
+            self.config_dict["login"]["target"]["server"][0]["password"],
         )
         self.cli = Cli(
             self.target_ssh_obj,
@@ -94,26 +93,29 @@ class POS:
         self.target_utils = TargetUtils(
             self.target_ssh_obj,
             self.data_dict,
-            self.config_dict["login"]["paths"]["pos_path"]
-            
+            self.config_dict["login"]["paths"]["pos_path"],
         )
 
-        self.client_cnt = self.config_dict['login']['initiator']['number']
+        self.client_cnt = self.config_dict["login"]["initiator"]["number"]
         if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:
-            for client_cnt in range(self.config_dict['login']['initiator']['number']):
+            for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):
                 ip = self.config_dict["login"]["initiator"]["client"][client_cnt]["ip"]
-                username = self.config_dict["login"]["initiator"]["client"][client_cnt]["username"]
-                password = self.config_dict["login"]["initiator"]["client"][client_cnt]["password"]
+                username = self.config_dict["login"]["initiator"]["client"][client_cnt][
+                    "username"
+                ]
+                password = self.config_dict["login"]["initiator"]["client"][client_cnt][
+                    "password"
+                ]
                 self.client_handle.append(Client(ip, username, password))
         else:
             assert 0
-        if(self.client_cnt == 1):
+        if self.client_cnt == 1:
             self.client = self.client_handle[0]
 
     def _json_reader(self, json_file: str, abs_path=False) -> dict:
         """reads json file from /testcase/config_files
 
-        Read the config file from following location: 
+        Read the config file from following location:
         Args:
             json_file (str) json name [No path required]
         """
@@ -123,7 +125,7 @@ class POS:
             else:
                 dir_path = path.dirname(path.realpath(__file__))
                 json_path = f"{dir_path}/../testcase/config_files/{json_file}"
-                
+
             logger.info(f"reading json file {json_path}")
             with open(f"{json_path}") as f:
                 json_out = load(f)
@@ -139,11 +141,14 @@ class POS:
         try:
 
             assert self.target_utils.helper.check_system_memory() == True
-            for client_cnt in range(self.config_dict['login']['initiator']['number']):
+            for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):
                 if self.client_handle[client_cnt].ctrlr_list()[1] is not None:
                     assert self.target_utils.get_subsystems_list() == True
                     assert (
-                        self.client_handle[client_cnt].nvme_disconnect(self.target_utils.ss_temp_list) == True
+                        self.client_handle[client_cnt].nvme_disconnect(
+                            self.target_utils.ss_temp_list
+                        )
+                        == True
                     )
             if expected == False:
                 raise Exception(" Test case failed ! Creating core dump and clean up")

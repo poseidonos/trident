@@ -172,8 +172,10 @@ class _Array(POS):
         array_dict = self.data_dict["array"]["pos_array"]
         for array in array_dict:
             if self.name == array["array_name"]:
-                self.totalDrivesArray = int(array["data_device"]) + int(array["spare_device"])
-        
+                self.totalDrivesArray = int(array["data_device"]) + int(
+                    array["spare_device"]
+                )
+
         if "wait_for_rebuild" == self.func["name"]:
             if "rebuilding" == self.situation["current"]:
                 assert (
@@ -910,9 +912,9 @@ class _Array(POS):
                     if self.name == array["array_name"]:
                         data_dev = sysdev_list[0 : array["data_device"]]
                         spare_dev = sysdev_list[
-                                                array["data_device"] : array["data_device"]
-                    +                           array["data_device"]
-                                               ]
+                            array["data_device"] : array["data_device"]
+                            + array["data_device"]
+                        ]
                 device_list = data_dev + spare_dev
                 get_buffer_data()
                 buffer_dev = self.buffer_data
@@ -980,9 +982,10 @@ class _Array(POS):
             if self.func["expected"] == True:
                 assert self.cli.list_volume(array_name=self.name)[0] == True
                 base_name = self.data_dict["subsystem"]["base_nqn_name"] + self.name
-                
+
                 self.target_utils.create_subsystems_multiple(
-                    ss_count=self.data_dict["subsystem"]["nr_subsystems"], base_name=base_name
+                    ss_count=self.data_dict["subsystem"]["nr_subsystems"],
+                    base_name=base_name,
                 ) == True
                 self.target_utils.get_subsystems_list()
                 self.subsystem = [
@@ -1004,9 +1007,16 @@ class _Array(POS):
 
                 else:
                     for index in range(len(self.data_dict["volume"]["pos_volumes"])):
-                        if self.data_dict["volume"]["pos_volumes"][index]["array_name"] == self.name:
-                            numvol = self.data_dict["volume"]["pos_volumes"][index]["num_vol"]
-                            size = self.data_dict["volume"]["pos_volumes"][index]["size"]
+                        if (
+                            self.data_dict["volume"]["pos_volumes"][index]["array_name"]
+                            == self.name
+                        ):
+                            numvol = self.data_dict["volume"]["pos_volumes"][index][
+                                "num_vol"
+                            ]
+                            size = self.data_dict["volume"]["pos_volumes"][index][
+                                "size"
+                            ]
                     assert (
                         self.target_utils.create_volume_multiple(
                             array_name=self.name,

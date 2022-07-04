@@ -1,4 +1,4 @@
 pytest
-pytest-html
+pytest - html
 setuptools_rust
 paramiko

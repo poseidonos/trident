@@ -6,6 +6,7 @@ import logger
 
 logger = logger.get_logger(__name__)
 
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
 
@@ -36,9 +37,11 @@ def teardown_function():
 
     logger.info("==========================================")
 
+
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
+
 
 @pytest.mark.regression
 def test_auto_array_with_all_numa():
@@ -49,8 +52,7 @@ def test_auto_array_with_all_numa():
         " ==================== Test : test_auto_array_with_all_numa ================== "
     )
     try:
-        numa_dev_list = [{"ssd":[], "nvram":[]},
-                         {"ssd":[], "nvram":[]}]
+        numa_dev_list = [{"ssd": [], "nvram": []}, {"ssd": [], "nvram": []}]
 
         assert pos.cli.reset_devel()[0] == True
         assert pos.cli.scan_device()[0] == True
@@ -64,16 +66,24 @@ def test_auto_array_with_all_numa():
         # Autoarray create from using disk and uram from same num
         for numa_id, num_dev in enumerate(numa_dev_list):
             array_name = f"array{numa_id}"
-            if (num_dev["ssd"] and num_dev["nvram"]):
-                assert pos.cli.autocreate_array(num_dev["nvram"][0], 1, "no-raid",
-                        array_name = array_name, num_spare = 0)[0] == True
+            if num_dev["ssd"] and num_dev["nvram"]:
+                assert (
+                    pos.cli.autocreate_array(
+                        num_dev["nvram"][0],
+                        1,
+                        "no-raid",
+                        array_name=array_name,
+                        num_spare=0,
+                    )[0]
+                    == True
+                )
 
                 assert pos.cli.info_array(array_name=array_name)[0] == True
-                assert pos.cli.array_info[array_name]["state"] == 'OFFLINE'
+                assert pos.cli.array_info[array_name]["state"] == "OFFLINE"
 
                 assert pos.cli.mount_array(array_name=array_name)[0] == True
                 assert pos.cli.info_array(array_name=array_name)[0] == True
-                assert pos.cli.array_info[array_name]["state"] == 'NORMAL'
+                assert pos.cli.array_info[array_name]["state"] == "NORMAL"
             else:
                 logger.info(f"Insufficient device {num_dev} to numa {numa_id}")
 
@@ -82,8 +92,9 @@ def test_auto_array_with_all_numa():
         pos.exit_handler(expected=False)
 
     logger.info(
-            " ============================= Test ENDs ======================================"
+        " ============================= Test ENDs ======================================"
     )
+
 
 @pytest.mark.regression
 def test_auto_array_with_insufficient_numa_dev():
@@ -94,8 +105,7 @@ def test_auto_array_with_insufficient_numa_dev():
         " ==================== Test : test_auto_array_with_insufficient_numa_dev ================== "
     )
     try:
-        numa_dev_list = [{"ssd":[], "nvram":[]},
-                         {"ssd":[], "nvram":[]}]
+        numa_dev_list = [{"ssd": [], "nvram": []}, {"ssd": [], "nvram": []}]
 
         assert pos.cli.reset_devel()[0] == True
         assert pos.cli.scan_device()[0] == True
@@ -109,11 +119,17 @@ def test_auto_array_with_insufficient_numa_dev():
         # Autoarray create from using disk and uram from same num
         for numa_id, num_dev in enumerate(numa_dev_list):
             array_name = f"array{numa_id}"
-            if (len(num_dev["ssd"]) >= 3 and num_dev["nvram"]):
-                assert pos.cli.autocreate_array(num_dev["nvram"][0], 
-                            len(num_dev["ssd"]) + 1, "RAID5",
-                            array_name = array_name, 
-                            num_spare = 0)[0] == False
+            if len(num_dev["ssd"]) >= 3 and num_dev["nvram"]:
+                assert (
+                    pos.cli.autocreate_array(
+                        num_dev["nvram"][0],
+                        len(num_dev["ssd"]) + 1,
+                        "RAID5",
+                        array_name=array_name,
+                        num_spare=0,
+                    )[0]
+                    == False
+                )
             else:
                 logger.info(f"Insufficient device {num_dev} to numa {numa_id}")
 
@@ -122,5 +138,5 @@ def test_auto_array_with_insufficient_numa_dev():
         pos.exit_handler(expected=False)
 
     logger.info(
-            " ============================= Test ENDs ======================================"
+        " ============================= Test ENDs ======================================"
     )
