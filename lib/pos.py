@@ -34,6 +34,7 @@ from node import SSHclient
 from cli import Cli
 from target_utils import TargetUtils
 from utils import Client
+from pos_config import POS_Config
 from json import load
 from os import path
 from sys import exit
@@ -96,6 +97,10 @@ class POS:
             self.config_dict["login"]["paths"]["pos_path"],
         )
 
+        self.pos_conf = POS_Config(self.target_ssh_obj)
+        self.pos_conf.load_config()
+
+
         self.client_cnt = self.config_dict["login"]["initiator"]["number"]
         if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:
             for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):
@@ -154,6 +159,7 @@ class POS:
                 raise Exception(" Test case failed ! Creating core dump and clean up")
             if self.target_utils.helper.check_pos_exit() == False:
                 self.cli.stop_system(grace_shutdown=True)
+            self.pos_conf.restore_config()
 
         except Exception as e:
 

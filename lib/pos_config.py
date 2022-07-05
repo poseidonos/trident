@@ -92,8 +92,11 @@ class POS_Config():
             print_exc()
             return False
 
-    def restore_config(self) -> bool:
+    def restore_config(self, force: bool=False) -> bool:
         try:
+            if not self.file_modified:
+                logger.error("POS Config file is already in Old state")
+            
             config_data_str = json.dumps(self.file_data_org, indent=4)
 
             logger.debug("Config file data {}.".format(config_data_str))
