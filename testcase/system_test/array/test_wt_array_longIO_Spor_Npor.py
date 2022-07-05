@@ -56,6 +56,8 @@ def teardown_module():
         ("no-raid", 1, "Spor"),
         ("RAID0", 2, "Spor"),
         ("RAID10", 4, "Spor"),
+        ("RAID10",8,"Spor"),
+        ("RAID10",8,"Npor"),
     ],
 )
 def test_wb_wt_array_long_fileIO_Npor_Spor(raid_type, nr_data_drives, por):

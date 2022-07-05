@@ -97,8 +97,8 @@ def wt_test_multi_array_setup(array_list: list):
         return False
 
 
-array1 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)]
-array2 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)]
+array1 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4),("RAID10",8)]
+array2 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4),("RAID10",8)]
 
 
 @pytest.mark.regression

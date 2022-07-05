@@ -50,7 +50,7 @@ def teardown_module():
 @pytest.mark.regression
 @pytest.mark.parametrize(
     "raid_type, nr_data_drives",
-    [("RAID0", 2), ("RAID10", 4), ("RAID10", 2), ("no-raid", 1)],
+    [("RAID0", 2), ("RAID10", 4), ("RAID10", 2), ("no-raid", 1),("RAID10",8)],
 )
 def test_wt_wb_multi_array_file_Block_IO(raid_type, nr_data_drives):
     """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
