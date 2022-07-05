@@ -48,11 +48,12 @@ def teardown_module():
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
-    "raid_type, nr_data_drives", [("no-raid", 1), ("RAID0", 2), ("RAID10", 4),("RAID5",4)]
+    "raid_type, nr_data_drives", [("no-raid", 1), ("RAID0", 2), ("RAID10", 4)]
 )
-def test_wt_array_GC(raid_type, nr_data_drives):
-    """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
-    logger.info(" ==================== Test : test_wt_array_GC ================== ")
+def test_wt_array_nvme_flush(raid_type, nr_data_drives):
+    logger.info(
+        " ==================== Test : test_wt_array_nvme_flush ================== "
+    )
     try:
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
@@ -99,21 +100,20 @@ def test_wt_array_GC(raid_type, nr_data_drives):
                 == True
             )
         assert pos.client.nvme_list() == True
-        for sync in [True, False]:
-            assert (
-                pos.client.fio_generic_runner(
-                    pos.client.nvme_list_out,
-                    fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=300",
-                    run_async=sync,
-                )[0]
-                == True
-            )
+        dev_list = pos.client.nvme_list_out
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out,
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --size=1000gb",
+                run_async=True,
+            )[0]
+            == True
+        )
 
-        assert pos.cli.wbt_do_gc()[0] == False
-        assert pos.cli.wbt_get_gc_status()[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )
+        assert pos.client.nvme_flush(dev_list) == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
