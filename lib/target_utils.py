@@ -35,6 +35,7 @@ import re
 import helper
 import logger
 from cli import Cli
+from target_setup import TargetHeteroSetup
 
 logger = logger.get_logger(__name__)
 
@@ -56,6 +57,7 @@ class TargetUtils:
         self.cli = Cli(ssh_obj, self.static_dict, pos_path)
         # self.array = array_name
         self.helper = helper.Helper(ssh_obj)
+        self.hetero_setup = TargetHeteroSetup(ssh_obj)
         self.udev_rule = False
         self.total_required = 0
 

@@ -1,0 +1,36 @@
+{
+    "enable": "false",
+    "num_test_device": 1,
+    "test_devices": [
+        {
+            "dev_name": "/dev/nvme0",
+            "ns_config": [
+                {
+                    "num_namespace": 1,
+                    "ns_size": "19GiB",
+                    "attach": "true"
+                },
+                {
+                    "num_namespace": 15,
+                    "ns_size": "20GiB",
+                    "attach": "true"
+                }
+            ]
+        },
+        {
+            "dev_name": "/dev/nvme1",
+            "ns_config": [
+                {
+                    "num_namespace": 1,
+                    "ns_size": "19GiB",
+                    "attach": "true"
+                },
+                {
+                    "num_namespace": 15,
+                    "ns_size": "20GiB",
+                    "attach": "true"
+                }
+            ]
+        }
+    ]
+}

@@ -352,3 +352,6 @@ class Helper:
             logger.info("could not generate pattern!!!")
             raise Exception("could not generate pattern!!!")
         return pattern
+
+    def select_hetro_devices(self, device_list: list, num_device: int, selection_req: str) -> bool:
+        pass
