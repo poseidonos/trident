@@ -32,7 +32,9 @@
 
 import logger
 import json
+import os
 from traceback import print_exc
+from datetime import datetime
 
 logger = logger.get_logger(__name__)
 
@@ -58,7 +60,7 @@ class POS_Config():
             logger.debug("Config file data {}.".format(type(self.file_data)))
             return True
         except Exception as e:
-            logger.error("Load config failed. Error: '{e}'")
+            logger.error(f"Load config failed. Error: '{e}'")
             print_exc()
             return False
 
@@ -74,10 +76,26 @@ class POS_Config():
 
             return True
         except Exception as e:
-            logger.error("Load config failed. Error: '{e}'")
+            logger.error(f"Load config failed. Error: '{e}'")
             print_exc()
             return False
-        pass
+
+    def _copy_config_data(self, data: str) -> bool:
+        try:
+            src_file_name = f'temp_{datetime.now().strftime("%Y_%m_%H_%M")}_pos_conf.json'
+            with open(src_file_name, 'w') as fp:
+                fp.write(f"{data}\n")
+
+            dst_file_name = f"{self.file_path}{self.file_name}"
+            self.ssh_obj.file_transfer(src_file_name, dst_file_name, move_to_local=False)
+
+            os.remove(src_file_name)
+            return True
+        except Exception as e:
+            logger.error(f"Copy config failed. Error: '{e}'")
+            print_exc()
+            os.remove(src_file_name)
+            return False
 
     def update_config(self, data: dict=None) -> bool:
         try:
@@ -86,9 +104,10 @@ class POS_Config():
 
             logger.debug("Config file data {}.".format(config_data_str))
 
-            return self._dump_config_data(config_data_str)
+            #return self._dump_config_data(config_data_str)
+            return self._copy_config_data(config_data_str)
         except Exception as e:
-            logger.error("Load config failed. Error: '{e}'")
+            logger.error(f"Load config failed. Error: '{e}'")
             print_exc()
             return False
 
@@ -101,9 +120,10 @@ class POS_Config():
 
             logger.debug("Config file data {}.".format(config_data_str))
 
-            return self._dump_config_data(config_data_str)
+            #return self._dump_config_data(config_data_str)
+            return self._copy_config_data(config_data_str)
         except Exception as e:
-            logger.error("Load config failed. Error: '{e}'")
+            logger.error(f"Load config failed. Error: '{e}'")
             print_exc()
             return False
 
@@ -136,5 +156,5 @@ if __name__ == '__main__':
     pos_config = POS_Config(pos.target_ssh_obj)
     assert pos_config.load_config() == True
     assert pos_config.journal_state() == True
-    #assert pos_config.update_config() == True
-    #assert pos_config.restore_config() == True
+    assert pos_config.update_config() == True
+    assert pos_config.restore_config() == True
