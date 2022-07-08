@@ -340,7 +340,7 @@ class NVMe_Dev(NVMe_Command):
     def setup_ns(self, ns_config_list: list) -> bool:
         '''
         ns_config: List of Dict of Namespace Config
-                    [ { 'nr_namespace': 1,
+                    [ { 'num_namespace': 1,
                         'ns_size': '19GiB',
                         'attach': True} ]
         
@@ -354,9 +354,9 @@ class NVMe_Dev(NVMe_Command):
         for ns_config in ns_config_list:
             ns_size = ns_config["ns_size"]
 
-            matched = re.search(r"(\d+)(\w+)", ns_size)
+            matched = re.search(r"(\d+[.\d]+)(\w+)", ns_size)
             if matched:
-                size = int(matched.group(1))
+                size = float(matched.group(1))
                 unit = matched.group(2).lower()
                 # Conver to Bytes
                 if unit in ['gib', 'gb']:
@@ -374,7 +374,7 @@ class NVMe_Dev(NVMe_Command):
             flbas = 0
             size = size // 512
                 
-            for nr in range(ns_config["nr_namespace"]):
+            for nr in range(ns_config["num_namespace"]):
                 if not self.create_ns(nvme_dev=nvme_dev,
                                     size=size, flbas=flbas):
                     
@@ -392,7 +392,7 @@ class NVMe_Dev(NVMe_Command):
 
                 if ns_config.get('attach', True):
                     if not self.attach_detach_ns(attach=True, nvme_dev=nvme_dev,
-                                            nsid=nsid, ctrl_id=ctrl_id):
+                                                nsid=nsid, ctrl_id=ctrl_id):
                         log.error("Failed to attach namespace")
                         return False
                     ns_obj.state = NS_State.ACTIVE
@@ -417,6 +417,59 @@ class NVMe_Dev(NVMe_Command):
     def bind_user_space(self) -> bool:
         pass
 
+class TargetHeteroSetup:
+    def __init__(self, ssh_obj: object) -> None:
+        self.ssh_obj = ssh_obj
+        self.nvme_test_device = []
+        
+    def load_test_devices(self, device_list: list) -> bool:
+        '''
+        device_list: i.e ['/dev/nvme0', '/dev/nvme1']
+        '''
+        for dev in device_list:
+            nvme_dev = NVMe_Dev(name=dev)
+            nvme_dev.load_info()
+
+        self.nvme_test_device.append(nvme_dev)
+
+        return True
+
+    def get_test_device(self, dev_name: str) -> NVMe_Dev:
+        '''
+        
+        '''
+        test_dev = None
+        for dev in self.nvme_test_device:
+            if dev_name == dev.name:
+                test_dev = dev
+                break
+            
+        return test_dev
+
+    def prepare(self, nr_device: int, config_list: list) -> bool:
+        '''
+        
+        '''
+        # Select the minimum from the config
+        end = len(config_list) if nr_device > len(config_list) else nr_device
+
+        for index in range(end):
+            dev_config = config_list[index]
+            dev_name = dev_config['dev_name']
+            dev = self.get_test_device(dev_name=dev_name)
+            if not dev:
+                logger.info("Failed to get the test device")
+                return False
+
+            if not dev.cleanup_ns():
+                logger.error(f"Failed to clean namespace for device {dev_name}")
+                return False
+
+            if not dev.setup_ns(ns_config_list=dev_config['ns_config']):
+                logger.error(f"Failed to setup namespace for device {dev_name}")
+                return False
+
+        return True
 
 
 if __name__ == '__main__':
@@ -427,8 +480,9 @@ if __name__ == '__main__':
     assert dev1.load_info() == True
     assert dev1.cleanup_ns() == True
     try:
-        ns_conf = [ { 'nr_namespace': 1, 'ns_size': '19GiB'},
-                    { 'nr_namespace': 2, 'ns_size': '20GiB'} ]
+        ns_conf = [ {'nr_namespace': 1, 'ns_size': '19GiB'},
+                    {'nr_namespace': 15, 'ns_size': '20GiB'},
+                    {'nr_namespace': 15, 'ns_size': '2.0GiB'} ]
 
         assert dev1.setup_ns(ns_config_list=ns_conf)
     except Exception as e:
