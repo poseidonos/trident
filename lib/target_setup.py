@@ -463,8 +463,13 @@ class TargetHeteroSetup:
         '''
         
         '''
+        prepare_setup = True if hetero_setup_data["enable"] == "true" else False
         nr_device = int(hetero_setup_data["num_test_device"])
         config_data = hetero_setup_data["test_devices"]
+
+        if not prepare_setup:
+            logger.warning("Hetero device setup creation is disabled")
+            return True
 
         # Select the minimum from the config
         end = len(config_data) if nr_device > len(config_data) else nr_device
