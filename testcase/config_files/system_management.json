@@ -1,0 +1,223 @@
+{
+    "por":
+    {
+        "ibof": 
+        { 
+            "npor": { "valid": true, "phase":"5,7" },
+            "spor": { "valid": false } 
+        },
+        "device": 
+        {
+            "npor": { "valid": false },
+            "spor": { "valid": false } 
+        }
+    },
+    "test_system_sanity_detach_attach_device_iteration_io_verify":
+    {   
+        "total_phase":8,
+        "total_time":69120,
+        "phase":
+        [
+            {
+                "volume": 
+                {   
+                    "create" : { "valid":true, "basename":"system_sanity", "number":"10", "maxiops":"0", "maxbw":"0", "size":"10G"},
+                    "delete" : { "valid":false},
+                    "mount"  : { "valid":true, "basename":"system_sanity", "number":"10", "nqnbasename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "unmount": { "valid":false}
+                },
+                "nvmf_subsystem":
+                {
+                    "create"     : { "valid":true, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "delete"     : { "valid":false},
+                    "connect"    : { "valid":true, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "disconnect"  : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"}
+                },
+                "io":
+                {
+                    "fio": { "rw":"write", "size":"100%", "iodepth":"64", "bs":"4kb", "ioverify":true}
+                },
+                "por":
+                {
+                    "ibof": { "npor":false, "spor":false },
+                    "device": {}
+                }
+            },
+            {
+                "volume": 
+                {   
+                    "create" : { "valid":false},
+                    "delete" : { "valid":false},
+                    "mount"  : { "valid":false, "basename":"system_sanity", "number":"10", "nqnbasename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "unmount": { "valid":false}
+                },
+                "nvmf_subsystem":
+                {
+                    "create"     : { "valid":false},
+                    "delete"     : { "valid":false},
+                    "connect"    : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "disconnect"  : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"}
+                },
+                "io":
+                {
+                    "fio": { "rw":"write", "size":"100%", "iodepth":"64", "bs":"4kb", "ioverify":true}
+                },
+                "por":
+                {
+                    "ibof": { "npor":false, "spor":false },
+                    "device": {}
+                }
+            },
+            {
+                "volume": 
+                {   
+                    "create" : { "valid":false},
+                    "delete" : { "valid":false},
+                    "mount"  : { "valid":false, "basename":"system_sanity", "number":"10", "nqnbasename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "unmount": { "valid":false}
+                },
+                "nvmf_subsystem":
+                {
+                    "create"     : { "valid":false},
+                    "delete"     : { "valid":false},
+                    "connect"    : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "disconnect"  : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"}
+                },
+                "io":
+                {
+                    "fio": { "rw":"write", "size":"100%", "iodepth":"64", "bs":"4kb", "ioverify":true}
+                },
+                "por":
+                {
+                    "ibof": { "npor":false, "spor":false },
+                    "device": {}
+                }
+            },
+            {
+                "volume": 
+                {   
+                    "create" : { "valid":false},
+                    "delete" : { "valid":false},
+                    "mount"  : { "valid":false, "basename":"system_sanity", "number":"10", "nqnbasename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "unmount": { "valid":false, "basename":"system_sanity", "number":"10"}
+                },
+                "nvmf_subsystem":
+                {
+                    "create"     : { "valid":false},
+                    "delete"     : { "valid":false},
+                    "connect"    : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "disconnect"  : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"}
+                },
+                "io":
+                {
+                    "fio": { "rw":"write", "size":"100%", "iodepth":"64", "bs":"4kb", "ioverify":true}
+                },
+                "por":
+                {
+                    "ibof": { "npor":false, "spor":false },
+                    "device": {}
+                }
+            },
+            {
+                "volume": 
+                {   
+                    "create" : { "valid":false},
+                    "delete" : { "valid":false},
+                    "mount"  : { "valid":false, "basename":"system_sanity", "number":"10", "nqnbasename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "unmount": { "valid":false, "basename":"system_sanity", "number":"10"}
+                },
+                "nvmf_subsystem":
+                {
+                    "create"     : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "delete"     : { "valid":false},
+                    "connect"    : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "disconnect"  : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"}
+                },
+                "io":
+                {
+                    "fio": { "rw":"write", "size":"100%", "iodepth":"64", "bs":"4kb", "ioverify":true}
+                },
+                "por":
+                {
+                    "ibof": { "npor":false, "spor":false },
+                    "device": {}
+                }
+            },
+            {
+                "volume": 
+                {   
+                    "create" : { "valid":false},
+                    "delete" : { "valid":false},
+                    "mount"  : { "valid":false, "basename":"system_sanity", "number":"10", "nqnbasename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "unmount": { "valid":false, "basename":"system_sanity", "number":"10"}
+                },
+                "nvmf_subsystem":
+                {
+                    "create"     : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "delete"     : { "valid":false},
+                    "connect"    : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "disconnect"  : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"}
+                },
+                "io":
+                {
+                    "fio": { "rw":"write", "size":"100%", "iodepth":"64", "bs":"4kb", "ioverify":true}
+                },
+                "por":
+                {
+                    "ibof": { "npor":false, "spor":false },
+                    "device": {}
+                }
+            },
+            {
+                "volume": 
+                {   
+                    "create" : { "valid":false},
+                    "delete" : { "valid":false},
+                    "mount"  : { "valid":false, "basename":"system_sanity", "number":"10", "nqnbasename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "unmount": { "valid":false}
+                },
+                "nvmf_subsystem":
+                {
+                    "create"     : { "valid":false},
+                    "delete"     : { "valid":false},
+                    "connect"    : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "disconnect"  : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"}
+                },
+                "io":
+                {
+                    "fio": { "rw":"write", "size":"100%", "iodepth":"64", "bs":"4kb", "ioverify":true}
+                },
+                "por":
+                {
+                    "ibof": { "npor":false, "spor":false },
+                    "device": {}
+                }
+            },
+            {
+                "volume": 
+                {   
+                    "create" : { "valid":false},
+                    "delete" : { "valid":false},
+                    "mount"  : { "valid":false, "basename":"system_sanity", "number":"10", "nqnbasename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "unmount": { "valid":false}
+                },
+                "nvmf_subsystem":
+                {
+                    "create"     : { "valid":false},
+                    "delete"     : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "connect"    : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"},
+                    "disconnect"  : { "valid":false, "basename":"nqn.2019-04.ibof:subsystem_system_sanity"}
+                },
+                "io":
+                {
+                    "fio": { "rw":"write", "size":"100%", "iodepth":"64", "bs":"4kb", "ioverify":true}
+                },
+                "por":
+                {
+                    "ibof": { "npor":false, "spor":false },
+                    "device": {}
+                }
+            }          
+        ]
+    }
+}
