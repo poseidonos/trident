@@ -71,7 +71,6 @@ class POS_Config():
 
             for line in data.split("\n"):
                 cmd = f"echo '{line}' >> {self.file_path}{self.file_name}"
-                print(cmd)
                 self.ssh_obj.execute(command=cmd, expected_exit_code=0)
 
             return True
@@ -150,6 +149,8 @@ class POS_Config():
 
 
 if __name__ == '__main__':
+    pass
+    '''
     from pos import POS
 
     pos = POS()
@@ -158,3 +159,4 @@ if __name__ == '__main__':
     assert pos_config.journal_state() == True
     assert pos_config.update_config() == True
     assert pos_config.restore_config() == True
+    '''
