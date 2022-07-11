@@ -1,11 +1,14 @@
 from curses.ascii import ctrl
 from enum import Enum
+import inspect
 import json
+from os import path
+import pathlib
 import re
 
 import logger
 
-log = logger.get_logger(__name__)
+logger = logger.get_logger(__name__)
 
 class NS_State(Enum):
     UNKNOWN = 0
@@ -38,7 +41,7 @@ class NVMe_Command:
             out = "".join(out[0])
 
         if 'No such file or directory' in out:
-            log.error(f"{out}")
+            logger.error(f"{out}")
             return False
 
         self.response = "".join(out)
@@ -53,7 +56,7 @@ class NVMe_Command:
         if self.nvme_submit(id_ctrl_cmd, json_out):
             self.id_ctrl = self.response
         else:
-            log.error(f"Identify controller command failed")
+            logger.error(f"Identify controller command failed")
             return False
 
         return True
@@ -68,7 +71,7 @@ class NVMe_Command:
         if self.nvme_submit(id_ns_cmd, json_out):
             self.id_ns = self.response
         else:
-            log.error(f"Identify namespace command failed")
+            logger.error(f"Identify namespace command failed")
             return False
 
         return True
@@ -84,9 +87,9 @@ class NVMe_Command:
             list_ns_cmd += f" -n {nsid}"
 
         if self.nvme_submit(list_ns_cmd, json_out=False):
-            self.list_ns = self.response
+            self.ns_list = self.response
         else:
-            log.error(f"List namespace command failed")
+            logger.error(f"List namespace command failed")
             return False
 
         return True
@@ -102,9 +105,9 @@ class NVMe_Command:
             list_ctrl_cmd += f" -n {nsid}"
 
         if self.nvme_submit(list_ctrl_cmd, json_out=False):
-            self.list_ctrl = self.response
+            self.ctrl_list = self.response
         else:
-            log.error(f"List controller command failed")
+            logger.error(f"List controller command failed")
             return False
 
         return True
@@ -126,7 +129,7 @@ class NVMe_Command:
             if f"{attach_detach}-ns: Success, nsid:{nsid}" in self.response:
                 return True
         
-        log.error(f"{attach_detach.title()} Namespace command failed")
+        logger.error(f"{attach_detach.title()} Namespace command failed")
         return False
 
     def delete_ns(self, nvme_dev: str, nsid: int) -> bool:
@@ -140,7 +143,7 @@ class NVMe_Command:
             if f"delete-ns: Success, deleted nsid:{nsid}" in self.response:
                 return True
 
-        log.error(f"Delete Namespace command failed")
+        logger.error(f"Delete Namespace command failed")
         return False
 
     def create_ns(self, nvme_dev: str, size: int, flbas: int) -> bool:
@@ -158,7 +161,7 @@ class NVMe_Command:
                 self.new_nsid = int(matched.group(1))
                 return True
 
-        log.error(f"Create Namespace command failed")
+        logger.error(f"Create Namespace command failed")
         return False
 
     def list_nvme(self) -> bool:
@@ -168,7 +171,7 @@ class NVMe_Command:
             self.list_nvme = self.response
             return True
 
-        log.error(f"List NVMe command failed")
+        logger.error(f"List NVMe command failed")
         return False
 
 
@@ -228,7 +231,7 @@ class NVMe_Dev(NVMe_Command):
         # Issue Identify Controller
         nvme_dev = self.name
         if not self.identify_controller(nvme_dev):
-            log.error("Failed to get controller info")
+            logger.error("Failed to get controller info")
             return False
 
         id_ctrl = json.loads(self.id_ctrl)
@@ -241,39 +244,39 @@ class NVMe_Dev(NVMe_Command):
         ctrl.ns_fmt_supported = int(id_ctrl["oacs"]) & 0x1 == 0x1
 
         self.ctrl = ctrl
-        log.info(f"Controller Info: {ctrl}")
+        logger.info(f"Controller Info: {ctrl}")
 
         if not self.list_ns(nvme_dev):
-            log.error("Failed to get active namespace list")
+            logger.error("Failed to get active namespace list")
             return False
         
-        nsid_list = re.findall('0x\d+', self.list_ns)
+        nsid_list = re.findall('0x[\da-f]+', self.ns_list)
         nsid_list = list(map(lambda x: int(x, 0), nsid_list))
-        log.info(f"Namespace List: {nsid_list}")
+        logger.info(f"Namespace List: {nsid_list}")
 
         for index, nsid in enumerate(nsid_list):
             if not self.indentify_ns(nvme_dev, json_out=True):
-                log.error(f"Failed to get namespace{nsid} info")
+                logger.error(f"Failed to get namespace{nsid} info")
                 return False
 
             id_ns = json.loads(self.id_ns)
-            ns = self.Namespace(nsid)
 
+            ns = self.Namespace(nsid)
             ns.size = id_ns["nsze"]
             ns.state = NS_State.ACTIVE
             ns.nlbaf = int(id_ns["nlbaf"])
-            ns.flbas = int(id_ns["flbas"])
+            ns.flbas = int(id_ns["flbas"]) & 0xf 
             ns.lba_format['metadata'] = int(id_ns["lbafs"][ns.flbas]["ms"])
             ns.lba_format['data'] = 2 ** int(id_ns["lbafs"][ns.flbas]["ds"])
 
             if not self.list_ctrl(nvme_dev):
-                log.error(f"Failed to get controller list")
+                logger.error(f"Failed to get controller list")
                 return False
 
-            ctrl_list = re.findall('0x\d+', self.list_ctrl)
+            ctrl_list = re.findall('0x\d+', self.ctrl_list)
             ns.ctrl_list = list(map(lambda x: int(x, 0), ctrl_list))
 
-            log.info(f"Namespace Info: {ns}")
+            logger.info(f"Namespace Info: {ns}")
             self.nss.append(ns)
 
 
@@ -284,35 +287,46 @@ class NVMe_Dev(NVMe_Command):
 
 
     def print_info(self, all: bool=True) -> None:
-        log.info(f"{self.ctrl}")
-        log.info(f"{self.ns_list}")
+        logger.info(f"{self.ctrl}")
+        logger.info(f"{self.ns_list}")
         # Issue List Namespace
         # Issue Identify Namespace to all NS
         pass
 
 
     def restore(self) -> bool:
+        '''
+        
+        '''
         nvme_dev = self.name
+        if not self.ns_created and not self.ns_deleted:
+            logger.info(f"Skipped! The drive {nvme_dev} is in original state")
+            return True
+
         if self.nss:
             if not self.cleanup_ns():
                 return False
 
         for ns_obj in self.nss_org:
             nsid = ns_obj.nsid
-            log.info(f"Restore namespace [nsid: {nsid}]")
+            logger.info(f"Restore namespace [nsid: {nsid}]")
             if not self.create_ns(nvme_dev=nvme_dev, size=ns_obj.size,
                                  flbas=ns_obj.flbas):
-                log.error(f"Failed to create ns[{nsid}]")
+                logger.error(f"Failed to create ns[{nsid}]")
                 return False
             if nsid != self.new_nsid:
-                log.warning(f"Created NSID[{self.new_nsid}] match failed")
+                logger.warning(f"Created NSID[{self.new_nsid}] match failed")
 
             for ctrl_id in ns_obj.ctrl_list:
                 # Attach NS
                 if not self.attach_detach_ns(attach=True, nvme_dev=nvme_dev,
                                      nsid=self.new_nsid, ctrl_id=ctrl_id):
-                    log.error(f"Failed to attach ns[{self.new_nsid}] ctrl[{ctrl_id}]")
+                    logger.error(f"Failed to attach ns[{self.new_nsid}] ctrl[{ctrl_id}]")
                     return False
+
+        self.ns_restored = True
+        self.ns_created = False
+        self.ns_deleted = False
         return True
 
     def cleanup_ns(self) -> bool:
@@ -322,19 +336,21 @@ class NVMe_Dev(NVMe_Command):
             nsid = ns_obj.nsid
             for ctrl_id in ns_obj.ctrl_list:
                 # Detach NS
-                log.info(f"Detach namespace [nsid: {nsid}]")
+                logger.info(f"Detach namespace [nsid: {nsid}]")
                 if not self.attach_detach_ns(attach=False, nvme_dev=nvme_dev,
                                      nsid=nsid, ctrl_id=ctrl_id):
-                    log.error(f"Failed to detach ns[{nsid}] ctrl[{ctrl_id}]")
+                    logger.error(f"Failed to detach ns[{nsid}] ctrl[{ctrl_id}]")
                     return False
 
             # Delete NS
-            log.info(f"Delete namespace [nsid: {nsid}]")
+            logger.info(f"Delete namespace [nsid: {nsid}]")
             if not self.delete_ns(nvme_dev=nvme_dev, nsid=nsid):
-                log.error(f"Failed to delete ns[{nsid}]")
+                logger.error(f"Failed to delete ns[{nsid}]")
                 return False
             
             self.nss.pop(0)
+
+        self.ns_deleted = True
         return True
 
     def setup_ns(self, ns_config_list: list) -> bool:
@@ -347,9 +363,9 @@ class NVMe_Dev(NVMe_Command):
         '''
         nvme_dev = self.name
         if self.nss:
-            log.warning("Remove existing namespace")
+            logger.warning("Remove existing namespace")
             if not self.cleanup_ns():
-                log.error("Failed to remove existing namespaces")
+                logger.error("Failed to remove existing namespaces")
 
         for ns_config in ns_config_list:
             ns_size = ns_config["ns_size"]
@@ -364,21 +380,21 @@ class NVMe_Dev(NVMe_Command):
                 elif unit in ['tib', 'tb']:
                     size = size * 1024 * 1024 * 1024 * 1024
                 else:
-                    log.error("Invalid Size")
+                    logger.error("Invalid Size")
                     return False
             else:
-                log.error("Invalid Size")
+                logger.error("Invalid Size")
                 return False
 
             # TODO add logic to handle multiple block size
             flbas = 0
-            size = size // 512
+            size = int(size // 512)
                 
             for nr in range(ns_config["num_namespace"]):
                 if not self.create_ns(nvme_dev=nvme_dev,
                                     size=size, flbas=flbas):
                     
-                    log.error("Failed to create namespace")
+                    logger.error("Failed to create namespace")
                     return False
                 nsid = self.new_nsid
                 ctrl_id = self.ctrl.controller_id
@@ -393,12 +409,13 @@ class NVMe_Dev(NVMe_Command):
                 if ns_config.get('attach', True):
                     if not self.attach_detach_ns(attach=True, nvme_dev=nvme_dev,
                                                 nsid=nsid, ctrl_id=ctrl_id):
-                        log.error("Failed to attach namespace")
+                        logger.error("Failed to attach namespace")
                         return False
                     ns_obj.state = NS_State.ACTIVE
 
                 self.nss.append(ns_obj)
 
+        self.ns_created = True
         return True
 
 
@@ -418,47 +435,50 @@ class NVMe_Dev(NVMe_Command):
         pass
 
 class TargetHeteroSetup:
-    def __init__(self, ssh_obj: object) -> None:
+    def __init__(self, ssh_obj: object, hetero_setup_data: dict=None) -> None:
         self.ssh_obj = ssh_obj
-        self.nvme_test_device = []
+        self.hetero_setup_data = hetero_setup_data
+        self.nvme_test_device = {}
         
     def load_test_devices(self, device_list: list) -> bool:
         '''
         device_list: i.e ['/dev/nvme0', '/dev/nvme1']
         '''
-        for dev in device_list:
-            nvme_dev = NVMe_Dev(name=dev)
-            nvme_dev.load_info()
+        error_dev = []
+        for dev_name in device_list:
+            nvme_dev = NVMe_Dev(ssh_obj=self.ssh_obj, name=dev_name)
+            if nvme_dev.load_info():
+                self.nvme_test_device[dev_name] = nvme_dev
+            else:
+                error_dev.append(nvme_dev)
 
-        self.nvme_test_device.append(nvme_dev)
+        if error_dev:
+            logger.error(f"Failed to load the following device: {error_dev}")
+            return False
 
         return True
 
-    def get_test_device(self, dev_name: str) -> NVMe_Dev:
-        '''
-        
-        '''
-        test_dev = None
-        for dev in self.nvme_test_device:
-            if dev_name == dev.name:
-                test_dev = dev
-                break
-            
-        return test_dev
 
-    def prepare(self, nr_device: int, config_list: list) -> bool:
+    def prepare(self, hetero_setup_data: dict) -> bool:
         '''
         
         '''
+        nr_device = int(hetero_setup_data["num_test_device"])
+        config_data = hetero_setup_data["test_devices"]
+
         # Select the minimum from the config
-        end = len(config_list) if nr_device > len(config_list) else nr_device
+        end = len(config_data) if nr_device > len(config_data) else nr_device
 
+        nvme_dev_list = [dev["dev_name"] for dev in hetero_setup_data["test_devices"]]
+        if not self.load_test_devices(device_list=nvme_dev_list[:end]):
+            return False
+        
         for index in range(end):
-            dev_config = config_list[index]
+            dev_config = config_data[index]
             dev_name = dev_config['dev_name']
-            dev = self.get_test_device(dev_name=dev_name)
+            dev = self.nvme_test_device.get(dev_name, None)
             if not dev:
-                logger.info("Failed to get the test device")
+                logger.error(f"Failed to get the test device {dev_name}")
                 return False
 
             if not dev.cleanup_ns():
@@ -468,28 +488,39 @@ class TargetHeteroSetup:
             if not dev.setup_ns(ns_config_list=dev_config['ns_config']):
                 logger.error(f"Failed to setup namespace for device {dev_name}")
                 return False
-
+            
+        logger.info("successfully created the pos hetero device setup")
         return True
 
+    def reset(self):
+        reset_error = []
+        for dev_name, dev in self.nvme_test_device.items():
+            if not dev.restore():
+                reset_error.append(dev_name)
+
+        if reset_error:
+            logger.error(f"Failed to reset following devices: {reset_error}")
+            return False
+        
+        logger.info("Successfuly reset all nvme devices")
+        return True
 
 if __name__ == '__main__':
     from pos import POS
 
     pos = POS()
-    dev1 = NVMe_Dev(pos.target_ssh_obj, '/dev/nvme0')
-    assert dev1.load_info() == True
-    assert dev1.cleanup_ns() == True
-    try:
-        ns_conf = [ {'nr_namespace': 1, 'ns_size': '19GiB'},
-                    {'nr_namespace': 15, 'ns_size': '20GiB'},
-                    {'nr_namespace': 15, 'ns_size': '2.0GiB'} ]
+    tgt_setup = TargetHeteroSetup(pos.target_ssh_obj)
+    tgt_setup_file = "hetero_setup.json"
+    conf_dir = "/root/nehal/trident/testcase/config_files/"
 
-        assert dev1.setup_ns(ns_config_list=ns_conf)
-    except Exception as e:
-        log.error(f"Failed to setup device namespace {e}")
+    data_path = f"{conf_dir}{tgt_setup_file}"
+    tgt_conf_data = pos._json_reader(data_path, abs_path=True)[1]
     
-    assert dev1.list_nvme() == True
-    log.info(f"list nvme: {dev1.list_nvme}")
-    assert dev1.restore() == True
-    #dev1.print_info()
+    print(tgt_conf_data)
+
+    
+    tgt_setup.prepare(tgt_conf_data)
+    tgt_setup.reset()
+    
+
 
