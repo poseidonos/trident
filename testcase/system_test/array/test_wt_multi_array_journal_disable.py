@@ -141,7 +141,7 @@ def test_wt_multi_array_disabled_journal(array_raid, array_num_disk):
         nvme_devs = pos.client.nvme_list_out
 
         # Run File IO for 12 hours
-        fio_cmd = f"fio --name=write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --bs=128k --time_based --runtime=5 --size={io_size}"
+        fio_cmd = f"fio --name=write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --bs=128k --time_based --runtime=7200 --size={io_size}"
 
         assert pos.client.create_File_system(nvme_devs, fs_format="xfs")
         out, mount_point = pos.client.mount_FS(nvme_devs)
