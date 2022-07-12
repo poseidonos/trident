@@ -306,6 +306,30 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
+    def create_hetero_array(self, array_name: str, uram: str, raid_type: str,
+                data_device_config: dict, spare_device_config: dict=None) -> bool:
+        """
+        Method to create array using hetero devices
+        data_device_config: {dev_size: num_dev; '20GiB': 1}
+        Returns:
+            bool
+        """
+        if not self.cli.list_device():
+            logger.error("Failed to get the device list")
+            return False
+
+        scan_device = self.cli.NVMe_BDF
+
+        selected_devices = self.helper.select_hetro_devices(devices=scan_device,
+                                            data_dev_select=data_device_config,
+                                            spare_dev_select=spare_device_config)
+
+        total_data_dev = sum(data_device_config.values())
+        total_spare_dev = sum(spare_device_config.values())
+        
+
+
+
     def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
         """
         Method to spor preparation

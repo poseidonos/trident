@@ -353,5 +353,50 @@ class Helper:
             raise Exception("could not generate pattern!!!")
         return pattern
 
-    def select_hetro_devices(self, device_list: list, num_device: int, selection_req: str) -> bool:
-        pass
+    def select_hetro_devices(self, devices: dict, data_dev_select: dict,
+                            spare_dev_select: dict=None) -> dict:
+        selected_devices = { "data_dev_list": [],
+                             "sphare_dev_list": [],
+                             "other_dev_list": [] }
+
+        # Create a device dictionary:
+        # {"Size": ["unvme-ns-0", "unvme-ns-1"]
+        device_size_dict = {}
+        for dev_name, dev in devices:
+            if dev["type"].lower() != "ssd" and dev["class"].lower() == "array":
+                continue
+
+            size = int(dev["size"] // (1024 * 1024 * 1024)) # Convert in GiB
+            size = f"{size}GiB"
+            try:
+               device_size_dict[size].append(dev_name)
+            except:
+                device_size_dict[size] = [dev_name]
+
+        # Select the data device based on size
+        for dev_size, num_device in data_dev_select.items():
+            for dev in range(num_device):
+                device_list = device_size_dict.get(dev_size, [])
+                if device_list:
+                    dev_name = device_size_dict[size].pop(0)
+                    selected_devices["data_dev_list"].append(dev_name)
+                else:
+                    logger.warning(f"Data device of size '{dev_size}' is unavailable")
+
+        # Select the sphare device based on size
+        if spare_dev_select != None:
+            for num_device, dev_size in data_dev_select.items():
+                for dev in range(num_device):
+                    device_list = device_size_dict.get(dev_size, [])
+                    if device_list:
+                        dev_name = device_size_dict[size].pop(0)
+                        selected_devices["data_dev_list"].append(dev_name)
+                    else:
+                        logger.warning(f"Spare device of size '{dev_size}' is unavailable")
+
+        # Select all device and return
+        for dev_list in device_size_dict.values():
+            selected_devices["other_dev_list"].extend(dev_list)
+        
+        return selected_devices
+            
