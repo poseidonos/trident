@@ -57,7 +57,7 @@ class TargetUtils:
         self.cli = Cli(ssh_obj, self.static_dict, pos_path)
         # self.array = array_name
         self.helper = helper.Helper(ssh_obj)
-        self.hetero_setup = TargetHeteroSetup(ssh_obj)
+        self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_path)
         self.udev_rule = False
         self.total_required = 0
 
@@ -325,15 +325,19 @@ class TargetUtils:
                                             spare_dev_select=spare_device_config)
 
         total_data_dev = sum(data_device_config.values())
-        total_spare_dev = sum(spare_device_config.values())
 
-        if len(total_data_dev) != len(selected_devices["data_dev_list"]):
+        if total_data_dev != len(selected_devices["data_dev_list"]):
+            logger.info(f"Selected data devices: {selected_devices['data_dev_list']}")
             logger.error("Failed to select required hetero data device")
+            
             return False
 
-        if len(total_spare_dev) != len(selected_devices["sphare_dev_list"]):
-            logger.error("Failed to select required hetero spare device")
-            return False
+        if spare_device_config:
+            total_spare_dev = sum(spare_device_config.values())
+            if total_spare_dev != len(selected_devices["sphare_dev_list"]):
+                logger.info(f"Selected spare devices: {selected_devices['sphare_dev_list']}")
+                logger.error("Failed to select required hetero spare device")
+                return False
 
         # Create the array
         return self.cli.create_array(write_buffer=uram,

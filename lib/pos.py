@@ -155,6 +155,10 @@ class POS:
             if self.target_utils.helper.check_pos_exit() == False:
                 self.cli.stop_system(grace_shutdown=True)
 
+            # Reset the target to previous state
+            if not self.target_utils.hetero_setup.reset():
+                raise Exception("Failed to reset the target state")
+
         except Exception as e:
 
             logger.error(e)
