@@ -502,24 +502,56 @@ class Helper:
 
         # Select the data device based on size
         for dev_size, num_device in data_dev_select.items():
+            if dev_size.lower() == 'any':
+                continue
             for dev in range(num_device):
                 device_list = device_size_dict.get(dev_size, [])
                 if device_list:
-                    dev_name = device_size_dict[size].pop(0)
+                    dev_name = device_size_dict[dev_size].pop(0)
                     selected_devices["data_dev_list"].append(dev_name)
                 else:
                     logger.warning(f"Data device of size '{dev_size}' is unavailable")
 
-        # Select the sphare device based on size
+        # Select the spare device based on size
         if spare_dev_select != None:
-            for num_device, dev_size in data_dev_select.items():
+            for num_device, dev_size in spare_dev_select.items():
+                if dev_size.lower() == 'any':
+                    continue
                 for dev in range(num_device):
                     device_list = device_size_dict.get(dev_size, [])
                     if device_list:
-                        dev_name = device_size_dict[size].pop(0)
-                        selected_devices["data_dev_list"].append(dev_name)
+                        dev_name = device_size_dict[dev_size].pop(0)
+                        selected_devices["spare_dev_list"].append(dev_name)
                     else:
                         logger.warning(f"Spare device of size '{dev_size}' is unavailable")
+
+        # Select the data device of any size
+        for dev_size, num_device in data_dev_select.items():
+            if dev_size.lower() == 'any':
+                for dev in range(num_device):
+                    if len(selected_devices["data_dev_list"]) != num_device:
+                        for dev_size, dev_name_list in device_size_dict.items():
+                            if dev_name_list:
+                                dev_name = device_size_dict[dev_size].pop(0)
+                                selected_devices["data_dev_list"].append(dev_name)
+                                break
+                if len(selected_devices["data_dev_list"]) != num_device:
+                    logger.warning(f"Sufficient data devices are unavailable")
+                    break
+
+        # Select the spare device of any size
+        for dev_size, num_device in spare_dev_select.items():
+            if dev_size.lower() == 'any':
+                for dev in range(num_device):
+                    if len(selected_devices["spare_dev_list"]) != num_device:
+                        for dev_size, dev_name_list in device_size_dict.items():
+                            if dev_name_list:
+                                dev_name = device_size_dict[dev_size].pop(0)
+                                selected_devices["spare_dev_list"].append(dev_name)
+                                break
+                if len(selected_devices["spare_dev_list"]) != num_device:
+                    logger.warning(f"Sufficient data devices are unavailable")
+                    break
 
         # Select all device and return
         for dev_list in device_size_dict.values():
