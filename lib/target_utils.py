@@ -326,9 +326,21 @@ class TargetUtils:
 
         total_data_dev = sum(data_device_config.values())
         total_spare_dev = sum(spare_device_config.values())
-        
 
+        if len(total_data_dev) != len(selected_devices["data_dev_list"]):
+            logger.error("Failed to select required hetero data device")
+            return False
 
+        if len(total_spare_dev) != len(selected_devices["sphare_dev_list"]):
+            logger.error("Failed to select required hetero spare device")
+            return False
+
+        # Create the array
+        return self.cli.create_array(write_buffer=uram,
+                                    array_name=array_name,
+                                    data=selected_devices["data_dev_list"],
+                                    spare=selected_devices["sphare_dev_list"],
+                                    raid_type=raid_type)
 
     def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
         """
