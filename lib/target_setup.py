@@ -435,11 +435,24 @@ class NVMe_Dev(NVMe_Command):
         pass
 
 class TargetHeteroSetup:
-    def __init__(self, ssh_obj: object, hetero_setup_data: dict=None) -> None:
+    def __init__(self, ssh_obj: object, pos_dir: str, hetero_setup_data: dict=None) -> None:
         self.ssh_obj = ssh_obj
+        self.pos_dir = pos_dir
         self.hetero_setup_data = hetero_setup_data
         self.nvme_test_device = {}
-        
+    
+    def _do_spdk_setup_reset(self) -> bool:
+        reset_cmd = f"{self.pos_dir}/lib/spdk/scripts/setup.sh reset"
+
+        out = self.ssh_obj.execute(reset_cmd)
+        try:
+            out = "".join(out)
+        except:
+            out = "".join(out[0])
+
+        return True
+
+
     def load_test_devices(self, device_list: list) -> bool:
         '''
         device_list: i.e ['/dev/nvme0', '/dev/nvme1']
@@ -458,11 +471,12 @@ class TargetHeteroSetup:
 
         return True
 
-
     def prepare(self, hetero_setup_data: dict) -> bool:
         '''
         
         '''
+        self.hetero_setup_data = hetero_setup_data
+
         prepare_setup = True if hetero_setup_data["enable"] == "true" else False
         nr_device = int(hetero_setup_data["num_test_device"])
         config_data = hetero_setup_data["test_devices"]
@@ -498,6 +512,14 @@ class TargetHeteroSetup:
         return True
 
     def reset(self):
+        if self.hetero_setup_data["enable"] == "false":
+            return True
+
+        logger.info("Hetero setup enabled")
+        if not self._do_spdk_setup_reset():
+            logger.error(f"Failed to reset nvme device binding: {reset_error}")
+            return False
+
         reset_error = []
         for dev_name, dev in self.nvme_test_device.items():
             if not dev.restore():
