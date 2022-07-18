@@ -306,45 +306,53 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    def create_hetero_array(self, array_name: str, uram: str, raid_type: str,
-                data_device_config: dict, spare_device_config: dict=None) -> bool:
+    def get_hetero_device(self, data_device_config: dict, 
+                          spare_device_config: dict=None,
+                          scan_device=False, list_device=True) -> bool:
         """
         Method to create array using hetero devices
         data_device_config: {dev_size: num_dev; '20GiB': 1}
         Returns:
             bool
         """
-        if not self.cli.list_device():
-            logger.error("Failed to get the device list")
-            return False
+        if scan_device:
+            if not self.cli.scan_device():
+                logger.error("Failed to get the device list")
+                return False
+
+        if list_device:
+            if not self.cli.list_device():
+                logger.error("Failed to get the device list")
+                return False
 
         scan_device = self.cli.NVMe_BDF
 
-        selected_devices = self.helper.select_hetro_devices(devices=scan_device,
+        res, devices = self.helper.select_hetro_devices(devices=scan_device,
                                             data_dev_select=data_device_config,
                                             spare_dev_select=spare_device_config)
 
+        if res == False:
+            logger.error("Failed to select required hetero data device")
+            return False
+
         total_data_dev = sum(data_device_config.values())
 
-        if total_data_dev != len(selected_devices["data_dev_list"]):
-            logger.info(f"Selected data devices: {selected_devices['data_dev_list']}")
+        if total_data_dev != len(devices["data_dev_list"]):
+            logger.info(f"Selected data devices: {devices['data_dev_list']}")
             logger.error("Failed to select required hetero data device")
-            
             return False
 
         if spare_device_config:
             total_spare_dev = sum(spare_device_config.values())
-            if total_spare_dev != len(selected_devices["sphare_dev_list"]):
-                logger.info(f"Selected spare devices: {selected_devices['sphare_dev_list']}")
+            if total_spare_dev != len(devices["spare_dev_list"]):
+                logger.info(f"Selected spare devices: {devices['spare_dev_list']}")
                 logger.error("Failed to select required hetero spare device")
                 return False
 
-        # Create the array
-        return self.cli.create_array(write_buffer=uram,
-                                    array_name=array_name,
-                                    data=selected_devices["data_dev_list"],
-                                    spare=selected_devices["sphare_dev_list"],
-                                    raid_type=raid_type)
+        self.data_drives = devices["data_dev_list"]
+        self.spare_drives = devices["spare_dev_list"]
+        return True
+
 
     def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
         """

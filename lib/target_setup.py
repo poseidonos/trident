@@ -250,7 +250,7 @@ class NVMe_Dev(NVMe_Command):
             logger.error("Failed to get active namespace list")
             return False
         
-        nsid_list = re.findall('0x[\da-f]+', self.ns_list)
+        nsid_list = re.findall(r'0x[\da-f]+', self.ns_list)
         nsid_list = list(map(lambda x: int(x, 0), nsid_list))
         logger.info(f"Namespace List: {nsid_list}")
 
@@ -273,7 +273,7 @@ class NVMe_Dev(NVMe_Command):
                 logger.error(f"Failed to get controller list")
                 return False
 
-            ctrl_list = re.findall('0x\d+', self.ctrl_list)
+            ctrl_list = re.findall(r'0x[\da-f]+', self.ctrl_list)
             ns.ctrl_list = list(map(lambda x: int(x, 0), ctrl_list))
 
             logger.info(f"Namespace Info: {ns}")
@@ -418,7 +418,6 @@ class NVMe_Dev(NVMe_Command):
         self.ns_created = True
         return True
 
-
     def is_dev_exists(self) -> bool:
         pass
 
@@ -513,6 +512,8 @@ class TargetHeteroSetup:
 
     def reset(self):
         if self.hetero_setup_data["enable"] == "false":
+            logger.info("Hetero device setup creation was disabled."
+                            "Setup reset is not required.")
             return True
 
         logger.info("Hetero setup enabled")
