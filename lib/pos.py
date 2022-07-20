@@ -100,7 +100,6 @@ class POS:
         self.pos_conf = POS_Config(self.target_ssh_obj)
         self.pos_conf.load_config()
 
-
         self.client_cnt = self.config_dict["login"]["initiator"]["number"]
         if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:
             for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):

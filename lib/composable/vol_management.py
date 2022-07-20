@@ -1,8 +1,8 @@
 import pytest, json, sys, os, time, random, codecs, re, datetime
 from random import randint
 
-import lib.logger as logger
-import lib.composable.composable_core as libcore
+import logger as logger
+import composable.composable_core as libcore
 
 logger = logger.get_logger(__name__)
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -67,7 +67,6 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
         )
         logger.info("Lock status : release {}".format(target.cli.lock.release()))
 
-
         assert target.cli.list_volume(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
@@ -112,6 +111,7 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
                         " --verify_dump=1 --verify_fatal=1 --continue_on_error=none"
                         " --group_reporting".format(fio_size, iod, bs, pattern_data)
                     ),
+                    json_out="test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete",
                 )[0]
                 == True
             )
@@ -164,6 +164,7 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
                         " --continue_on_error=none"
                         " --group_reporting".format(fio_size, iod, bs, pattern_data)
                     ),
+                    json_out="test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete",
                 )[0]
                 == True
             )
@@ -333,6 +334,7 @@ def test_vol_lc_stress_unmount_delete_create_mount_io(
                         fio_time,
                     )
                 ),
+                json_out="test_vol_lc_stress_unmount_delete_create_mount_io",
             )[0]
             == True
         )
@@ -423,8 +425,7 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
                 devices=fio_device,
                 fio_user_data=(
                     "fio  --name=fio_{} --rw={} --size={} --ioengine=libaio"
-                    " --iodepth={} --bs={} --numjobs=1 --direct=1 --group_reporting"
-                    .format(
+                    " --iodepth={} --bs={} --numjobs=1 --direct=1 --group_reporting".format(
                         io_type_data,
                         io_type_data,
                         test_dict["phase"][phase]["io"]["fio"]["size"],
@@ -432,6 +433,7 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
                         test_dict["phase"][phase]["io"]["fio"]["bs"],
                     )
                 ),
+                json_out="test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete",
             )
 
             assert ret == True

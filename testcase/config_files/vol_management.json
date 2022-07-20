@@ -15,7 +15,7 @@
     "test_vol_lc_stress_unmount_delete_create_mount_io":
     {   
         "total_phase":8,
-        "total_time":69120,
+        "total_time":20,
         "phase":
         [
             {

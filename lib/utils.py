@@ -424,6 +424,7 @@ class Client:
         IO_mode=True,
         expected_exit_code=None,
         run_async=False,
+        json_out: str = None,
     ):
         """
         :method To run user provided fio cmd line from user
@@ -431,15 +432,20 @@ class Client:
                 devices: takes a list of either mount points or raw devices
                 IO_mode : RAW IO(True)/File IO(False)
                 expected_exit_code : used to handle the negative FIO scenario's, Need to pass the exit code of the executed FIO command 0 or 1
-
+                json_out : name of the fio json
                 run_async : used to run FIO in back ground
         :return : Boolean
 
         """
         try:
-            self.fio_out_json = (
-                f'fio_out_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
-            )
+            if json_out:
+                self.fio_out_json = (
+                    f'{json_out}_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
+                )
+            else:
+                self.fio_out_json = (
+                    f'fiojsonop_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
+                )
             if not IO_mode:  # File IO
                 devices = list(map(lambda x: f"{x}/file.bin", devices))
 
