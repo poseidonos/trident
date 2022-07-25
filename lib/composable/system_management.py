@@ -1,13 +1,15 @@
 import pytest, json, sys, os, time, random, codecs, re, datetime
 from random import randint
 
-import lib.logger as logger
-import lib.composable.composable_core as libcore
+import logger as logger
+import composable.composable_core as libcore
 
 logger = logger.get_logger(__name__)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-with open("{}/../../testcase/config_files/system_management.json".format(dir_path)) as p:
+with open(
+    "{}/../../testcase/config_files/system_management.json".format(dir_path)
+) as p:
     tc_dict = json.load(p)
 
 
@@ -112,6 +114,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                             "write", "write", fio_size, iod, pattern_data
                         )
                     ),
+                    json_out="test_system_sanity_detach_attach_device_iteration_io_verify",
                 )[0]
                 == True
             )
@@ -128,6 +131,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                             "read", "read", fio_size, iod, pattern_data
                         )
                     ),
+                    json_out="test_system_sanity_detach_attach_device_iteration_io_verify",
                 )[0]
                 == True
             )
@@ -174,6 +178,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                             "read", "read", fio_size, iod, pattern_data
                         )
                     ),
+                    json_out="test_system_sanity_detach_attach_device_iteration_io_verify",
                 )[0]
                 == True
             )
@@ -236,6 +241,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                             "read", "read", fio_size, iod, pattern_data
                         )
                     ),
+                    json_out="test_system_sanity_detach_attach_device_iteration_io_verify",
                 )[0]
                 == True
             )

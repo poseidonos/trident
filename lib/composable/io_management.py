@@ -1,10 +1,10 @@
 import pytest, json, sys, os, time, random, codecs, re, datetime
 from random import randint
 
-import lib.logger as logger
-import lib.composable.composable_core as libcore
+import logger as logger
+import composable.composable_core as libcore
 
-#sys.path.insert(0, "/root/poseidon/commit2505/trident")
+# sys.path.insert(0, "/root/poseidon/commit2505/trident")
 logger = logger.get_logger(__name__)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -101,6 +101,7 @@ def test_io_sanity_iteration_io_verify_random_pattern(
                         " --verify_dump=1 --verify_fatal=1 --continue_on_error=none"
                         " --group_reporting".format(fio_size, iod, bs, pattern_data)
                     ),
+                    json_out="test_io_sanity_iteration_io_verify_random_pattern",
                 )[0]
                 == True
             )
@@ -124,6 +125,7 @@ def test_io_sanity_iteration_io_verify_random_pattern(
                         " --continue_on_error=none"
                         " --group_reporting".format(fio_size, iod, bs, pattern_data)
                     ),
+                    json_out="test_io_sanity_iteration_io_verify_random_pattern",
                 )[0]
                 == True
             )
@@ -229,7 +231,10 @@ def test_io_sanity_set_get_threashold_io_gc(
                 normal_threshold = random.randint(4, int(target.cli.free_segments))
                 urgent_threshold = random.randint(2, int(target.cli.gc_normal) - 1)
                 if normal_threshold < urgent_threshold:
-                    normal_threshold, urgent_threshold = urgent_threshold, normal_threshold
+                    normal_threshold, urgent_threshold = (
+                        urgent_threshold,
+                        normal_threshold,
+                    )
                 logger.info(
                     "Set normal threshold {}, urgent threshold {}".format(
                         normal_threshold, urgent_threshold
@@ -272,6 +277,7 @@ def test_io_sanity_set_get_threashold_io_gc(
                         " --verify_dump=1 --verify_fatal=1 --continue_on_error=none"
                         " --group_reporting".format(fio_size, iod, bs, pattern_data)
                     ),
+                    json_out="test_io_sanity_set_get_threashold_io_gc",
                 )[0]
                 == True
             )
@@ -295,6 +301,7 @@ def test_io_sanity_set_get_threashold_io_gc(
                         " --continue_on_error=none"
                         " --group_reporting".format(fio_size, iod, bs, pattern_data)
                     ),
+                    json_out="test_io_sanity_set_get_threashold_io_gc",
                 )[0]
                 == True
             )

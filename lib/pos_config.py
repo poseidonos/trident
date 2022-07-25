@@ -38,14 +38,15 @@ from datetime import datetime
 
 logger = logger.get_logger(__name__)
 
-class POS_Config():
-    def __init__(self, ssh_obj, file_name='pos.conf', file_path='/etc/pos/') -> None:
+
+class POS_Config:
+    def __init__(self, ssh_obj, file_name="pos.conf", file_path="/etc/pos/") -> None:
         self.ssh_obj = ssh_obj
         self.file_name = file_name
         self.file_path = file_path
-        self.file_data = None                       # Config File Data in JSON format
-        self.file_data_org = None                   # Store Files Data original copy
-        self.file_modified = False                  # Mark ture if config file is update.
+        self.file_data = None  # Config File Data in JSON format
+        self.file_data_org = None  # Store Files Data original copy
+        self.file_modified = False  # Mark ture if config file is update.
 
     def load_config(self) -> bool:
         try:
@@ -81,12 +82,16 @@ class POS_Config():
 
     def _copy_config_data(self, data: str) -> bool:
         try:
-            src_file_name = f'temp_{datetime.now().strftime("%Y_%m_%H_%M")}_pos_conf.json'
-            with open(src_file_name, 'w') as fp:
+            src_file_name = (
+                f'temp_{datetime.now().strftime("%Y_%m_%H_%M")}_pos_conf.json'
+            )
+            with open(src_file_name, "w") as fp:
                 fp.write(f"{data}\n")
 
             dst_file_name = f"{self.file_path}{self.file_name}"
-            self.ssh_obj.file_transfer(src_file_name, dst_file_name, move_to_local=False)
+            self.ssh_obj.file_transfer(
+                src_file_name, dst_file_name, move_to_local=False
+            )
 
             os.remove(src_file_name)
             return True
@@ -96,37 +101,37 @@ class POS_Config():
             os.remove(src_file_name)
             return False
 
-    def update_config(self, data: dict=None) -> bool:
+    def update_config(self, data: dict = None) -> bool:
         try:
             config_data_json = data or self.file_data
             config_data_str = json.dumps(config_data_json, indent=4)
 
             logger.debug("Config file data {}.".format(config_data_str))
 
-            #return self._dump_config_data(config_data_str)
+            # return self._dump_config_data(config_data_str)
             return self._copy_config_data(config_data_str)
         except Exception as e:
             logger.error(f"Load config failed. Error: '{e}'")
             print_exc()
             return False
 
-    def restore_config(self, force: bool=False) -> bool:
+    def restore_config(self, force: bool = False) -> bool:
         try:
             if not self.file_modified:
                 logger.error("POS Config file is already in Old state")
-            
+
             config_data_str = json.dumps(self.file_data_org, indent=4)
 
             logger.debug("Config file data {}.".format(config_data_str))
 
-            #return self._dump_config_data(config_data_str)
+            # return self._dump_config_data(config_data_str)
             return self._copy_config_data(config_data_str)
         except Exception as e:
             logger.error(f"Load config failed. Error: '{e}'")
             print_exc()
             return False
 
-    def journal_state(self, enable: bool=True, update_now: bool=False) -> bool:
+    def journal_state(self, enable: bool = True, update_now: bool = False) -> bool:
         journal_enable = self.file_data["journal"]["enable"]
         if enable:
             if journal_enable == "true":
@@ -148,9 +153,9 @@ class POS_Config():
         return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
-    '''
+    """
     from pos import POS
 
     pos = POS()
@@ -159,4 +164,4 @@ if __name__ == '__main__':
     assert pos_config.journal_state() == True
     assert pos_config.update_config() == True
     assert pos_config.restore_config() == True
-    '''
+    """

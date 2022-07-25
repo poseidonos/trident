@@ -15,7 +15,7 @@
     "test_system_sanity_detach_attach_device_iteration_io_verify":
     {   
         "total_phase":8,
-        "total_time":69120,
+        "total_time":20,
         "phase":
         [
             {

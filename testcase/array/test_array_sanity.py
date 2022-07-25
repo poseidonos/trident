@@ -276,7 +276,7 @@ def test_Create_Array_alldrives():
                 raid_type="RAID5",
                 spare=[],
             )[0]
-            == False
+            == False  # True if all drives are same NUMA
         )
     except Exception as e:
         logger.error("Test case failed due to {e}")
