@@ -4,3 +4,4 @@ logs/*
 *.log
 *.pyc
 */.cache/
+testcase/system_test/*
