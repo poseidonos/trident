@@ -37,7 +37,9 @@ logger = logger.get_logger(__name__)
 
 
 class _Array(POS):
-    def __init__(self, array_name="POSARRAY1", data_dict: dict =None, cli_history:list = []):
+    def __init__(
+        self, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
+    ):
         super().__init__()
 
         self.data_dict = data_dict
@@ -72,9 +74,13 @@ class _Array(POS):
         assert self.cli.list_array()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
-            logger.info("----- CURRENT ARRAY STATE : NO ARRAY PRESENT IN THE CONFIG ----")
+            logger.info(
+                "----- CURRENT ARRAY STATE : NO ARRAY PRESENT IN THE CONFIG ----"
+            )
         else:
-            logger.info(f' -------------- ARRAY MOUNT/UNMOUNT INFO {self.cli.array_dict} --------------')
+            logger.info(
+                f" -------------- ARRAY MOUNT/UNMOUNT INFO {self.cli.array_dict} --------------"
+            )
             array_dict = {}
             for array in array_list:
                 if self.name == array:
@@ -87,7 +93,9 @@ class _Array(POS):
                         "data": self.cli.array_info[self.name]["data_list"],
                         "spare": self.cli.array_info[self.name]["spare_list"],
                     }
-                    logger.info(f"--------- CURRENT ARRAY STATE : {array_dict} -------------------")
+                    logger.info(
+                        f"--------- CURRENT ARRAY STATE : {array_dict} -------------------"
+                    )
         return True
 
     def select_next_state(self):
@@ -114,13 +122,16 @@ class _Array(POS):
                     "situation"
                 ].lower()
 
-                self.device["data"] = self.cli.array_info[self.name]["data_list"]
-                self.device["spare"] = self.cli.array_info[self.name]["spare_list"]
-                if "Faulty Device" in self.device["data"]:
-
-                    self.device["data"] = list(
-                        set(self.device["data"]) - set(["Faulty Device"])
-                    )
+                self.device["data"] = [
+                    dev
+                    for dev in self.cli.array_info[self.name]["data_list"]
+                    if "[REMOVED]" not in dev
+                ]
+                self.device["spare"] = [
+                    dev
+                    for dev in self.cli.array_info[self.name]["spare_list"]
+                    if "[REMOVED]" not in dev
+                ]
 
             else:
                 assert update_next_status(state=None, situation=None) == True
@@ -158,17 +169,12 @@ class _Array(POS):
         assert init_obj() == True
         assert self.cli.list_device()[0] == True
         self.total_data_array = len(self.cli.array_info[self.name]["data_list"])
-
-        if self.name == "Trident_POS_Array1":
-            self.totalDrivesArray = int(
-                self.data_dict["array"]["array1_data_count"]
-            ) + int(
-                self.data_dict["array"]["array1_spare_count"]
-            )  ##Num Spare + Num Data
-        else:
-            self.totalDrivesArray = int(
-                self.data_dict["array"]["array2_data_count"]
-            ) + int(self.data_dict["array"]["array2_spare_count"])
+        array_dict = self.data_dict["array"]["pos_array"]
+        for array in array_dict:
+            if self.name == array["array_name"]:
+                self.totalDrivesArray = int(array["data_device"]) + int(
+                    array["spare_device"]
+                )
 
         if "wait_for_rebuild" == self.func["name"]:
             if "rebuilding" == self.situation["current"]:
@@ -687,12 +693,12 @@ class _Array(POS):
                 for array in array_list:
                     assert self.cli.info_array(array_name=array)[0] == True
                     used_bufer.append(self.cli.array_info[array]["buffer_list"][0])
-               
+
                 free_buf = [
                     buf for buf in self.cli.dev_type["NVRAM"] if buf not in used_bufer
                 ]
                 self.buffer_data = free_buf
-          
+
             return True
 
         def check_mbr_device(device=None):
@@ -784,16 +790,10 @@ class _Array(POS):
                     if detach_type == "data":
                         if self.situation["current"] == "rebuilding":
                             self.device["data"].remove(self.device["rebuild"])
-                        if "Faulty Device" in self.device["data"]:
-
-                            temp_list = list(
-                                set(self.device["data"]) - set(["Faulty Device"])
-                            )
-                            if len(temp_list) == 0:
-                                logger.info("no devices Present in Array to remove")
-                                return True
-                            else:
-                                dev_name = random.choice(temp_list)
+                        # self.device['data'] = [dev for dev in self.device['data'] if '[REMOVED]' not in dev]
+                        if len(self.device["data"]) == 0:
+                            logger.info("no devices Present in Array to remove")
+                            return True
                         else:
                             dev_name = random.choice(self.device["data"])
 
@@ -907,13 +907,14 @@ class _Array(POS):
                 index = int(self.name[-1:])
 
                 sysdev_list = select_system_device(dev_num=self.totalDrivesArray)
-                data_dev = sysdev_list[0 : self.data_dict["array"]["array1_data_count"]]
-                spare_dev = sysdev_list[
-                    self.data_dict["array"]["array1_data_count"] : self.data_dict[
-                        "array"
-                    ]["array1_data_count"]
-                    + self.data_dict["array"]["array1_spare_count"]
-                ]
+                array_dict = self.data_dict["array"]["pos_array"]
+                for array in array_dict:
+                    if self.name == array["array_name"]:
+                        data_dev = sysdev_list[0 : array["data_device"]]
+                        spare_dev = sysdev_list[
+                            array["data_device"] : array["data_device"]
+                            + array["data_device"]
+                        ]
                 device_list = data_dev + spare_dev
                 get_buffer_data()
                 buffer_dev = self.buffer_data
@@ -957,7 +958,7 @@ class _Array(POS):
                         if self.name in subsystem:
                             self.client.nvme_list()
                             if len(self.client.nvme_list_out) != 0:
-                                self.client.nvme_disconnect(nqn = [subsystem])
+                                self.client.nvme_disconnect(nqn=[subsystem])
                         assert (
                             self.cli.delete_subsystem(nqn_name=subsystem)[0]
                             == self.func["expected"]
@@ -980,25 +981,47 @@ class _Array(POS):
             assert self.target_utils.get_subsystems_list() == True
             if self.func["expected"] == True:
                 assert self.cli.list_volume(array_name=self.name)[0] == True
-                base_name =  base_name = self.data_dict["subsystem"]["base_nqn_name"] + self.name
+                base_name = self.data_dict["subsystem"]["base_nqn_name"] + self.name
+
                 self.target_utils.create_subsystems_multiple(
-                    ss_count=self.data_dict["subsystem"][self.name], base_name = base_name
+                    ss_count=self.data_dict["subsystem"]["nr_subsystems"],
+                    base_name=base_name,
                 ) == True
                 self.target_utils.get_subsystems_list()
-                self.subsystem = [ss for ss in self.target_utils.ss_temp_list if self.name in ss]
+                self.subsystem = [
+                    ss for ss in self.target_utils.ss_temp_list if self.name in ss
+                ]
                 for ss in self.subsystem:
                     self.cli.add_listner_subsystem(
                         ss, self.target_utils.helper.ip_addr[0], "1158"
                     )
                 if len(self.cli.vols) != 0:
-                    assert self.target_utils.mount_volume_multiple(array_name = self.name, volume_list= self.cli.vols, nqn_list=self.subsystem) == True
-                    
+                    assert (
+                        self.target_utils.mount_volume_multiple(
+                            array_name=self.name,
+                            volume_list=self.cli.vols,
+                            nqn_list=self.subsystem,
+                        )
+                        == True
+                    )
+
                 else:
+                    for index in range(len(self.data_dict["volume"]["pos_volumes"])):
+                        if (
+                            self.data_dict["volume"]["pos_volumes"][index]["array_name"]
+                            == self.name
+                        ):
+                            numvol = self.data_dict["volume"]["pos_volumes"][index][
+                                "num_vol"
+                            ]
+                            size = self.data_dict["volume"]["pos_volumes"][index][
+                                "size"
+                            ]
                     assert (
                         self.target_utils.create_volume_multiple(
                             array_name=self.name,
-                            num_vol=self.data_dict["volume"][self.name]["num_vol"],
-                            size=self.data_dict["volume"][self.name]["size"],
+                            num_vol=numvol,
+                            size=size,
                         )
                         == True
                     )
@@ -1026,7 +1049,7 @@ class _Array(POS):
                     assert (
                         self.client.fio_generic_runner(
                             self.client.nvme_list_out,
-                            fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --size=100%",
+                            fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0",
                         )[0]
                         == True
                     )

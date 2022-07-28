@@ -37,6 +37,8 @@ import string
 import random
 import math
 import datetime
+import os
+import codecs
 
 logger = logger.get_logger(__name__)
 
@@ -159,6 +161,16 @@ class Helper:
         Method to get mellanox interface ip
         """
         try:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            json_path = f"{dir_path}/../testcase/config_files/topology.json"
+            self.json_reader(json_path)
+
+            if self.static_dict["login"]["target"]["server"][0]["Data_Ip"] != "None":
+                self.ip_addr = [
+                    self.static_dict["login"]["target"]["server"][0]["Data_Ip"]
+                ]
+                return (True, self.ip_addr)
+
             mlx_inter = []
 
             self.cnctd_mlx_inter = []
@@ -330,4 +342,13 @@ class Helper:
             logger.error("Command Execution failed because of {}".format(e))
             return False
 
-    
+    def generate_pattern(self, num_digits):
+        """
+        Method to generate random number of given num_digits digits
+        """
+        try:
+            pattern = codecs.encode(os.urandom(int(num_digits / 2)), "hex").decode()
+        except:
+            logger.info("could not generate pattern!!!")
+            raise Exception("could not generate pattern!!!")
+        return pattern

@@ -33,6 +33,7 @@
 import logger
 import time
 import re
+import datetime
 import random
 import json
 import traceback
@@ -54,7 +55,9 @@ class Client:
         client_cleanup : " flag to clean up client" (Default: True)
     """
 
-    def __init__(self, ip:str, username:str, password:str, client_cleanup:bool=True):
+    def __init__(
+        self, ip: str, username: str, password: str, client_cleanup: bool = True
+    ):
 
         ssh_obj = SSHclient(ip, username, password)
         self.helper = helper.Helper(ssh_obj)
@@ -111,7 +114,7 @@ class Client:
             logger.error("Error rebooting node because of Error {}".format(e))
             return False
 
-    def reboot_with_reconnect(self, timeout:int=600) -> bool:
+    def reboot_with_reconnect(self, timeout: int = 600) -> bool:
         """
         Methods: To reboot the node and wait for it come up
 
@@ -194,7 +197,7 @@ class Client:
         nvme_cmd_output = self.ssh_obj.execute(nvme_cmd)
         return nvme_cmd_output
 
-    def nvme_format(self, device_name:str) -> (bool, list):
+    def nvme_format(self, device_name: str) -> (bool, list):
         """
         Method
         To format device using nvme cli
@@ -218,7 +221,7 @@ class Client:
             return False
         return True
 
-    def nvme_id_ctrl(self, device_name:str, search_string:str=None) -> (bool, list):
+    def nvme_id_ctrl(self, device_name: str, search_string: str = None) -> (bool, list):
         """
         Method to execute nvme id-ctrl nvme cli
 
@@ -253,7 +256,7 @@ class Client:
 
             return False, out
 
-    def nvme_ns_rescan(self, cntlr_name:str) -> bool:
+    def nvme_ns_rescan(self, cntlr_name: str) -> bool:
         """
         Method to execute nvme ns-rescan nvme cli
 
@@ -280,7 +283,9 @@ class Client:
 
             return False
 
-    def nvme_show_regs(self, device_name:str, search_string:str=None) ->(bool, list):
+    def nvme_show_regs(
+        self, device_name: str, search_string: str = None
+    ) -> (bool, list):
         """
         Method to execute nvme show-regs nvme cli
 
@@ -319,7 +324,7 @@ class Client:
 
             return False, out
 
-    def nvme_list_subsys(self, device_name:str) ->(bool, list):
+    def nvme_list_subsys(self, device_name: str) -> (bool, list):
         """
         Method to execute nvme list-subsys nvme cli
 
@@ -354,7 +359,9 @@ class Client:
 
             return False, None
 
-    def nvme_smart_log(self, device_name:str, search_string:str=None) -> (bool, list):
+    def nvme_smart_log(
+        self, device_name: str, search_string: str = None
+    ) -> (bool, list):
         """
         Method to execute nvme smart-log nvme cli
         Args:
@@ -412,12 +419,12 @@ class Client:
 
     def fio_generic_runner(
         self,
-        devices,
+        devices: list,
         fio_user_data=None,
         IO_mode=True,
         expected_exit_code=None,
-        run_async=False
-        
+        run_async=False,
+        json_out: str = None,
     ):
         """
         :method To run user provided fio cmd line from user
@@ -425,54 +432,119 @@ class Client:
                 devices: takes a list of either mount points or raw devices
                 IO_mode : RAW IO(True)/File IO(False)
                 expected_exit_code : used to handle the negative FIO scenario's, Need to pass the exit code of the executed FIO command 0 or 1
-                
+                json_out : name of the fio json
                 run_async : used to run FIO in back ground
         :return : Boolean
-        
+
         """
         try:
-            if len(devices) is 1 and IO_mode is True:
-                filename = devices[0]
-            elif len(devices) is 1 and IO_mode is False:
-                filename = devices[0] + "/file.bin"
-            elif len(devices) > 1 and IO_mode is True:
-                filename = ":".join(devices)
-            elif len(devices) > 1 and IO_mode is False:
-                filename = "/file.bin:".join(devices)
-                filename += "/file.bin"
-            else:
-                raise Exception("no devices found ")
-            if fio_user_data and IO_mode == False:
-               
-                fio_cli = fio_user_data + " --filename={}".format(filename)
-            elif fio_user_data and IO_mode == True:
-                
-                fio_cli = fio_user_data + " --filename={}".format(filename)
-            elif IO_mode == False:
-               
-                fio_cli = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --filename={}".format(
-                    filename
+            if json_out:
+                self.fio_out_json = (
+                    f'{json_out}_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
                 )
             else:
-              
-                fio_cli = "fio --name=S_W  --runtime=5 --ioengine=libaio  --iodepth=16 --rw=write --size=1g --bs=1m --direct=1 --filename={}".format(
-                    filename
+                self.fio_out_json = (
+                    f'fiojsonop_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
                 )
+            if not IO_mode:  # File IO
+                devices = list(map(lambda x: f"{x}/file.bin", devices))
+
+            filename = ":".join(devices)
+
+            if fio_user_data:
+                fio_cmd = fio_user_data
+            else:
+                fio_cmd = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --direct=1"
+
+            fio_cmd += " --filename={} --output-format=json --output={}".format(
+                filename, self.fio_out_json
+            )
 
             if run_async == True:
-                async_out = self.ssh_obj.run_async(fio_cli)
+                async_out = self.ssh_obj.run_async(fio_cmd)
                 return True, async_out
             else:
                 outfio = self.ssh_obj.execute(
-                    fio_cli, get_pty = True, expected_exit_code=expected_exit_code
+                    fio_cmd, get_pty=True, expected_exit_code=expected_exit_code
                 )
-                logger.info("".join(outfio))
+                self.fio_parser()
                 return True, outfio
-                
+
         except Exception as e:
             logger.error("Fio failed due to {}".format(e))
+            traceback.print_exc()
             return (False, None)
-    def is_file_present(self, file_path:str) ->bool:
+
+    def fio_parser(self) -> dict():
+        """
+        method to make specific information from fio output
+        bw: KiB/s
+        iops: iops
+        clat: nsec
+        """
+        cmd = f"cat {self.fio_out_json}"
+        str_out = self.ssh_obj.execute(cmd)
+        printout = "".join(str_out)
+        logger.info(printout)
+        self.fio_par_out = {}
+        str_out = "".join(str_out).replace("\n", "")
+
+        jout = json.loads(str_out)
+
+        self.fio_par_out["read"] = {
+            "bw": jout["jobs"][0]["read"]["bw"],
+            "iops": jout["jobs"][0]["read"]["iops"],
+            "clat": jout["jobs"][0]["read"]["clat_ns"],
+        }
+        self.fio_par_out["write"] = {
+            "bw": jout["jobs"][0]["write"]["bw"],
+            "iops": jout["jobs"][0]["write"]["iops"],
+            "clat": jout["jobs"][0]["write"]["clat_ns"],
+        }
+
+        return True
+
+    def fio_verify_qos(self, qos_data: dict, fio_out: dict, num_dev: int) -> bool:
+        """
+        Method to verify the fio output in adhare the qos throttling
+        qos_data: QOS data dictionary
+                    {max_iops, max_bw}
+        fio_out: FIO output dictionary
+                    {bw, iops, clat}
+        num_dev: Number of nvme device listed
+        """
+        logger.info(f"Compare fio output '{fio_out}' and qos values '{qos_data}'")
+
+        bs, kiops = 4096, 1000
+        qos_max_bw = qos_data["max_iops"]
+        qos_max_iops = qos_data["max_bw"]
+        fio_bw = fio_out["bw"]
+        fio_iops = fio_out["iops"]
+
+        avg_fio_bw = float(fio_bw) / num_dev
+        avg_fio_iops = float(fio_iops) / num_dev
+        result = False
+
+        if qos_max_bw < (qos_max_iops * bs * kiops / (1024 * 1024)):
+            logger.info(
+                "avg fio bw: {} ({}/{} - total bw/num of device). qos max bw {}".format(
+                    avg_fio_bw, fio_bw, num_dev, qos_max_bw
+                )
+            )
+            if avg_fio_bw < qos_max_bw and avg_fio_bw > qos_max_bw * 0.95:
+                result = True
+        else:
+            logger.info(
+                "avg fio iops: {} ({}/{} - total iops/num of device). qos max iops {}".format(
+                    avg_fio_iops, fio_iops, num_dev, qos_max_iops
+                )
+            )
+            if avg_fio_iops < qos_max_iops and avg_fio_iops > qos_max_iops * 0.95:
+                result = True
+
+        return result
+
+    def is_file_present(self, file_path: str) -> bool:
         """
         Method to verify if file present of not
 
@@ -496,7 +568,7 @@ class Client:
 
             return False
 
-    def create_File_system(self, device_list:list, fs_format:str="ext3")-> bool:
+    def create_File_system(self, device_list: list, fs_format: str = "ext3") -> bool:
         """
         Creates MKFS FS on different devices
 
@@ -524,7 +596,9 @@ class Client:
 
             return False
 
-    def mount_FS(self, device_list:list, fs_mount_dir:str=None, options:str=None) ->(bool,list):
+    def mount_FS(
+        self, device_list: list, fs_mount_dir: str = None, options: str = None
+    ) -> (bool, list):
         """
         method to Mount Fs to device
 
@@ -594,7 +668,7 @@ class Client:
                 return (False, None)
             return (True, list(out.values()))
 
-    def unmount_FS(self, fs_mount_pt:str) ->bool:
+    def unmount_FS(self, fs_mount_pt: str) -> bool:
         """
         method to unmount file system
 
@@ -610,24 +684,23 @@ class Client:
             else:
                 for mnt in fs_mount_pt:
                     umount_cmd = "umount {}".format(mnt)
-                    self.ssh_obj.execute(umount_cmd)
-                    logger.info("Successfully mount point {} is unmounted".format(mnt))
-                    verify = self.ssh_obj.execute("mount")
-                    for mount_pts_devices in verify:
-                        if mnt in mount_pts_devices:
-                            raise Exception(
-                                "failed to unmount the mount point {}".format(mnt)
-                            )
-                        else:
-                            logger.info("deleting filesystem after unmounting")
-                            self.delete_FS(fs_mount_pt=mnt)
+                    out = self.ssh_obj.execute(umount_cmd)
+                    if out:
+                        raise Exception(
+                            f"Failed to unmount '{mnt}'. Cli Error: '{out}'"
+                        )
+                    else:
+                        logger.info(f"Successfully unmounted '{mnt}'")
+
+                    logger.info("Deleting filesystem after unmounting")
+                    assert self.delete_FS(fs_mount_pt=mnt) == True
                 return True
         except Exception as e:
-            logger.error("command execution failed with exception {}".format(e))
+            logger.error("Unmount FS failed with exception {}".format(e))
             logger.error(traceback.format_exc())
             return False
 
-    def delete_FS(self, fs_mount_pt:bool) -> bool:
+    def delete_FS(self, fs_mount_pt: bool) -> bool:
         """
         Method to delete a directory, used to delete directory after unmount
         Args:
@@ -638,17 +711,20 @@ class Client:
         """
         try:
             rm_cmd = "rm -fr {}".format(fs_mount_pt)
-            self.ssh_obj.execute(rm_cmd)
+            out = self.ssh_obj.execute(rm_cmd)
+            if out:
+                raise Exception(f"Failed to delete '{fs_mount_pt}'. Cli Error: '{out}'")
+
             if self.is_dir_present(fs_mount_pt) is True:
-                raise Exception("file system found after deletion")
+                raise Exception("File found after deletion")
             else:
                 return True
         except Exception as e:
-            logger.error("command excution failed with exception {}".format(e))
+            logger.error("Delete FS failed with exception {}".format(e))
 
             return False
 
-    def is_dir_present(self, dir_path:str) -> bool:
+    def is_dir_present(self, dir_path: str) -> bool:
         """
         Method to verif if directory is present or not
         Args:
@@ -672,7 +748,9 @@ class Client:
             logger.error("error finding directory {}".format(e))
             return False
 
-    def nvme_connect(self, nqn_name:str, mellanox_switch_ip:str, port:str, transport:str="TCP") -> bool:
+    def nvme_connect(
+        self, nqn_name: str, mellanox_switch_ip: str, port: str, transport: str = "TCP"
+    ) -> bool:
         """
         starts Nvme connect at the host
         Args:
@@ -696,7 +774,7 @@ class Client:
 
             return False
 
-    def ctrlr_list(self) ->(bool,list):
+    def ctrlr_list(self) -> (bool, list):
         """
         method to find the list of controllers connected
 
@@ -718,7 +796,6 @@ class Client:
         for i in temp:
             if i not in final:
                 final.append(i)
-        logger.info(final)
 
         return (True, final)
 
@@ -731,7 +808,7 @@ class Client:
             self.ssh_obj.execute(cmd)
         return True
 
-    def nvme_disconnect(self, nqn:list=[], timeout:int =  60) -> bool:
+    def nvme_disconnect(self, nqn: list = [], timeout: int = 60) -> bool:
         """
         Method to disconnect nvmf ss
         Args:
@@ -762,19 +839,19 @@ class Client:
                     logger.info("Nvme disconnect passed")
                     return True
                 else:
-                    logger.info("retrying disconnect in 10 seconds")
-                    count += 10
-                    time.sleep(10)
+                    logger.info("retrying disconnect in 5 seconds")
+                    count += 5
+                    time.sleep(5)
                     if count > timeout:
                         break
-                if len(self.nvme_list_out) != 0:
-                    raise Exception("nvme disconnect failed")
+            if len(self.nvme_list_out) != 0:
+                raise Exception("nvme disconnect failed")
         except Exception as e:
             logger.error("command failed wth exception {}".format(e))
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_list(self, model_name:str="POS_VOLUME") -> bool:
+    def nvme_list(self, model_name: str = "POS_VOLUME") -> bool:
         """
         Method to get the nvme list
         Args:
@@ -801,7 +878,9 @@ class Client:
             return False
         return True
 
-    def nvme_discover(self, nqn_name:str, mellanox_switch_ip:str, port:str, transport:str="tcp") -> bool:
+    def nvme_discover(
+        self, nqn_name: str, mellanox_switch_ip: str, port: str, transport: str = "tcp"
+    ) -> bool:
         """
         method to discover nvme subsystem
         Args :
@@ -837,7 +916,7 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_flush(self, dev_list:list) -> bool:
+    def nvme_flush(self, dev_list: list) -> bool:
         """
         methood to execute nvme flush
         Args
@@ -868,3 +947,64 @@ class Client:
     def check_system_memory(self):
         """method to check the system mem info in the host"""
         assert self.helper.check_system_memory() == True
+
+    def part_num(self, Device_name: str = None, part: bool = True) -> (bool, list, int):
+        """method to find number of partitions presnt on a device"""
+
+        try:
+            if part is False:
+                cmd = "lsblk | grep nvme||true"
+            else:
+                dev_name = Device_name.split("/dev/")[1]
+                cmd = "lsblk | grep {}p||true".format(dev_name)
+
+            out = self.ssh_obj.execute(cmd)
+            if len(out) is 0:
+                logger.info("No partitions found")
+                return True, None, len(out)
+            else:
+                temp = []
+                if part is True:
+                    logger.info(
+                        "number of partitions in {} : {}".format(Device_name, len(out))
+                    )
+                    reg = "{}p\d+".format(dev_name)
+                else:
+                    reg = "nvme\d+n\d+"
+
+                for i in out:
+                    regx = re.search(reg, i)
+                    temp.append(regx.group())
+
+                return True, temp, len(out)
+
+        except Exception as e:
+            logger.error("failed to get partition data due to {}".format(e))
+            return False, None, None
+
+    def create_part(self, device_name: str, part_size: str) -> (bool, list):
+        """
+        Method to create partition on a given block device
+        """
+        try:
+            out = self.part_num(Device_name=device_name)
+            num_part = out[2]
+            if out[0] is True:
+                cmd = "fdisk {}".format(device_name)
+                out = self.ssh_obj.shell_execute(
+                    cmd, ["n", "p", "\n", "+{}".format(part_size), "Y", "w"], wait=3
+                )
+
+                out = self.part_num(Device_name=device_name)
+                if num_part >= out[2]:
+                    logger.error("Creation of partion failed")
+                    return False, None
+                else:
+                    temp = []
+                    for i in out[1]:
+                        dev = "/dev/{}".format(i)
+                        temp.append(dev)
+                    return True, temp
+        except Exception as e:
+            logger.error("creating partition failed due to {}".format(e))
+            return False, None

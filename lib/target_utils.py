@@ -50,13 +50,11 @@ class TargetUtils:
 
     """
 
-    def __init__(
-        self, ssh_obj, data_dict: dict, pos_path: str, array_name="POS_ARRAY1"
-    ):
+    def __init__(self, ssh_obj, data_dict: dict, pos_path: str):
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
         self.cli = Cli(ssh_obj, self.static_dict, pos_path)
-        self.array = array_name
+        # self.array = array_name
         self.helper = helper.Helper(ssh_obj)
         self.udev_rule = False
         self.total_required = 0
@@ -136,33 +134,40 @@ class TargetUtils:
             for dev in device_list:
                 pci_addr = dev_map[1][dev]
                 self.dev_addr.append(pci_addr)
-                logger.info(
-                    "pci address {} for the given device is {} ".format(pci_addr, dev)
-                )
-                hot_plug_cmd = "echo 1 > /sys/bus/pci/devices/{}/remove ".format(
-                    pci_addr
-                )
+                logger.info(f"PCIe address {pci_addr} for the given device is {dev}.")
+
+                hot_plug_cmd = f"echo 1 > /sys/bus/pci/devices/{pci_addr}/remove"
                 logger.info("Executing hot plug command {} ".format(hot_plug_cmd))
                 self.ssh_obj.execute(hot_plug_cmd)
-                time.sleep(5)
-                list_dev_out = self.dev_bdf_map()
-                if list_dev_out[0] == False:
-                    logger.error(
-                        "failed to get the device and bdf map after removing the disk"
-                    )
-                    return False
-                if pci_addr in list(list_dev_out[1].values()):
-                    logger.warning(
-                        "failed to hot plug the device {} verifing in list_device ".format(
-                            dev
+
+                for i in range(10):
+                    wait_time = 3  # 3 seconds
+                    time.sleep(wait_time)
+                    list_dev_out = self.dev_bdf_map()
+                    if list_dev_out[0] == False:
+                        logger.error("Failed to get device bdf map after disk remove.")
+                        return False
+
+                    if pci_addr not in list(list_dev_out[1].values()):
+                        break
+
+                    logger.info(
+                        "Removed device {} still listed. Wait {} sec...".format(
+                            dev, wait_time
                         )
                     )
-                    assert self.cli.list_device()[0] == True
-                    if dev in self.cli.dev_type["SSD"]:
-                        logger.error("failed to remove device")
-                        return False
+
+                if pci_addr in list(list_dev_out[1].values()):
+                    logger.warning("Failed to hot plug the device {}".format(dev))
                 else:
-                    logger.info("Successfully removed the device {} ".format(dev))
+                    logger.info("Device {} is removed from bdf list".format(dev))
+
+                assert self.cli.list_device()[0] == True
+                if dev in self.cli.dev_type["SSD"]:
+                    logger.error("Failed to remove the device.".format(dev))
+                    return False
+                else:
+                    logger.info("Successfully removed the device {}".format(dev))
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False
@@ -299,23 +304,30 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    
-    def spor_prep(self) -> bool:
+    def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
         """
         Method to spor preparation
+        wbt_flush : If true, Issue the wbt flush command
+        uram_backup : If true, run script to take uram backup
+
         Returns:
             bool
         """
         try:
-            assert self.cli.wbt_flush()[0] == True
-            assert self.cli.stop_system()[0] == True
-            self.ssh_obj.execute(
-                "{}/script/backup_latest_hugepages_for_uram.sh".format(
-                    self.cli.pos_path
-                ),
-                get_pty=True,
-            )
-            self.ssh_obj.execute("rm -fr /dev/shm/ibof*", get_pty=True)
+            if wbt_flush:
+                assert self.cli.wbt_flush()[0] == True
+
+            assert self.cli.stop_system(grace_shutdown=False)[0] == True
+
+            if uram_backup:
+                self.ssh_obj.execute(
+                    "{}/script/backup_latest_hugepages_for_uram.sh".format(
+                        self.cli.pos_path
+                    ),
+                    get_pty=True,
+                )
+            # self.ssh_obj.execute("rm -fr /dev/shm/ibof*", get_pty=True)
+            return True
 
         except Exception as e:
             logger.error(e)
@@ -332,18 +344,54 @@ class TargetUtils:
         try:
             if array_name == None:
                 array_name = self.array
-            info_status = 0
-            while info_status <= 2300:
-                get_pos_status = self.cli.info_array(array_name=array_name)
-                if get_pos_status[0] == True and get_pos_status[3] == "NORMAL":
-                    logger.info("rebuild status is updated in array info command")
-                    break
+
+            if self.cli.info_array(array_name=array_name)[0]:
+                situation = self.cli.array_info[array_name]["situation"]
+                progress = self.cli.array_info[array_name]["rebuilding_progress"]
+                state = self.cli.array_info[array_name]["state"]
+
+                if situation == "REBUILDING":
+                    logger.info(
+                        f" {array_name} REBUILDING in Progress... [{progress}%]"
+                    )
                 else:
-                    info_status += 1
-                    logger.info("verifying if rebuilding progress status is 0")
-                    time.sleep(2)
+                    logger.info(f" {array_name}  REBUILDING is Stoped/Not Started!")
+                    logger.info(f"Situation: {situation}, State: {state}")
+                    return False
             else:
-                raise Exception("rebuilding failed for the array {}".format(array_name))
+                logger.error(f" {array_name}  Info command failed.")
+                return False
+        except Exception as e:
+            logger.error("Command execution failed with exception {}".format(e))
+            return False
+        return True
+
+    def array_rebuild_wait(
+        self, array_name: str = None, wait_time: int = 5, loop_count: int = 20
+    ) -> bool:
+        """
+        Method to check rebuild status
+        Args:
+            array_name (str) "name of the array" (optional)
+        Returns:
+            bool
+        """
+        try:
+            if array_name == None:
+                array_name = self.array
+            counter = 0
+            while counter <= loop_count:
+                if not self.check_rebuild_status(array_name):
+                    # The rebuild is not in progress
+                    break
+                time.sleep(wait_time)
+
+            if counter > loop_count:
+                if not self.check_rebuild_status(array_name):
+                    logger.info(f"Rebuilding wait time completed... {array_name}")
+                    return False
+            else:
+                logger.info(f"Rebuilding completed for the array {array_name}")
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False
@@ -374,7 +422,9 @@ class TargetUtils:
 
         if size == None:
             assert self.cli.info_array(array_name)[0] == True
-            temp = self.helper.convert_size(int(self.cli.array_info[array_name]['size']))
+            temp = self.helper.convert_size(
+                int(self.cli.array_info[array_name]["size"])
+            )
             if "TB" in temp:
                 size_params = int(float(temp[0]) * 1000)
                 size_per_vol = int(size_params / num_vol)
@@ -403,34 +453,53 @@ class TargetUtils:
         Returns:
             bool
         """
-
         num_ss = len(nqn_list)
         num_vol = len(volume_list)
+        logger.info("nqn {} and vols {} ".format(str(nqn_list), str(volume_list)))
+
         temp, num = 0, 0
         for num in range(num_vol):
             ss = nqn_list[temp] if len(nqn_list) > 1 else nqn_list[0]
+            logger.info("ss {} and temp {} ".format(ss, str(temp)))
             assert self.cli.mount_volume(volume_list[num], array_name, ss)[0] == True
-            temp += 1
+
             if temp == num_ss - 1:
                 temp = 0
+            else:
+                temp += 1
         return True
 
-    def create_subsystems_multiple(self, ss_count: int, base_name:str = None) -> bool:
-
+    def create_subsystems_multiple(
+        self,
+        ss_count: int,
+        base_name: str,
+        ns_count: int = 512,
+        serial_number: str = "POS000000000001",
+        model_name: str = "POS_VOLUME",
+    ) -> bool:
         """
-        method to create more than one SS
+        Method to create more than one SS
         Args:
-            ss_count (int) : number of SS to be created
+            ss_count (int) : Number of SS to be created
+            base_name (str) : Subsystem Base Name
+            ns_count (int) : Number of NS can be supported
+            serial_number (str) : Serial number of subsystem
+            model_number (str) : Model number of subsystem
         Returns:
             bool
         """
         try:
             for i in range(ss_count):
                 if base_name:
-                    ss_name = self.generate_nqn_name(default_nqn_name = base_name)
+                    ss_name = self.generate_nqn_name(default_nqn_name=base_name)
                 else:
                     ss_name = self.generate_nqn_name()
-                assert self.cli.create_subsystem(ss_name)[0] == True
+                assert (
+                    self.cli.create_subsystem(
+                        ss_name, ns_count, serial_number, model_name
+                    )[0]
+                    == True
+                )
             return True
         except Exception as e:
             return False
@@ -494,45 +563,46 @@ class TargetUtils:
         Returns:
             bool
         """
-
         try:
             if data_dict:
                 self.static_dict = data_dict
             static_dict = self.static_dict
             assert self.helper.get_mellanox_interface_ip()[0] == True
-
+            logger.info(self.static_dict)
             ###system config
-           
-            
+
             if static_dict["system"]["phase"] == "true":
                 assert self.cli.start_system()[0] == True
                 assert self.cli.create_transport_subsystem()[0] == True
 
             if static_dict["device"]["phase"] == "true":
-                assert self.cli.create_device(uram_name="uram0")[0] == True
-            if (
-                static_dict["array"]["num_array"] == 2
-                and static_dict["device"]["phase"] == "true"
-            ):
-                assert self.cli.create_device(uram_name="uram1")[0] == True
-                # assert self.cli.create_device(uram_name="uram2")[0] == True
-            assert self.cli.scan_device()[0] == True
+                device_list = static_dict["device"]["uram"]
+                for uram in device_list:
+                    assert (
+                        self.cli.create_device(
+                            uram_name=uram["uram_name"],
+                            bufer_size=uram["bufer_size"],
+                            strip_size=uram["strip_size"],
+                            numa=uram["numa_node"],
+                        )[0]
+                        == True
+                    )
+
+                assert self.cli.scan_device()[0] == True
+                assert self.cli.list_device()[0] == True
+
             if static_dict["subsystem"]["phase"] == "true":
-                base_name = static_dict["subsystem"]["base_nqn_name"] + "array1"
+                ss = static_dict["subsystem"]
                 assert (
                     self.create_subsystems_multiple(
-                        static_dict["subsystem"]["array1"], base_name= base_name
+                        ss["nr_subsystems"],
+                        base_name=ss["base_nqn_name"],
+                        ns_count=ss["ns_count"],
+                        serial_number=ss["serial_number"],
+                        model_name=ss["model_name"],
                     )
                     == True
                 )
-                if static_dict["array"]["num_array"] == 2:
-                    base_name = static_dict["subsystem"]["base_nqn_name"] + "array2"
-                    assert (
-                        self.create_subsystems_multiple(
-                            static_dict["subsystem"]["array2"], base_name = base_name
-                        )
-                        == True
-                    )
 
                 assert self.get_subsystems_list() == True
 
@@ -543,116 +613,123 @@ class TargetUtils:
                         )[0]
                         == True
                     )
-            #######array_config
-            assert self.cli.list_device()[0] == True
+
+            ####### array_config
             if static_dict["array"]["phase"] == "true":
                 assert self.cli.reset_devel()[0] == True
+                assert self.cli.list_device()[0] == True
+                system_disks = self.cli.system_disks
 
-                num_array = static_dict["array"]["num_array"]
-                array_name = static_dict["array"]["array_name"]
-                array1_data_count = static_dict["array"]["array1_data_count"]
-                array2_data_count = static_dict["array"]["array2_data_count"]
-
-                array1_spare_count = static_dict["array"]["array1_spare_count"]
-                array2_spare_count = static_dict["array"]["array2_spare_count"]
-
-                array1_raid_type = static_dict["array"]["array1_raid_type"]
-                array2_raid_type = static_dict["array"]["array2_raid_type"]
-                self.total_required = array1_data_count + array2_data_count
-                if num_array == 2:
-                    self.total_required += array2_spare_count + array1_spare_count
-
-                write_buffer = self.cli.dev_type["NVRAM"]
-                data_disks = self.cli.system_disks
-                if len(data_disks) < self.total_required:
-                    raise Exception("not Enough drives to start test")
-                assert (
-                    self.cli.create_array(
-                        write_buffer=write_buffer[0],
-                        data=data_disks[:array1_data_count:],
-                        spare=data_disks[-(array1_spare_count):],
-                        raid_type=array1_raid_type,
-                        array_name=f"{array_name}1",
-                    )[0]
-                    == True
-                )
-                self.array_list = []
-                self.array_list.append(f"{array_name}1")
-                if num_array == 2:
-                    assert (
-                        self.cli.autocreate_array(
-                            array_name=f"{array_name}2",
-                            buffer_name=write_buffer[1],
-                            num_data=str(array2_data_count),
-                            num_spare=str(array2_spare_count),
-                            raid=array2_raid_type,
-                        )[0]
-                        == True
-                    )
-                    self.array_list.append(f"{array_name}2")
-                for array_name in self.array_list:
-                    assert self.cli.mount_array(array_name=array_name)[0] == True
-            #####volume config
-            assert self.get_subsystems_list() == True
-            if static_dict["volume"]["array1"]["phase"] == "true":
-                array_name = "array1"
-                num_vol_array1 = static_dict["volume"]["array1"]["num_vol"]
-             
-                ss_list_array1 = [ss for ss in self.ss_temp_list if "array1" in ss]
-                 
-                if num_vol_array1 > 0:
-                    vol_size = (
-                        None
-                        if static_dict["volume"]["array1"]["size"]
-                        == "None"
-                        else static_dict["volume"]["array1"]["size"]
-                    )
-                    assert (
-                        self.create_volume_multiple(
-                            array_name, num_vol_array1, vol_name="posvol", size=vol_size
-                        )
-                        == True
-                    )
-                    assert self.cli.list_volume(array_name)[0] == True
-                 
-                    assert (
-                        self.mount_volume_multiple(
-                            array_name, self.cli.vols, ss_list_array1
-                        )
-                        == True
+                pos_array_list = static_dict["array"]["pos_array"]
+                nr_pos_array = static_dict["array"]["num_array"]
+                if nr_pos_array != len(pos_array_list):
+                    logger.warning(
+                        "JSON file data is inconsistent. POS bringup may fail."
                     )
 
-                if static_dict["volume"]["array2"]["phase"] == "true":
-                    num_vol_array2 = static_dict["volume"]["array2"][
-                        "num_vol"
-                    ]
-                    ss_list_array2 = [ss for ss in self.ss_temp_list if "array2" in ss]
-                    
-                    if num_vol_array2 > 0:
-                        array_name = "array2"
-                        vol_size = (
-                            None
-                            if static_dict["volume"]["array2"]["size"]
-                            == "None"
-                            else static_dict["volume"]["array2"]["size"]
-                        )
-                        assert (
-                            self.create_volume_multiple(
+                for array_index in range(nr_pos_array):
+                    array = pos_array_list[array_index]
+                    array_name = array["array_name"]
+                    nr_data_drives = array["data_device"]
+                    nr_spare_drives = array["spare_device"]
+
+                    if len(system_disks) < (nr_data_drives + nr_spare_drives):
+                        raise Exception(
+                            "Array '{}' insufficient disk count {}. Required minimum {}".format(
                                 array_name,
-                                num_vol_array2,
-                                vol_name="pos_vol",
-                                size=vol_size,
+                                len(system_disks),
+                                nr_data_drives + nr_spare_drives,
                             )
+                        )
+
+                    if array["auto_create"] == "false":
+                        data_disk_list = [
+                            system_disks.pop(0) for i in range(nr_data_drives)
+                        ]
+                        spare_disk_list = [system_disks.pop()]
+                        assert (
+                            self.cli.create_array(
+                                write_buffer=array["uram"],
+                                data=data_disk_list,
+                                spare=spare_disk_list,
+                                raid_type=array["raid_type"],
+                                array_name=array_name,
+                            )[0]
                             == True
                         )
-                        assert self.cli.list_volume(array_name)
-                        assert self.mount_volume_multiple(
-                            array_name, self.cli.vols, ss_list_array2
+                    else:
+                        assert (
+                            self.cli.autocreate_array(
+                                array["uram"],
+                                nr_data_drives,
+                                array["raid_type"],
+                                array_name=array_name,
+                                num_spare=nr_spare_drives,
+                            )[0]
+                            == True
                         )
 
+                        assert self.cli.info_array(array_name=array_name)[0] == True
+                        d_dev = set(self.cli.array_info[array_name]["data_list"])
+                        s_dev = set(self.cli.array_info[array_name]["spare_list"])
+                        system_disks = list(set(system_disks) - d_dev.union(s_dev))
+
+                    if array["mount"] == "true":
+                        write_back = True
+                        if array["write_back"] == "false":
+                            write_back = False
+                        assert (
+                            self.cli.mount_array(
+                                array_name=array_name, write_back=write_back
+                            )[0]
+                            == True
+                        )
+
+            ##### volume config
+            if static_dict["volume"]["phase"] == "true":
+                assert self.cli.list_array()[0] == True
+                if len(list(self.cli.array_dict.keys())) == 2:
+                    volumes = static_dict["volume"]["pos_volumes"]
+                else:
+                    volumes = [static_dict["volume"]["pos_volumes"][0]]
+                for vol in volumes:
+                    array_name = vol["array_name"]
+                    assert self.cli.list_volume(array_name)
+                    old_vols = self.cli.vols
+                    assert (
+                        self.create_volume_multiple(
+                            array_name,
+                            vol["num_vol"],
+                            vol_name=vol["vol_name_pre"],
+                            size=vol["size"],
+                        )
+                        == True
+                    )
+
+                    assert self.cli.list_volume(array_name)
+                    cur_vols = self.cli.vols
+                    new_vols = list(set(cur_vols) - set(old_vols))
+
+                    if vol["mount"]["phase"]:
+                        subsystem_range = vol["mount"]["subsystem_range"]
+                        nqn_pre = vol["mount"]["nqn_pre"]
+                        start, end = map(int, subsystem_range.split("-"))
+                        nqn_list = [f"{nqn_pre}{s}" for s in range(start, end + 1)]
+
+                        """
+                        nqn_list = []
+                        for s in range(start, end + 1):
+                            for subs in self.ss_temp_list:
+                                if f"subsystem{s}" in subs:
+                                    nqn_list.append(subs)
+                        """
+                        assert (
+                            self.mount_volume_multiple(array_name, new_vols, nqn_list)
+                            == True
+                        )
             return True
         except Exception as e:
-            logger.error(e)
+            logger.error("POS bring up failed due to {}".format(e))
             return False
 
     def setup_env_pos(
@@ -864,8 +941,9 @@ class TargetUtils:
         logger.info("=============================SYSTEM==========================")
         assert self.cli.info_system()[0] == True
         logger.info("=============================ARRAY==========================")
-        assert self.cli.info_array()[0] == True
+
         assert self.cli.list_array()[0] == True
+
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) != 0:
             for array in array_list:
@@ -897,3 +975,204 @@ class TargetUtils:
         logger.info("=============================SUBSYSTEM==========================")
         assert self.cli.list_subsystem()[0] == True
         return True
+
+    def npor_and_save_state(self) -> bool:
+        """Method to perform NPOR
+        Returns:
+            bool
+        """
+        try:
+            assert self.get_subsystems_list() == True
+            assert self.cli.list_array()[0] == True
+            array_list = list(self.cli.array_dict.keys())
+            if len(array_list) == 0:
+                logger.info("No Array Present in the config")
+                return False
+            else:
+                for array in array_list:
+                    if self.cli.array_dict[array].lower() == "mounted":
+                        assert self.cli.list_volume(array_name=array)[0] == True
+                        if len(self.cli.vols) == 0:
+                            logger.info("No volumes found")
+                        else:
+                            for vol in self.cli.vols:
+                                if (
+                                    self.cli.vol_dict[vol]["status"].lower()
+                                    == "mounted"
+                                ):
+                                    assert (
+                                        self.cli.unmount_volume(
+                                            volumename=vol, array_name=array
+                                        )[0]
+                                        == True
+                                    )
+
+            assert self.cli.stop_system()[0] == True
+            assert self.cli.start_system()[0] == True
+            uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
+            for uram in uram_list:
+                assert (
+                    self.cli.create_device(
+                        uram_name=uram, bufer_size="8388608", strip_size="512"
+                    )[0]
+                    == True
+                )
+            assert self.cli.scan_device()[0] == True
+            assert self.cli.list_array()[0] == True
+            array_list = list(self.cli.array_dict.keys())
+            if len(array_list) == 0:
+                logger.info("No Array Present in the config")
+                return False
+            else:
+                for array in array_list:
+                    assert self.cli.mount_array(array_name=array)[0] == True
+                    assert self.cli.list_volume(array_name=array)[0] == True
+                    if len(self.cli.vols) == 0:
+                        logger.info("No volumes found")
+            return True
+        except Exception as e:
+            logger.error(f"NPOR failed due to {e}")
+            return False
+
+    def Npor(self) -> bool:
+        """method to perform NPOR
+        Returns:
+            bool
+        """
+        try:
+            assert self.npor_and_save_state() == True
+
+            assert self.helper.get_mellanox_interface_ip()[0] == True
+            ip_addr = self.helper.ip_addr[0]
+
+            assert self.cli.create_transport_subsystem()[0] == True
+            for ss in self.ss_temp_list:
+                assert self.cli.create_subsystem(ss)[0] == True
+                assert (
+                    self.cli.add_listner_subsystem(
+                        nqn_name=ss, mellanox_interface=ip_addr, port="1158"
+                    )[0]
+                    == True
+                )
+
+            assert self.cli.list_array()[0] == True
+            array_list = self.cli.array_dict.keys()
+            if len(array_list) > 0:
+                for array in array_list:
+                    assert self.cli.list_volume(array_name=array)[0] == True
+                    if len(self.cli.vols) == 0:
+                        logger.info("No volumes found")
+                    else:
+                        for vol in self.cli.vols:
+                            # ss_list = [ss for ss in self.ss_temp_list if array in ss]
+                            # TODO skip mount volumes those were not mounted.
+                            assert self.cli.mount_volume(vol, array)[0] == True
+            else:
+                logger.info("No array found")
+            return True
+        except Exception as e:
+            logger.error(f"NPOR and recovery failed due to {e}")
+            return False
+
+    def Spor(self, uram_backup=True) -> bool:
+        """
+        Method to spor
+        uram_backup : If true, run script to take uram backup
+
+        Returns:
+            bool
+        """
+        try:
+            # Store Device Information
+            assert self.cli.list_device()[0] == True
+            uram_dev_list = self.cli.dev_type["NVRAM"]
+            logger.debug("Buffer Device List: {}".format(uram_dev_list))
+
+            # Store Subsystem Information
+            assert self.get_subsystems_list() == True
+            subsystem_list = self.ss_temp_list
+            logger.debug("Subsystem List: {}".format(subsystem_list))
+
+            # Store the Array Information
+            assert self.cli.list_array()[0] == True
+            array_list = self.cli.array_dict.keys()
+            if len(array_list) == 0:
+                logger.info("No Array Present in the config")
+                return False
+
+            logger.debug("Array List {}".format(array_list))
+
+            # Store IP Address
+            self.helper.get_mellanox_interface_ip()
+
+            # Stop POS
+            assert self.spor_prep(uram_backup=uram_backup) == True
+            ip_addr = self.helper.ip_addr[0]
+
+            # Start The POS system
+            assert self.cli.start_system()[0] == True
+
+            # Create the URAM device
+            for uram in uram_dev_list:
+                assert self.cli.create_device(uram_name=uram)[0] == True
+
+            assert self.cli.scan_device()[0] == True
+
+            # Create subsystem and Add listner
+            assert self.cli.create_transport_subsystem()[0] == True
+            for ss in subsystem_list:
+                assert self.cli.create_subsystem(ss)[0] == True
+                assert (
+                    self.cli.add_listner_subsystem(
+                        nqn_name=ss, mellanox_interface=ip_addr, port="1158"
+                    )[0]
+                    == True
+                )
+
+            # Restore Array and Volumes
+            for array in array_list:
+                assert self.cli.mount_array(array_name=array)[0] == True
+                assert self.cli.list_volume(array_name=array)[0] == True
+                if len(self.cli.vols) == 0:
+                    logger.info("No volumes found")
+                for vol in self.cli.vols:
+                    # TODO skip mount volumes those were not mounted.
+                    assert self.cli.mount_volume(vol, array)[0] == True
+            return True
+        except Exception as e:
+            logger.error(f"SPOR failed due to {e}")
+            return False
+
+    def deleteAllVolumes(self, arrayname):
+        """method to delete all volumes if any in a given array"""
+        try:
+            assert self.cli.list_array()[0] == True
+            if arrayname in list(self.cli.array_dict.keys()):
+                assert self.cli.list_volume()[0] == True
+                if len(self.cli.vols) == 0:
+                    logger.info("No volumes found")
+                    return True
+                for vol in self.cli.vols:
+                    assert (
+                        self.cli.info_volume(array_name=arrayname, vol_name=vol)[0]
+                        == True
+                    )
+                    if (
+                        self.cli.volume_info[arrayname][vol]["status"].lower()
+                        == "mounted"
+                    ):
+                        assert (
+                            self.cli.unmount_volume(
+                                volumename=vol, array_name=arrayname
+                            )[0]
+                            == True
+                        )
+                    assert (
+                        self.cli.delete_volume(volumename=vol, array_name=arrayname)[0]
+                        == True
+                    )
+                return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
