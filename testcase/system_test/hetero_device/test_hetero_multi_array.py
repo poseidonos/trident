@@ -94,8 +94,14 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
                                             spare=spare_drives, raid_type=raid_type,
                                             array_name=array_name)[0] == True
 
+                assert pos.cli.info_array(array_name=array_name)[0] == True
+
                 assert pos.cli.mount_array(array_name=array_name)[0] == True
-                assert pos.cli.info_array(array_name=array_name)[0] == True 
+                assert pos.cli.info_array(array_name=array_name)[0] == True
+
+                array_size = pos.cli.array_info[array_name].get("size")
+                array_state = pos.cli.array_info[array_name].get("state")
+                logger.info(f"Array Size = {array_size} and Status = {array_state}")
 
             # List Array, Unmount and Delete to goto Cleanup for next iteration
             assert pos.cli.list_array()[0] == True

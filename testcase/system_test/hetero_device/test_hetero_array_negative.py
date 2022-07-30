@@ -290,3 +290,44 @@ def test_hetero_faulty_array_create_delete_vols():
     logger.info(
         " ============================= Test ENDs ======================================"
     )
+
+@pytest.mark.regression
+def test_hetero_array_no_raid_without_uram():
+    """
+    Test to create one array of all RAID type using minimum required devices of 
+    different size. Atleast one device of size 20 GiB.
+    """
+    logger.info(
+        " ==================== Test : test_hetero_array_all_raid ================== "
+    )
+    try:
+        array_name = "array1"
+
+        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.scan_device()[0] == True
+        assert pos.cli.list_device()[0] == True
+
+        if len(pos.cli.system_disks) < 1:
+            logger.warning("No drive is present, required min 1 drive")
+
+        data_device_conf = {'20GiB':1}
+
+        if not pos.target_utils.get_hetero_device(data_device_conf):
+            logger.info("Failed to get the required hetero devcies")
+            pytest.skip("Required condition not met. Refer to logs for more details")
+
+        data_drives = pos.target_utils.data_drives
+        spare_drives = pos.target_utils.spare_drives
+
+        assert pos.cli.create_array(write_buffer=None, data=data_drives, 
+                                    spare=spare_drives, raid_type="no-raid",
+                                    array_name=array_name)[0] == False
+
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        traceback.print_exc()
+        pos.exit_handler(expected=False)
+
+    logger.info(
+        " ============================= Test ENDs ======================================"
+    )
