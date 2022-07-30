@@ -49,13 +49,13 @@ array = [("RAID5", 3),]
 @pytest.mark.regression
 @pytest.mark.parametrize("repeat_ops", [5])
 @pytest.mark.parametrize("raid_type, num_devs", array)
-def test_hetero_multi_array_npor(raid_type, num_devs, repeat_ops):
+def test_hetero_multi_array_npor_mounted_array_repeat(raid_type, num_devs, repeat_ops):
     """
-    Create and mount two arrays of specified RAID and num of devices. Peform NPOR. 
-    Repeat this operation 5 times.
+    Create and mount two RAID5 (Default) arrays using 3 (default) number of hetero devices.
+    Peform NPOR and verify array are mounted. Unmount and delete arrays. Repeat 5 times.
     """
     logger.info(
-        " ==================== Test : test_hetero_multi_array_npor ================== "
+        " ==================== Test : test_hetero_multi_array_npor_mounted_array_repeat ================== "
     )
     try:
         assert pos.cli.reset_devel()[0] == True
@@ -97,6 +97,7 @@ def test_hetero_multi_array_npor(raid_type, num_devs, repeat_ops):
 
             assert pos.target_utils.Npor() == True
 
+            assert pos.cli.list_array()[0] == True
             for array in pos.cli.array_dict.keys():
                 assert pos.cli.info_array(array_name=array)[0] == True
                 if pos.cli.array_dict[array].lower() == "mounted":
