@@ -1,9 +1,61 @@
 {
-    "login": {
-    "target" :  {"ip":"","username":"root", "password":""},
-    "initiator" :{"ip":"","username":"root", "password":""},
-    "tar_mlnx_ip" : "",
-    "init_mlnx_ip" : "",
-    "paths"  : {"pos_path": "/root/pos-0.10.5/ibofos"}
+    "login":
+    {
+        "target":
+        {
+            "number": 1,
+            "server":
+            [
+                {
+                    "ip":"127.0.0.1",
+                    "username":"root",
+                    "password":"password",
+                    "Data_Ip": "127.0.0.1"
+                }
+            ]
+        },
+        "initiator":
+        {
+            "number": 6,
+            "client":
+            [
+                {
+                    "ip":"127.0.0.1",
+                    "username":"root",
+                    "password":"password",
+                    "Data_Ip": "127.0.0.1"
+                },{
+                    "ip":"127.0.0.1",
+                    "username":"root",
+                    "password":"password",
+                    "Data_Ip": "127.0.0.1"
+                },{
+                    "ip":"127.0.0.1",
+                    "username":"root",
+                    "password":"password",
+                    "Data_Ip": "127.0.0.1"
+                },{
+                    "ip":"127.0.0.1",
+                    "username":"root",
+                    "password":"password",
+                    "Data_Ip": "127.0.0.1"
+                },{
+                    "ip":"127.0.0.1",
+                    "username":"root",
+                    "password":"password",
+                    "Data_Ip": "127.0.0.1"
+                },{
+                    "ip":"127.0.0.1",
+                    "username":"root",
+                    "password":"password",
+                    "Data_Ip": "127.0.0.1"
+                }
+
+	    ]
+        },
+	"paths": 
+	{
+		"pos_path": "path of compiled POS source code " 
+	}
     }
 }

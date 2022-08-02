@@ -1,0 +1,7 @@
+logs/*
+*/__pycache__/*
+.idea/*
+*.log
+*.pyc
+*/.cache/
+testcase/system_test/*

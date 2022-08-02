@@ -2,10 +2,9 @@
 Trident is a framework to test and explore Poseidon OS (POS). It has python APIs for all the POS CLI commands, for user to develop their own test suite.
 It is built on top of pytest framework, The tool contains following test cases to cover base scenarios:
 - Array, Volume management (create, delete, rename)
-- User IO (Block, File IO, various IO types e.g. sync/async)
-- Array rebuild (SSD hot plug)
+- CLI test suite
+- Subsystem, QOS management
 - GC and flush
-
 A setup tool is developed to check if setup is ready for test execution.
 
 # Table of contents
@@ -21,7 +20,6 @@ A setup tool is developed to check if setup is ready for test execution.
 
 # Install Prerequisites
 `$pip3 install --upgrade pip`
-
 `$pip3 install -r requirements.txt`
 
 # Download and Build POS
@@ -37,10 +35,10 @@ Test the system by executing setup tool from utils
 Please refer docs/UserGuide.md for details
 
 # Run Test cases
-`$python3 -m pytest -v  testcase/array/test_array.py::test_create_check`
+`$python3 -m pytest -v -s testcase/ -m 'sanity' `
 
 Please refer docs/UserGuide.md for details
 
 # Notes
-Trident currently supports 0.10.x version of Poseidon OS
+Trident currently supports 0.11.x version of Poseidon OS
 

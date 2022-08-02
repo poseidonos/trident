@@ -1,0 +1,38 @@
+{
+    "test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator":
+    {
+        "config":
+        {
+            "target":1,
+            "initiator":6
+        },
+        "validation":
+        {
+            "totalphase":8,
+            "totaltime":259200,
+            "testcase":
+            [
+                { "lib":"io_management", "name":"test_io_sanity_iteration_io_verify_random_pattern"},
+                { "lib":"io_management", "name":"test_io_sanity_set_get_threashold_io_gc"},
+                { "lib":"system_management", "name":"test_system_sanity_detach_attach_device_iteration_io_verify"},
+                { "lib":"vol_management", "name":"test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete"},
+                { "lib":"vol_management", "name":"test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete"},
+                { "lib":"vol_management", "name":"test_vol_lc_stress_unmount_delete_create_mount_io"}
+            ],
+            "por":
+            {
+                "ibof":
+                {
+                    "npor": { "valid": true, "phase":"5,7" },
+                    "spor": { "valid": false }
+                },
+                "device":
+                {
+                    "npor": { "valid": false },
+                    "spor": { "valid": false }
+                }
+            }
+        }
+    }
+}
+
