@@ -1,7 +1,7 @@
 import pytest
 import traceback
 
-from lib.pos import POS
+from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
@@ -49,13 +49,13 @@ array = [("RAID5", 3),]
 @pytest.mark.regression
 @pytest.mark.parametrize("repeat_ops", [5])
 @pytest.mark.parametrize("raid_type, num_devs", array)
-def test_hetero_multi_array_npor_mounted_array_repeat(raid_type, num_devs, repeat_ops):
+def test_hetero_multi_array_npor_mounted_array(raid_type, num_devs, repeat_ops):
     """
     Create and mount two RAID5 (Default) arrays using 3 (default) number of hetero devices.
     Peform NPOR and verify array are mounted. Unmount and delete arrays. Repeat 5 times.
     """
     logger.info(
-        " ==================== Test : test_hetero_multi_array_npor_mounted_array_repeat ================== "
+        " ==================== Test : test_hetero_multi_array_npor_mounted_array ================== "
     )
     try:
         assert pos.cli.reset_devel()[0] == True
@@ -195,7 +195,7 @@ def test_hetero_multi_array_spor(array_raid, num_devs, fio_runtime):
     devices. Run IO and do SPOR. 
     """
     logger.info(
-        " ==================== Test : test_hetero_multi_array_npor ================== "
+        " ==================== Test : test_hetero_multi_array_spor ================== "
     )
     try:
         assert pos.cli.reset_devel()[0] == True

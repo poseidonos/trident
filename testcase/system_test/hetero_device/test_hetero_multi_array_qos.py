@@ -1,7 +1,7 @@
 import pytest
 import traceback
 
-from lib.pos import POS
+from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
@@ -130,7 +130,6 @@ def test_hetero_multi_array_qos_matrix(array_raid, num_devs, qos_matrix):
         fio_out["bw"] = fio_write["bw"] / 1000  # Conver to MB
 
         nr_dev = 2          # Nvme block devices
-
         assert pos.client.fio_verify_qos(qos_data, fio_out, nr_dev) == True
 
     except Exception as e:
