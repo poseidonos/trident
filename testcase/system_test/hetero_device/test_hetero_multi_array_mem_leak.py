@@ -144,14 +144,15 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
 
         # Wait for async FIO completions
         while True:
-            time.sleep(60)  # Wait for 60 seconds
+            assert pos.target_utils.helper.check_system_memory() == True
+            time.sleep(30)  # Wait for 30 seconds
             msg = []
             if not async_file_io.is_complete():
                 msg.append("File IO")
             if not async_block_io.is_complete():
                 msg.append("Block IO")
             if msg:
-                logger.info(f"{','.join(msg)} is still running. Wait 60 seconds...")
+                logger.info(f"{','.join(msg)} is still running. Wait 30 seconds...")
                 continue
             break
 
@@ -162,8 +163,3 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
     logger.info(
         " ============================= Test ENDs ======================================"
     )
-
-
-
-# [Hetero Device] [Multi-Array] Create 2 ARRAY >>Create 2 Volume(max capacity). 
-# Run Block and File IO overnight and verify Data integrity. Check for memory leaks

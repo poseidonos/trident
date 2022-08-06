@@ -1,10 +1,9 @@
 import pytest
 import traceback
 
-from lib.pos import POS
+from pos import POS
 import logger
 import time 
-import re
 
 logger = logger.get_logger(__name__)
 

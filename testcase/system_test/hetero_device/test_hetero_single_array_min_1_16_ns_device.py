@@ -134,59 +134,6 @@ def test_hetero_array_all_raid():
         " ============================= Test ENDs ======================================"
     )
 
-
-@pytest.mark.regression
-def test_hetero_array_all_raid():
-    """
-    Test to create one array of all RAID type using minimum required devices of 
-    different size. Atleast one device of size 20 GiB.
-    """
-    logger.info(
-        " ==================== Test : test_hetero_array_all_raid ================== "
-    )
-    try:
-        array_name = "array1"
-        uram_name = data_dict["device"]["uram"][0]["uram_name"]
-
-        raid_list = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
-        for raid_type, num_disk in raid_list:
-            assert pos.cli.reset_devel()[0] == True
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
-
-            if len(pos.cli.system_disks) < num_disk:
-                logger.warning("Avilable drive {} is insufficient, required {}".format(
-                    num_disk, len(pos.cli.system_disks)))
-
-            data_device_conf = {'20GiB':1, 'any':num_disk-1}
-
-            if not pos.target_utils.get_hetero_device(data_device_conf):
-                logger.info("Failed to get the required hetero devcies")
-                pytest.skip("Required condition not met. Refer to logs for more details")
-
-            data_drives = pos.target_utils.data_drives
-            spare_drives = pos.target_utils.spare_drives
-
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
-            
-            assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
-
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
-
-            assert pos.cli.delete_array(array_name=array_name)[0] == True
-
-    except Exception as e:
-        logger.error(f"Test script failed due to {e}")
-        traceback.print_exc()
-        pos.exit_handler(expected=False)
-
-    logger.info(
-        " ============================= Test ENDs ======================================"
-    )
-
-
 @pytest.mark.regression
 @pytest.mark.parametrize("mount_type", ["WT", "WB"])
 @pytest.mark.parametrize("raid_type", ["RAID0", "RAID5", "RAID10"])

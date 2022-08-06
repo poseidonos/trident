@@ -43,13 +43,12 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
-array1 = [("RAID5", 3),]
-array2 = [("RAID5", 3),]
+array = [("RAID5", 3),]
 
 @pytest.mark.regression
 @pytest.mark.parametrize("repeat_ops", [1, 100])
-@pytest.mark.parametrize("array1_raid, array1_devs", array1)
-@pytest.mark.parametrize("array2_raid, array2_devs", array2)
+@pytest.mark.parametrize("array1_raid, array1_devs", array)
+@pytest.mark.parametrize("array2_raid, array2_devs", array)
 def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, repeat_ops):
     """
     Test auto create arrays of no-raid with different NUMA node

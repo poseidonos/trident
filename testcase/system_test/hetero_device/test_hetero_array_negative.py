@@ -1,7 +1,7 @@
 import pytest
 import traceback
 
-from lib.pos import POS
+from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
@@ -48,7 +48,7 @@ def teardown_module():
 @pytest.mark.regression
 def test_hetero_three_raid5_array():
     """
-    Test to create three RAID5 arrays using hetero devices
+    Test to create three RAID5 arrays using hetero devices. 
     """
     logger.info(
         " ==================== Test : test_hetero_three_raid5_array ================== "
@@ -153,6 +153,7 @@ def test_hetero_offline_array_vol_create():
         " ============================= Test ENDs ======================================"
     )
 
+
 @pytest.mark.regression
 def test_hetero_multi_array_delete_mounted_vols():
     """
@@ -224,6 +225,7 @@ def test_hetero_multi_array_delete_mounted_vols():
     logger.info(
         " ============================= Test ENDs ======================================"
     )
+
 
 @pytest.mark.regression
 def test_hetero_faulty_array_create_delete_vols():
@@ -327,6 +329,70 @@ def test_hetero_array_no_raid_without_uram():
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
         pos.exit_handler(expected=False)
+
+    logger.info(
+        " ============================= Test ENDs ======================================"
+    )
+
+@pytest.mark.regression
+def test_hetero_multi_array_mount_vol_to_same_subs():
+    """
+    Test two RAID5 arrays using hetero devices, Create 1 volume and mount to same subsystem.
+    """
+    logger.info(
+        " ==================== Test : test_hetero_multi_array_mount_vol_to_same_subs ================== "
+    )
+    try:
+        assert pos.cli.reset_devel()[0] == True
+
+        assert pos.target_utils.get_subsystems_list() == True
+        ss_temp_list = pos.target_utils.ss_temp_list
+        nqn = ss_temp_list[0]
+
+        # Loop 2 times to create two RAID array of RAID5 using hetero device
+        num_array = 2
+        for id in range(2):
+            assert pos.cli.scan_device()[0] == True
+            assert pos.cli.list_device()[0] == True
+
+            # Verify the minimum disk requirement
+            if len(pos.cli.system_disks) < 3 * (num_array - id):
+                pytest.skip(f"Insufficient disk count {len(pos.cli.system_disks)}. "\
+                            f"Required minimum {3 * (num_array - id)} disk to create array")
+
+            array_name = f"array{id+1}"
+            uram_name = data_dict["device"]["uram"][id]["uram_name"]
+
+            data_device_conf = {'mix': 2, 'any': 1}
+
+            if not pos.target_utils.get_hetero_device(data_device_conf):
+                logger.info("Failed to get the required hetero devcies")
+                pytest.skip("Required condition not met. Refer to logs for more details")
+
+            data_drives = pos.target_utils.data_drives
+            spare_drives = pos.target_utils.spare_drives
+
+            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                                        spare=spare_drives, raid_type="RAID5",
+                                        array_name=array_name)[0] == True
+
+            assert pos.cli.mount_array(array_name=array_name)[0] == True
+
+        assert pos.cli.list_array()[0] == True
+        for id,array_name in enumerate(pos.cli.array_disks.keys()):
+            vol_size = "1G"
+            vol_name = f"{array_name}_pos_vol"
+            assert pos.cli.create_volume(vol_name, vol_size, array_name=array_name)[0] == True
+            
+            # Mount the 2nd volume to same subsyste and expect the failure
+            exp_res = True
+            if id == 1:
+                exp_res = False
+            assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == exp_res
+
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        traceback.print_exc()
 
     logger.info(
         " ============================= Test ENDs ======================================"
