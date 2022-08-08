@@ -12,9 +12,8 @@ def setup_module():
     global pos, data_dict, min_hetero_dev
     pos = POS("pos_config.json")
 
-    # TODO replace with relative path
     tgt_setup_file = "hetero_setup.json"
-    conf_dir = "/root/nehal/trident/testcase/config_files/"
+    conf_dir = "../../config_files/"
 
     data_path = f"{conf_dir}{tgt_setup_file}"
     tgt_conf_data = pos._json_reader(data_path, abs_path=True)[1]
