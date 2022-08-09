@@ -1,0 +1,16 @@
+{
+"Project Info":{
+	"Organization": "SSIR",
+	"Team": "MST",
+	"Group": "Solutions QA",
+	"Part": "System Test",
+	"Project name": "POS",
+	"JIRA_TestSuite_Project_Name": "SEB_PSD_SQA",
+	"JIRA_TestSuite_Project_Key": "SPS"},
+
+"Test Cycle Info": {
+	"Validation Type": "sanity",
+	"Release": "1Q-0.11.0",
+	"Version":"0.11.0.rc-5"}
+}
+
