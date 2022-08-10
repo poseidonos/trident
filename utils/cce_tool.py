@@ -1,3 +1,4 @@
+from ast import parse
 import sys
 import os
 
@@ -13,6 +14,8 @@ from calendar import c
 import csv
 from re import S
 import subprocess
+from bs4 import BeautifulSoup
+
 logger = logger.get_logger(__name__)
 
 
@@ -147,10 +150,11 @@ class Target(object):
         coverage_dict["coverage_generated"] = False
         coverage_dict["html_generated"] = False
         coverage_dict["file_transfered"] = False
+        coverage_dict["file_deleted"] = False
 
         self.coverage_data[test_id] = coverage_dict
 
-    def _get_coverage_data(self, test_id):
+    def get_coverage_data_dict(self, test_id):
         return self.coverage_data.get(test_id, None)
 
     def generate_coverage(self, test_id, unique_key=None):
@@ -160,7 +164,7 @@ class Target(object):
                 return False
 
         self._init_coverage_info(test_id, unique_key=unique_key)
-        coverage_dict = self._get_coverage_data(test_id)
+        coverage_dict = self.get_coverage_data_dict(test_id)
 
         cc_out = coverage_dict["lcov_file"]
 
@@ -185,7 +189,7 @@ class Target(object):
 
     def generate_html_report(self, test_id):
         test_id = test_id.upper()
-        coverage_dict = self.coverage_data.get(test_id, None)
+        coverage_dict = self.get_coverage_data_dict(test_id)
         if not coverage_dict:
             logger.error(
                 "Jira ID does not exist. Generate the code coverage first.")
@@ -224,7 +228,7 @@ class Target(object):
 
     def fetch_coverage_report(self, test_id, source=None, destination=None):
         test_id = test_id.upper()
-        coverage_dict = self.coverage_data.get(test_id, None)
+        coverage_dict = self.get_coverage_data_dict(test_id)
         if not coverage_dict:
             logger.error(
                 "Jira ID does not exist. Generate the code coverage first.")
@@ -276,7 +280,7 @@ class Target(object):
 
     def _delete_file(self, file_name, dir_file=False, force=False, abs_path=False):
         if not self._verify_file_esists(file_name, dir_file=dir_file):
-            logger.warning("File {file_name} does not exist")
+            logger.warning(f"File {file_name} does not exist")
 
         if not abs_path:
             source_dir = self.get_pos_path()
@@ -362,31 +366,141 @@ class Host():
 
     def file_ops():
         pass
-        """
-        if not destination:
-            log_path = logger.get_logpath()
-        else:
-            log_path = destination
 
-        csv_fname = f"{log_path}/coverage_data_{jira_id}_{unique_key}.csv"
-        ovrerall_csv_fname = f"{log_path}/cov_overall_data_{jira_id}_{unique_key}.csv"
 
-        coverage_dict['csv_file'] = csv_fname
-        coverage_dict['overall_csv_file'] = ovrerall_csv_fname
+class Parser():
 
-        cov_overall_path = f"{log_path}/{ovrerall_csv_fname}"
-        o_open = open(cov_overall_path, "w", newline="")
-        o_out = csv.writer(o_open)
-        o_out.writerow(["over_all_coverage_data"])
-        o_out.writerow([self.over_all_data])
-        o_open.close()
-        """
+    def __init__(self) -> None:
+        self.tar_path = None
+        pass
+
+    @classmethod
+    def parse_indexfile(cls, coverage_file_path, csv_file_path) -> list:
+        try:
+            val_list = []
+            f_open = open(csv_file_path, "w", newline="")
+            f_out = csv.writer(f_open)
+            headers = [
+                "Type",
+                "Coverage-Percentage",
+            ]
+            f_out.writerow(headers)
+            for file in os.listdir(coverage_file_path):
+                #logger.info(file)
+                if "index.html" in file:
+                    html_file_path = os.path.join(coverage_file_path, file)
+                    with open(html_file_path) as index_file:
+                        d = {}
+                        soup = BeautifulSoup(index_file, "html.parser")
+                        f_name_list = ["lines", "Functions", "Branches"]
+
+                        f_lines_count = soup.find_all("td", attrs={'class': ['headerCovTableEntry']})
+                        f_percentage_count = soup.find_all("td", attrs={'class': ['headerCovTableEntryLo']})
+                        # f_name_list = list(f_name)
+                        new_list = []
+                        for i in range(0, len(f_lines_count), 2):
+                            new_list.append([f_lines_count[i].text, f_lines_count[i+1].text])
+
+                        for n in range(len(f_name_list)):
+                            d[f_name_list[n]] = new_list[n] + [f_percentage_count[n].text]
+
+                    for val in zip(list(d.keys()), list(d.values())):
+                        f_out.writerow(val)
+                        val_list.append(val)
+            f_open.close()
+        except Exception as e:
+            logger.error(f"Parsing of index.html failed with error message: {e}")
+        return val_list
+
+    @classmethod
+    def unzip_tar(cls, tar_file_path):
+        cmd = f"tar -xvf {tar_file_path} -C /tmp"
+        tar_out = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
+        (o, e) = tar_out.communicate()
+        if e:
+            logger.error(f"Failed to unzip file '{tar_file_path}' due to '{e}'")
+            return False
+        return True
+        
+        
+    @classmethod
+    def prepare_overall_coverage_csv(cls, tar_file_path, 
+                                    coverage_file_path,
+                                    csv_file_path) -> bool:
+        if not cls.unzip_tar(tar_file_path):
+            return False
+        coverage_loc_path = f"/tmp/{coverage_file_path}/overall_coverage"
+        try:
+            overall_list = cls.parse_indexfile(coverage_loc_path, csv_file_path)
+            logger.info(f"{overall_list}")
+        except Exception as e:
+            logger.info(f"Failed to prepare overall coverage csv. {e}")
+            return False
+        
+        return True
+
+    @classmethod
+    def prepare_test_coverage_csv(cls, test_id, tar_file_path, 
+                        coverage_file_path, csv_file_path) -> bool:
+        if not cls.unzip_tar(tar_file_path):
+            return False
+
+        coverage_loc_path = "{}{}".format("/tmp", coverage_file_path)
+        headers = ["file_path", "file_name", "func_name", 
+                    "Hit_count", "coverage", "TC_ID"]
+        val_list = []
+        try:
+            with open(csv_file_path, "w", newline="") as csv_fp:
+                csv_writer = csv.writer(csv_fp)
+                csv_writer.writerow(headers)
+                for root, dirs, files in os.walk(coverage_loc_path):
+                    for file in files:
+                        if file.endswith(".func.html"):
+                            f_path = os.path.join(root, file)
+                            with open(f_path) as html_fp:
+                                d = {}
+                                soup = BeautifulSoup(html_fp, "html.parser")
+                                f_name = soup.find_all(
+                                    "td", attrs={"class": ["coverFn"]}
+                                )
+                                f_count = soup.find_all(
+                                    "td", attrs={"class": ["coverFnLo", "coverFnHi"]}
+                                )
+                                f_name_list = list(f_name)
+                                f_count_list = list(f_count)
+                                for l in range(len(f_name_list)):
+                                    d[f_name_list[l].text] = f_count_list[l].text
+                            rm_1 = f_path.replace(coverage_loc_path, "")
+                            rm_2 = rm_1.replace(file, "")
+                            if rm_2.startswith("/") and rm_2.endswith("/"):
+                                rm_2 = rm_2[1:-1]
+                            files_list = [rm_2] * len(list(d.keys()))
+                            file_names = [file.replace(".func.html", "")] * len(
+                                list(d.keys())
+                            )
+                            status = []
+                            for key in d:
+                                if int(d[key]) > 0:
+                                    status.append("covered")
+                                else:
+                                    status.append("uncovered")
+                            for val in zip(files_list, file_names, list(d.keys()),
+                                           list(d.values()), status, test_id):
+                                csv_writer.writerow(val)
+                                val_list.append(val)
+        except Exception as e:
+            logger.error(f"Exception occured {e}")
+            logger.error(f"Failed to prepare test {test_id} coverage csv")
+            return False
+        
+        return True
 
 
 class CodeCoverage():
 
     def __init__(self) -> None:
         self.target = POSTarget()
+        self.parser = Parser()
         self.topology_data = None
         pass
 
@@ -468,15 +582,47 @@ class CodeCoverage():
         self.target.delete_coverage_files(jira_id)
         return True
 
-    def get_parsed_report(self):
-        pass
+    def parse_coverage_report(self, jira_id):
+        jira_id = jira_id.upper()
+        test_file_dict = self.target.get_coverage_data_dict(jira_id)
+        if not test_file_dict or not test_file_dict["file_transfered"]:
+            logger.error("Failed to get the coverage file information")
+            return False
 
-    def get_save_report(self):
+        unique_key = test_file_dict["unique_key"]
+        tar_file_path = f"/tmp/coverage_{jira_id}_{unique_key}.tar"
+        csv_file_path = f"/tmp/coverage_{jira_id}_{unique_key}.csv"
+        coverage_file_path = "/root/pos-0.11.0-rc5/ibofos/"
+        if not self.parser.prepare_test_coverage_csv(jira_id, tar_file_path,
+                                            coverage_file_path, csv_file_path):
+            logger.error("Failed to prepare test coverage csv")
+
+        tar_file_path = f"/tmp/overall_coverage.tar"
+        csv_file_path = f"/tmp/overall_coverage.csv"
+
+        if not self.parser.prepare_overall_coverage_csv(jira_id, tar_file_path,
+                                            coverage_file_path, csv_file_path):
+            logger.error("Failed to prepare overall coverage csv")
+
+        return True
+
+    def save_coverage_report(self, jira_id):
         pass
 
 
 if __name__ == '__main__':
-    cc = CodeCoverage()
-    assert cc.connect_target()
-    assert cc.get_code_coverage("SPS_1100")
+    jira_id = "SPS_1100"
+    #cc = CodeCoverage()
+    #assert cc.connect_target()
+    #assert cc.get_code_coverage(jira_id)
+    #assert cc.parse_coverage_report(jira_id)
+
+    coverage_file_path = "/root/pos-0.11.0-rc5/ibofos/"
+    tar_file_path = f"/tmp/overall_coverage.tar"
+    csv_file_path = f"/tmp/overall_coverage.csv"
+    parser = Parser()
+    if not parser.prepare_overall_coverage_csv(tar_file_path,
+                                        coverage_file_path, csv_file_path):
+        logger.error("Failed to prepare overall coverage csv")
+
     pass
