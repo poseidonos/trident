@@ -1,0 +1,204 @@
+{
+    "BI_DASHBOARD_URL": "__BI_DASHBOARD_URL__",
+    "DATAWAREHOUSE_INDEX_NAME": "__DATAWAREHOUSE_INDEX_NAME__",
+    "LANGUAGE": "python",
+    "LANGUAGE_TYPE": "Script",
+    "METRIC_LIST": [
+        "cc",
+        "dc",
+        "fme"
+    ],
+    "PLM_CODE": "__PLM_CODE__",
+    "SCM_KEY": "__SCM_KEY__",
+    "SCM_REPOSITORY": "__SCM_REPOSITORY__",
+    "SCM_SUBMIT_DATE": "__SCM_SUBMIT_DATE__",
+    "SCORING_METRIC_LIST": [
+        "cc",
+        "dc",
+        "fme"
+    ],
+    "TARGET_PROJECT": "Trident",
+    "cbo_data": {
+        "key": "cbo",
+        "name": "CouplingBetweenObjects",
+        "output_index": 3,
+        "score": -1,
+        "threshold": 50,
+        "tool": "scra",
+        "unit_level": "Class"
+    },
+    "cc_data": {
+        "count": 17,
+        "density": "50.45",
+        "key": "cc",
+        "max": 74,
+        "name": "CyclomaticComplexity",
+        "output_index": 3,
+        "ratio": "27.59",
+        "score": "2.08",
+        "scoring": "Y",
+        "sum": 1972,
+        "sum_violation": 544,
+        "threshold": 20,
+        "tool": "scra",
+        "unit_count": 337,
+        "unit_level": "Function"
+    },
+    "ccd_data": {
+        "key": "ccd",
+        "name": "ClassCircularDependency",
+        "output_index": 3,
+        "score": -1,
+        "threshold": 1,
+        "tool": "scra",
+        "unit_level": "Class"
+    },
+    "dc_data": {
+        "count": 355,
+        "dc": 1217,
+        "density": "28.70",
+        "key": "dc",
+        "name": "DuplicateCode",
+        "output_index": 3,
+        "ratio": "9.84",
+        "score": "3.03",
+        "scoring": "Y",
+        "sum_violation": 1217,
+        "threshold": 50,
+        "tool": "cpd",
+        "unit_level": "Function"
+    },
+    "dep_data": {
+        "key": "dep",
+        "name": "DependencyComplexity",
+        "output_index": 3,
+        "score": -1,
+        "threshold": 12,
+        "tool": "scra",
+        "unit_level": "Module"
+    },
+    "floc_data": {
+        "key": "floc",
+        "name": "FunctionLOC",
+        "output_index": 3,
+        "threshold": 20,
+        "tool": "scra",
+        "unit_level": "Function"
+    },
+    "fme_data": {
+        "count": 5,
+        "density": "15.62",
+        "key": "fme",
+        "name": "FunctionMaintenanceEffort",
+        "output_index": 3,
+        "ratio": "1.56",
+        "score": "3.88",
+        "scoring": "Y",
+        "sum": 67063.38999999997,
+        "sum_violation": 29931.08,
+        "threshold": 50,
+        "tool": "scra",
+        "unit_count": 320,
+        "unit_level": "Function"
+    },
+    "get_metric_class": {},
+    "get_metric_data_dict": {},
+    "get_metric_data_list": {},
+    "gm_data": {
+        "key": "gm",
+        "name": "GodModule",
+        "output_index": 3,
+        "score": -1,
+        "threshold": 27000000,
+        "tool": "scra",
+        "unit_level": "Module"
+    },
+    "gv_data": {
+        "key": "gv",
+        "name": "GlobalVariable",
+        "output_index": 3,
+        "score": -1,
+        "threshold": 1,
+        "tool": "scra",
+        "unit_level": "Function"
+    },
+    "gv_data_v2_1": {
+        "key": "gv",
+        "name": "GlobalVariable",
+        "output_index": 3,
+        "threshold": 1,
+        "tool": "scra",
+        "unit_level": "Function"
+    },
+    "lmcd_data": {
+        "key": "lmcd",
+        "name": "LogicalModuleCircularDependency",
+        "output_index": 3,
+        "threshold": 1,
+        "tool": "scra",
+        "unit_level": "Module"
+    },
+    "loc_data": {
+        "key": "loc",
+        "name": "LinesOfCode",
+        "output_index": 3,
+        "score": -1,
+        "threshold": 500,
+        "tool": "scra",
+        "unit_level": "Class"
+    },
+    "mcd_data": {
+        "key": "mcd",
+        "name": "ModuleCircularDependency",
+        "output_index": 3,
+        "score": -1,
+        "threshold": 1,
+        "tool": "scra",
+        "unit_level": "Module"
+    },
+    "ncs_data": {
+        "key": "ncs",
+        "name": "NestedControlStatements",
+        "output_index": 3,
+        "threshold": 5,
+        "tool": "scra",
+        "unit_level": "Function"
+    },
+    "oc_data": {
+        "key": "oc",
+        "name": "OverridingConcern"
+    },
+    "pp_data": {
+        "key": "pp",
+        "name": "PredefinedPreprocessor",
+        "output_index": 3,
+        "score": -1,
+        "threshold": 1,
+        "tool": "metrix++",
+        "unit_level": "Function"
+    },
+    "pp_data_v2_1": {
+        "key": "pp",
+        "name": "PredefinedPreprocessor",
+        "output_index": 3,
+        "threshold": 1,
+        "tool": "metrix++",
+        "unit_level": "Function"
+    },
+    "project_data": {
+        "class_count": 35,
+        "class_file_count": 0,
+        "class_file_ratio": 0.0,
+        "code_loc": 9046,
+        "file_count": 35,
+        "loc": 12368,
+        "method_count": 337,
+        "ploc": 12368,
+        "rtc_node": "{TOP}",
+        "score1": 2.56,
+        "score2": 3.0,
+        "score_v5_dep_gm": -1
+    }
+} 
+
+
