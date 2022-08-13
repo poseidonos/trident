@@ -35,7 +35,7 @@ import re
 import helper
 import logger
 from cli import Cli
-from target_setup import TargetHeteroSetup
+from hetero_setup import TargetHeteroSetup
 
 logger = logger.get_logger(__name__)
 
