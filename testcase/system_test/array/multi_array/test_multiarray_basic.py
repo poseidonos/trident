@@ -51,7 +51,8 @@ def test_create_array3_after_array2_delete():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -65,7 +66,7 @@ def test_create_array3_after_array2_delete():
 
         array_name_pre = "pos_array"
         spare_disk_list = []
-        data_disk_array = ([], []) 
+        data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
@@ -78,8 +79,8 @@ def test_create_array3_after_array2_delete():
                                         spare=spare_disk_list, raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
-            assert  pos.cli.mount_array(array_name=array_name)[0] == True
-        
+            assert pos.cli.mount_array(array_name=array_name)[0] == True
+
         # Unmount both Arrays
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
@@ -88,13 +89,13 @@ def test_create_array3_after_array2_delete():
         # Delete 2nd Array
         array_name = f"{array_name_pre}_1"
         assert pos.cli.delete_array(array_name=array_name)[0] == True
-        
+
         # Create 3rd Array
         array_name = f"{array_name_pre}_3"
         uram_name = f"uram0"
         assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[0],
-                                        spare=spare_disk_list, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
+                                    spare=spare_disk_list, raid_type=raid_type,
+                                    array_name=array_name)[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -102,6 +103,7 @@ def test_create_array3_after_array2_delete():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_add_max_spare():
@@ -112,7 +114,8 @@ def test_multiarray_add_max_spare():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -127,7 +130,7 @@ def test_multiarray_add_max_spare():
 
         array_name_pre = "pos_array"
         spare_disk_list = []
-        data_disk_array = ([], []) 
+        data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
@@ -140,13 +143,13 @@ def test_multiarray_add_max_spare():
                                         spare=spare_disk_list, raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
-            assert  pos.cli.mount_array(array_name=array_name)[0] == True
+            assert pos.cli.mount_array(array_name=array_name)[0] == True
 
         for id in range(len(system_disks)):
             array_name = f"{array_name_pre}_{(id % 2) + 1}"
             device_name = system_disks.pop(0)
-            assert pos.cli.addspare_array(device_name=device_name, 
-                                        array_name=array_name)[0] == True
+            assert pos.cli.addspare_array(device_name=device_name,
+                                          array_name=array_name)[0] == True
             assert pos.cli.info_array(array_name=array_name)
 
         logger.info(
@@ -166,7 +169,8 @@ def test_multiarray_unmount_array_unmount_vol():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -200,8 +204,9 @@ def test_multiarray_unmount_array_unmount_vol():
             assert pos.cli.mount_array(array_name=array_name)[0] == True
 
             assert pos.cli.create_volume(vol_name, array_name=array_name,
-                                                     size="10gb")[0] == True
-            assert pos.cli.mount_volume(vol_name, array_name, nqn=ss_list[id])[0] == True
+                                         size="10gb")[0] == True
+            assert pos.cli.mount_volume(
+                vol_name, array_name, nqn=ss_list[id])[0] == True
 
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
@@ -211,10 +216,12 @@ def test_multiarray_unmount_array_unmount_vol():
             # The volume unmount is expected to fail as array is already unmounted
             # TODO handle exception at API side
             try:
-                assert pos.cli.unmount_volume(vol_name, array_name=array_name) == False
+                assert pos.cli.unmount_volume(
+                    vol_name, array_name=array_name) == False
             except:
-                logger.info("Expected fail for unmount volume - array is unmounted. {e}")
-                                    
+                logger.info(
+                    "Expected fail for unmount volume - array is unmounted. {e}")
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -232,7 +239,8 @@ def test_multiarray_delete_array_list_vol():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -266,8 +274,9 @@ def test_multiarray_delete_array_list_vol():
             assert pos.cli.mount_array(array_name=array_name)[0] == True
 
             assert pos.cli.create_volume(vol_name, array_name=array_name,
-                                                     size="10gb")[0] == True
-            assert pos.cli.mount_volume(vol_name, array_name, nqn=ss_list[id])[0] == True
+                                         size="10gb")[0] == True
+            assert pos.cli.mount_volume(
+                vol_name, array_name, nqn=ss_list[id])[0] == True
 
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
@@ -280,8 +289,9 @@ def test_multiarray_delete_array_list_vol():
             try:
                 assert pos.cli.list_volume(vol_name) == False
             except Exception as e:
-                logger.info("Expected fail for list volume - array is deleted. {e}")
-                                    
+                logger.info(
+                    "Expected fail for list volume - array is deleted. {e}")
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -299,7 +309,8 @@ def test_multiarray_recreate_array_and_vol():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -315,7 +326,7 @@ def test_multiarray_recreate_array_and_vol():
         vol_name_pre = "pos_vol"
         spare_disk_list = []
         data_disk_array = ([], [])
-        array_size_list=[]
+        array_size_list = []
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = pos.target_utils.ss_temp_list[:2]
 
@@ -339,8 +350,9 @@ def test_multiarray_recreate_array_and_vol():
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
 
             assert pos.cli.create_volume(vol_name, array_name=array_name,
-                                                     size=vol_size)[0] == True
-            assert pos.cli.mount_volume(vol_name, array_name, nqn=ss_list[id])[0] == True
+                                         size=vol_size)[0] == True
+            assert pos.cli.mount_volume(
+                vol_name, array_name, nqn=ss_list[id])[0] == True
 
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
@@ -348,7 +360,7 @@ def test_multiarray_recreate_array_and_vol():
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
             assert pos.cli.delete_array(array_name=array_name)[0] == True
 
-        for id in range(2): 
+        for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
             vol_name = f"{array_name}_{vol_name_pre}"
@@ -365,15 +377,17 @@ def test_multiarray_recreate_array_and_vol():
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
 
             assert pos.cli.create_volume(vol_name, array_name=array_name,
-                                        size=vol_size)[0] == True
-            assert pos.cli.mount_volume(vol_name, array_name, nqn=ss_list[id])[0] == True
-                                    
+                                         size=vol_size)[0] == True
+            assert pos.cli.mount_volume(
+                vol_name, array_name, nqn=ss_list[id])[0] == True
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_mount_unmount_loop():
@@ -384,7 +398,8 @@ def test_multiarray_mount_unmount_loop():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -413,7 +428,7 @@ def test_multiarray_mount_unmount_loop():
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
             assert pos.cli.info_array(array_name=array_name)[0] == True
-                                    
+
         loop_limit = 20
         for loop_counter in range(loop_limit):
             for id in range(2):
@@ -433,6 +448,7 @@ def test_multiarray_mount_unmount_loop():
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 @pytest.mark.regression
 def test_unmount_array1_delete_array2():
     logger.info(
@@ -442,7 +458,8 @@ def test_unmount_array1_delete_array2():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -471,19 +488,21 @@ def test_unmount_array1_delete_array2():
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
             assert pos.cli.info_array(array_name=array_name)[0] == True
-                                    
+
         # Unmount Array 1
         array_name = f"{array_name_pre}_1"
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
 
         # Delete Array 2, Expected to fail
         array_name = f"{array_name_pre}_2"
-        assert pos.cli.delete_array(array_name=array_name)[0] == False
+        try:
+            assert pos.cli.delete_array(array_name=array_name)[0] == False
+        except Exception as e:
+            logger.info("Should be expected error. Verify from logs")
 
         # Unmount and Delete Array 2
         assert pos.cli.mount_array(array_name=array_name)[0] == True
         assert pos.cli.delete_array(array_name=array_name)[0] == True
-
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -502,7 +521,8 @@ def test_array1_spare_as_array2_data_disk():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -542,6 +562,7 @@ def test_array1_spare_as_array2_data_disk():
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 @pytest.mark.regression
 def test_array1_data_as_array2_spare_disk():
     logger.info(
@@ -551,7 +572,8 @@ def test_array1_data_as_array2_spare_disk():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -601,7 +623,8 @@ def test_multiarray_size_after_unmount_mount():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -642,7 +665,7 @@ def test_multiarray_size_after_unmount_mount():
             array_size_post = int(pos.cli.array_info[array_name].get("size"))
 
             assert array_size_pre == array_size_post
-                                    
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -660,7 +683,8 @@ def test_array2_unmount_after_detach_spare():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -698,7 +722,7 @@ def test_array2_unmount_after_detach_spare():
 
         array_name = f"{array_name_pre}_2"
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
-                                    
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -716,7 +740,8 @@ def test_multiarray_different_num_drives():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -736,7 +761,7 @@ def test_multiarray_different_num_drives():
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
 
-        for i in range(system_disks - nr_data_drives):  
+        for i in range(len(system_disks) - nr_data_drives):
             data_disk_array[1].append(system_disks.pop(0))
 
         for id in range(2):
@@ -747,13 +772,14 @@ def test_multiarray_different_num_drives():
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
-                                    
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_second_array_without_uram():
@@ -764,7 +790,8 @@ def test_second_array_without_uram():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -783,28 +810,29 @@ def test_second_array_without_uram():
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))            
+            data_disk_array[1].append(system_disks.pop(0))
 
         # Array 1 with valid uram
         array_name = f"{array_name_pre}_1"
-        uram_name = f"uram{id}"
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
+        uram_name = f"uram0"
+        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[0],
                                     spare=spare_disk_list, raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
         # Array 2 with invlaid uram - Expected Fail
         array_name = f"{array_name_pre}_2"
         uram_name = f"uram_ivalid"
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
+        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[1],
                                     spare=spare_disk_list, raid_type=raid_type,
                                     array_name=array_name)[0] == False
-                                    
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_with_invalid_uram():
@@ -815,18 +843,19 @@ def test_multiarray_with_invalid_uram():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
 
         uram_names = ["uram57", "uram58"]
         # Buffer device must be equal to or greater than 128MB * number of data devices + 512MB.
-        buff_size = 1310720     # 768 MB  (1310720 * 512 Block Size)  
+        buff_size = 1310720     # 768 MB  (1310720 * 512 Block Size)
 
-        for i in range(2):
+        for id in range(2):
             assert pos.cli.create_device(uram_name=uram_names[id],
-                    bufer_size=buff_size, strip_size=512, numa=i)[0] == True
+                                         bufer_size=buff_size, strip_size=512, numa=i)[0] == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
@@ -844,22 +873,23 @@ def test_multiarray_with_invalid_uram():
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))            
+            data_disk_array[1].append(system_disks.pop(0))
 
         # Create both array with invalid uram
-        for i in range(2):
-            array_name = f"{array_name_pre}_1"
+        for id in range(2):
+            array_name = f"{array_name_pre}_{id+1}"
             uram_name = uram_names[id]
             assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                    spare=spare_disk_list, raid_type=raid_type,
-                                    array_name=array_name)[0] == False
-                                    
+                                        spare=spare_disk_list, raid_type=raid_type,
+                                        array_name=array_name)[0] == False
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_unmount_unmounted_array():
@@ -870,7 +900,8 @@ def test_multiarray_unmount_unmounted_array():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -889,8 +920,6 @@ def test_multiarray_unmount_unmounted_array():
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
-
-        for i in range(system_disks - nr_data_drives):  
             data_disk_array[1].append(system_disks.pop(0))
 
         # Create two arrays
@@ -902,21 +931,24 @@ def test_multiarray_unmount_unmounted_array():
                                         array_name=array_name)[0] == True
 
         # Unmount first array. Expected to fail
-        assert pos.cli.unmount_array(array_name=f"{array_name_pre}_1")[0] == False
+        assert pos.cli.unmount_array(
+            array_name=f"{array_name_pre}_1")[0] == False
 
         # Mount both array
         assert pos.cli.mount_array(array_name=f"{array_name_pre}_1")[0] == True
         assert pos.cli.mount_array(array_name=f"{array_name_pre}_2")[0] == True
 
         # Unmount second array
-        assert pos.cli.unmount_array(array_name=f"{array_name_pre}_2")[0] == True
-                                    
+        assert pos.cli.unmount_array(
+            array_name=f"{array_name_pre}_2")[0] == True
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_invalid_raid():
@@ -927,7 +959,8 @@ def test_multiarray_invalid_raid():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -946,7 +979,7 @@ def test_multiarray_invalid_raid():
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))        
+            data_disk_array[1].append(system_disks.pop(0))
 
         # Create two arrays
         for id in range(2):
@@ -962,13 +995,14 @@ def test_multiarray_invalid_raid():
             assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
                                         spare=spare_disk_list, raid_type=raid_type,
                                         array_name=array_name)[0] == True
-                                    
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_consume_max_array_capacity():
@@ -981,7 +1015,8 @@ def test_multiarray_consume_max_array_capacity():
         num_vols = 256
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -1007,7 +1042,7 @@ def test_multiarray_consume_max_array_capacity():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, 
+            assert pos.cli.create_array(write_buffer=uram_name,
                                         data=data_disk_array[id],
                                         spare=spare_disk_list,
                                         raid_type=raid_type,
@@ -1017,23 +1052,25 @@ def test_multiarray_consume_max_array_capacity():
             assert pos.cli.info_array(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_info[array_name].get("size"))
-            vol_size = f"{int((array_size // num_vols) // (1024 * 1024))}mb"  # Volume Size in MB
+            # Volume Size in MB
+            vol_size = f"{int((array_size // num_vols) // (1024 * 1024))}mb"
 
             assert pos.target_utils.create_volume_multiple(array_name, num_vols,
-                                            vol_name_pre, size=vol_size) == True
+                                                           vol_name_pre, size=vol_size) == True
 
         # Try to create 257th volume on the second array. - Expected Failure
         array_name = f"{array_name_pre}_2"
         vol_name = f"{array_name}_{vol_name_pre}_257"
-        assert pos.cli.create_volume(vol_name, size=vol_size, 
-                                    array_name=array_name)[0] == False
-  
+        assert pos.cli.create_volume(vol_name, size=vol_size,
+                                     array_name=array_name)[0] == False
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_unmount_array_effect():
@@ -1044,7 +1081,8 @@ def test_multiarray_unmount_array_effect():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -1072,33 +1110,40 @@ def test_multiarray_unmount_array_effect():
             assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
                                         spare=spare_disk_list, raid_type=raid_type,
                                         array_name=array_name)[0] == True
-            assert pos.cli.mount_array(array_name=f"{array_name_pre}_1")[0] == True
+            assert pos.cli.mount_array(array_name=array_name)[0] == True
 
         # Unmount second array and Check the array state
-        assert pos.cli.unmount_array(array_name=f"{array_name_pre}_2")[0] == True
+        assert pos.cli.unmount_array(
+            array_name=f"{array_name_pre}_2")[0] == True
 
         assert pos.cli.info_array(array_name=f"{array_name_pre}_1")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_1"].get("state") == "NORMAL"
+        assert pos.cli.array_info[f"{array_name_pre}_1"].get(
+            "state") == "NORMAL"
 
         assert pos.cli.info_array(array_name=f"{array_name_pre}_2")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_2"].get("state") == "OFFLINE"
+        assert pos.cli.array_info[f"{array_name_pre}_2"].get(
+            "state") == "OFFLINE"
 
         # Unmount first array and Mount second array
-        assert pos.cli.unmount_array(array_name=f"{array_name_pre}_1")[0] == True
+        assert pos.cli.unmount_array(
+            array_name=f"{array_name_pre}_1")[0] == True
         assert pos.cli.mount_array(array_name=f"{array_name_pre}_2")[0] == True
 
         assert pos.cli.info_array(array_name=f"{array_name_pre}_1")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_1"].get("state") == "OFFLINE"
+        assert pos.cli.array_info[f"{array_name_pre}_1"].get(
+            "state") == "OFFLINE"
 
         assert pos.cli.info_array(array_name=f"{array_name_pre}_2")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_2"].get("state") == "NORAML"
-                                    
+        assert pos.cli.array_info[f"{array_name_pre}_2"].get(
+            "state") == "NORAML"
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_unmount_mount_array1():
@@ -1109,7 +1154,8 @@ def test_multiarray_unmount_mount_array1():
         raid_type, nr_data_drives = "RAID5", 3
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -1140,7 +1186,7 @@ def test_multiarray_unmount_mount_array1():
             assert pos.cli.mount_array(array_name=array_name)[0] == True
 
         # Unmount first array and verify the state
-        array_name=f"{array_name_pre}_1"
+        array_name = f"{array_name_pre}_1"
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
         assert pos.cli.info_array(array_name=array_name)[0] == True
         assert pos.cli.array_info[array_name].get("state") == "OFFLINE"
@@ -1149,13 +1195,14 @@ def test_multiarray_unmount_mount_array1():
         assert pos.cli.mount_array(array_name=array_name)[0] == True
         assert pos.cli.info_array(array_name=array_name)[0] == True
         assert pos.cli.array_info[array_name].get("state") == "NORMAL"
-                                    
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_vol_unmount_delete_loop():
@@ -1167,7 +1214,8 @@ def test_multiarray_vol_unmount_delete_loop():
         num_array = 2
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -1206,8 +1254,8 @@ def test_multiarray_vol_unmount_delete_loop():
                 array_name = f"{array_name_pre}_{id+1}"
                 vol_name = f"{array_name}_{vol_name_pre}"
                 assert pos.cli.create_volume(vol_name, size="10gb",
-                                            array_name=array_name)[0] == True
-                assert pos.cli.mount_volume(vol_name, array_name, 
+                                             array_name=array_name)[0] == True
+                assert pos.cli.mount_volume(vol_name, array_name,
                                             nqn=ss_list[id])[0] == True
 
                 assert pos.cli.unmount_volume(vol_name, array_name)[0] == True
@@ -1216,13 +1264,14 @@ def test_multiarray_vol_unmount_delete_loop():
             logger.info("*" * 50)
             logger.info(f"Loop completed: {loop_counter + 1}/{loop_limit}.")
             logger.info("*" * 50)
-        
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_multiarray_mount_mounted_array():
@@ -1234,7 +1283,8 @@ def test_multiarray_mount_mounted_array():
         num_array = 2
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -1285,7 +1335,8 @@ def test_array1_100_vols_array2_257_vols():
         num_vols_list = [101, 257]
 
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.target_utils.pos_bring_up(
+                data_dict=pos.data_dict) == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.reset_devel()[0] == True
@@ -1311,7 +1362,7 @@ def test_array1_100_vols_array2_257_vols():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, 
+            assert pos.cli.create_array(write_buffer=uram_name,
                                         data=data_disk_array[id],
                                         spare=spare_disk_list,
                                         raid_type=raid_type,
@@ -1321,17 +1372,18 @@ def test_array1_100_vols_array2_257_vols():
             assert pos.cli.info_array(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_info[array_name].get("size"))
-            vol_size = f"{int((array_size // num_vols_list[id]) // (1024 * 1024))}mb"  # Volume Size in MB
+            # Volume Size in MB
+            vol_size = f"{int((array_size // num_vols_list[id]) // (1024 * 1024))}mb"
 
-            assert pos.target_utils.create_volume_multiple(array_name, 
-                    num_vols_list[id] - 1, vol_name_pre, size=vol_size) == True
+            assert pos.target_utils.create_volume_multiple(array_name,
+                                                           num_vols_list[id] - 1, vol_name_pre, size=vol_size) == True
 
         # Try to create 257th volume on the second array. - Expected Failure
         array_name = f"{array_name_pre}_2"
         vol_name = f"{array_name}_{vol_name_pre}_257"
-        assert pos.cli.create_volume(vol_name, size=vol_size, 
-                                    array_name=array_name)[0] == False
-  
+        assert pos.cli.create_volume(vol_name, size=vol_size,
+                                     array_name=array_name)[0] == False
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
