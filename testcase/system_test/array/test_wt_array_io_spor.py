@@ -8,7 +8,8 @@ import time
 # from pos import POS
 
 logger = logger.get_logger(__name__)
-
+fio_cmd = f"fio --name=sequential_write --ioengine=libaio --rw=write \
+                            --iodepth=64 --direct=1 --bs=128k --size=100%"
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
@@ -110,9 +111,6 @@ def test_wt_array_io_spor(raid_type, nr_data_drives):
         nvme_devs = pos.client.nvme_list_out
 
         # Run File IO and Block IO Parallely
-        fio_cmd = f"fio --name=sequential_write --ioengine=libaio --rw=write \
-                            --iodepth=64 --direct=1 --bs=128k --size=100%"
-
         block_io_devs = nvme_devs
         io_mode = True  # Set False this to Block IO
         out, async_block_io = pos.client.fio_generic_runner(
@@ -147,3 +145,36 @@ def test_wt_array_io_spor(raid_type, nr_data_drives):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
+@pytest.mark.regression
+def test_spor_wt_wb():
+    try:
+        assert pos.target_utils.pos_bring_up() == True
+        for ss in pos.target_utils.ss_temp_list:
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
+        assert pos.client.nvme_list() == True
+        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data=fio_cmd )[0] == True
+        assert pos.target_utils.Spor(write_through=True) == True
+    except Exception as e:
+        pos.exit_handler()
+        assert 0
+
+
+@pytest.mark.regression
+def test_npor_wt_wb():
+    try:
+        assert pos.target_utils.pos_bring_up() == True
+        for ss in pos.target_utils.ss_temp_list:
+            assert (
+                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
+                == True
+            )
+        assert pos.client.nvme_list() == True
+        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data=fio_cmd )[0] == True
+        assert pos.target_utils.Npor(write_through=True) == True
+    except Exception as e:
+        pos.exit_handler()
+        assert 0

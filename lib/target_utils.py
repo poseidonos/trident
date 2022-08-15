@@ -1115,7 +1115,7 @@ class TargetUtils:
             logger.error(f"NPOR and recovery failed due to {e}")
             return False
 
-    def Spor(self, uram_backup=True) -> bool:
+    def Spor(self, uram_backup=True,write_through = False) -> bool:
         """
         Method to spor
         uram_backup : If true, run script to take uram backup
@@ -1172,7 +1172,7 @@ class TargetUtils:
 
             # Restore Array and Volumes
             for array in array_list:
-                assert self.cli.mount_array(array_name=array)[0] == True
+                assert self.cli.mount_array(array_name=array,write_back=write_through)[0] == True
                 assert self.cli.list_volume(array_name=array)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
