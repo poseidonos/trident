@@ -787,7 +787,8 @@ class Client:
             logger.error("No controllers found")
             return (False, None)
         else:
-            out.remove("/dev/nvme-fabrics\n")
+            if "/dev/nvme-fabrics\n" in out:
+                out.remove("/dev/nvme-fabrics\n")
         temp, final = [], []
         for device in out:
             ctrlr = re.findall("/dev/nvme[0-9]+", device)
@@ -968,9 +969,9 @@ class Client:
                     logger.info(
                         "number of partitions in {} : {}".format(Device_name, len(out))
                     )
-                    reg = "{}p\d+".format(dev_name)
+                    reg = r"{}p\d+".format(dev_name)
                 else:
-                    reg = "nvme\d+n\d+"
+                    reg = r"nvme\d+n\d+"
 
                 for i in out:
                     regx = re.search(reg, i)
