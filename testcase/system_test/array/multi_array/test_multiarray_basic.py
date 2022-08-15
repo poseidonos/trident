@@ -501,7 +501,7 @@ def test_unmount_array1_delete_array2():
             logger.info("Should be expected error. Verify from logs")
 
         # Unmount and Delete Array 2
-        assert pos.cli.mount_array(array_name=array_name)[0] == True
+        assert pos.cli.unmount_array(array_name=array_name)[0] == True
         assert pos.cli.delete_array(array_name=array_name)[0] == True
 
         logger.info(
@@ -855,7 +855,7 @@ def test_multiarray_with_invalid_uram():
 
         for id in range(2):
             assert pos.cli.create_device(uram_name=uram_names[id],
-                                         bufer_size=buff_size, strip_size=512, numa=i)[0] == True
+                                         bufer_size=buff_size, strip_size=512, numa=id)[0] == True
 
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
@@ -1134,8 +1134,7 @@ def test_multiarray_unmount_array_effect():
             "state") == "OFFLINE"
 
         assert pos.cli.info_array(array_name=f"{array_name_pre}_2")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_2"].get(
-            "state") == "NORAML"
+        assert pos.cli.array_info[f"{array_name_pre}_2"]["state"] == "NORMAL"
 
         logger.info(
             " ============================= Test ENDs ======================================"
