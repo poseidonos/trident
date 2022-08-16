@@ -6,6 +6,15 @@ import logger
 logger = logger.get_logger(__name__)
 
 
+def check_disk_precondition(pos, req_disk):
+    '''Checks the minimum disks requirements '''
+    assert pos.cli.scan_device()[0] == True
+    assert pos.cli.list_device()[0] == True
+    sys_disks = pos.cli.system_disks
+    if len(sys_disks) < req_disk:
+        pytest.skip(f"Insufficient disks {sys_disks}. Required min {req_disk}")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
 
@@ -36,6 +45,7 @@ def teardown_function():
                 assert pos.cli.unmount_array(array_name=array)[0] == True
             assert pos.cli.delete_array(array_name=array)[0] == True
 
+    assert pos.cli.reset_devel()[0] == True
     logger.info("==========================================")
 
 
@@ -50,12 +60,10 @@ def test_create_array3_after_array2_delete():
         " ==================== Test : test_create_array3_after_array2_delete ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
 
+        system_disks = pos.cli.system_disks
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
 
@@ -104,11 +112,9 @@ def test_multiarray_add_max_spare():
         " ==================== Test : test_multiarray_add_max_spare ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = ((nr_data_drives + 1) * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -148,11 +154,9 @@ def test_multiarray_unmount_array_unmount_vol():
         " ==================== Test : test_multiarray_unmount_array_unmount_vol ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
@@ -208,11 +212,9 @@ def test_multiarray_delete_array_list_vol():
         " ==================== Test : test_multiarray_delete_array_list_vol ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
@@ -268,11 +270,9 @@ def test_multiarray_recreate_array_and_vol():
         " ==================== Test : test_multiarray_recreate_array_and_vol ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
@@ -348,11 +348,9 @@ def test_multiarray_mount_unmount_loop():
         " ==================== Test : test_multiarray_mount_unmount_loop ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -398,11 +396,9 @@ def test_unmount_array1_delete_array2():
         " ==================== Test : test_unmount_array1_delete_array2 ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -451,11 +447,9 @@ def test_array1_spare_as_array2_data_disk():
         " ==================== Test : test_array1_spare_as_array2_data_disk ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         spare_disk_list = []
@@ -495,11 +489,9 @@ def test_array1_data_as_array2_spare_disk():
         " ==================== Test : test_array1_data_as_array2_spare_disk ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required min {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -538,11 +530,9 @@ def test_multiarray_size_after_unmount_mount():
         " ==================== Test : test_multiarray_size_after_unmount_mount ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = nr_data_drives * num_array
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disk count {system_disks}. Required min {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -588,11 +578,9 @@ def test_array2_unmount_after_detach_spare():
         " ==================== Test : test_array2_unmount_after_detach_spare ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = ((nr_data_drives + 1) * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disk count {system_disks}. Requird {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         spare_disk_array = ([], [])
@@ -636,11 +624,9 @@ def test_multiarray_different_num_drives():
         " ==================== Test : test_multiarray_different_num_drives ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = ((nr_data_drives + 1) * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -675,11 +661,9 @@ def test_second_array_without_uram():
         " ==================== Test : test_second_array_without_uram ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -718,11 +702,9 @@ def test_multiarray_with_invalid_uram():
         " ==================== Test : test_multiarray_with_invalid_uram ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         uram_names = ["uram57", "uram58"]
         # Buffer device must be equal to or greater than 128MB * number of data devices + 512MB.
@@ -765,11 +747,9 @@ def test_multiarray_unmount_unmounted_array():
         " ==================== Test : test_multiarray_unmount_unmounted_array ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -813,11 +793,9 @@ def test_multiarray_invalid_raid():
         " ==================== Test : test_multiarray_invalid_raid ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -859,11 +837,9 @@ def test_multiarray_consume_max_array_capacity():
     try:
         num_vols = 256
 
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
@@ -912,11 +888,9 @@ def test_multiarray_unmount_array_effect():
         " ==================== Test : test_multiarray_unmount_array_effect ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -973,11 +947,9 @@ def test_multiarray_unmount_mount_array1():
         " ==================== Test : test_multiarray_unmount_mount_array1 ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -1021,11 +993,9 @@ def test_multiarray_vol_unmount_delete_loop():
         " ==================== Test : test_multiarray_vol_unmount_delete_loop ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
@@ -1079,11 +1049,9 @@ def test_multiarray_mount_mounted_array():
         " ==================== Test : test_multiarray_mount_mounted_array ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -1119,11 +1087,9 @@ def test_array1_100_vols_array2_257_vols():
         " ==================== Test : test_array1_100_vols_array2_257_vols ================== "
     )
     try:
-        system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disks {system_disks}. Required {required_disk}")
+        check_disk_precondition(pos, required_disk)
+        system_disks = pos.cli.system_disks
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
@@ -1151,7 +1117,9 @@ def test_array1_100_vols_array2_257_vols():
             vol_size = f"{int((array_size // num_vols_list[id]) // (1024 * 1024))}mb"
 
             assert pos.target_utils.create_volume_multiple(array_name,
-                                                           num_vols_list[id] - 1, vol_name_pre, size=vol_size) == True
+                                                           num_vols_list[id] - 1,
+                                                           vol_name_pre,
+                                                           size=vol_size) == True
 
         # Try to create 257th volume on the second array. - Expected Failure
         array_name = f"{array_name_pre}_2"
