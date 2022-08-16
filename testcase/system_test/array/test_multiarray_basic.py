@@ -9,13 +9,15 @@ logger = logger.get_logger(__name__)
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
 
-    global pos, data_dict
+    global pos, data_dict, raid_type, nr_data_drives, num_array
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
 
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
+    raid_type, nr_data_drives = "RAID5", 3
+    num_array = 2
     yield pos
 
 
@@ -48,35 +50,25 @@ def test_create_array3_after_array2_delete():
         " ==================== Test : test_create_array3_after_array2_delete ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
             data_disk_array[1].append(system_disks.pop(0))
 
-        for id in range(2):
+        for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -93,8 +85,9 @@ def test_create_array3_after_array2_delete():
         # Create 3rd Array
         array_name = f"{array_name_pre}_3"
         uram_name = f"uram0"
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[0],
-                                    spare=spare_disk_list, raid_type=raid_type,
+        assert pos.cli.create_array(write_buffer=uram_name,
+                                    data=data_disk_array[0],
+                                    spare=[], raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
         logger.info(
@@ -111,36 +104,25 @@ def test_multiarray_add_max_spare():
         " ==================== Test : test_multiarray_add_max_spare ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        required_disk = ((nr_data_drives + 1) * 2)
+        required_disk = ((nr_data_drives + 1) * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
             data_disk_array[1].append(system_disks.pop(0))
 
-        for id in range(2):
+        for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -166,25 +148,14 @@ def test_multiarray_unmount_array_unmount_vol():
         " ==================== Test : test_multiarray_unmount_array_unmount_vol ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
-        spare_disk_list = []
         data_disk_array = ([], [])
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = pos.target_utils.ss_temp_list[:2]
@@ -193,12 +164,13 @@ def test_multiarray_unmount_array_unmount_vol():
             data_disk_array[0].append(system_disks.pop(0))
             data_disk_array[1].append(system_disks.pop(0))
 
-        for id in range(2):
+        for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
             vol_name = f"{array_name}_{vol_name_pre}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -208,7 +180,7 @@ def test_multiarray_unmount_array_unmount_vol():
             assert pos.cli.mount_volume(
                 vol_name, array_name, nqn=ss_list[id])[0] == True
 
-        for id in range(2):
+        for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             vol_name = f"{array_name}_{vol_name_pre}"
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
@@ -236,25 +208,14 @@ def test_multiarray_delete_array_list_vol():
         " ==================== Test : test_multiarray_delete_array_list_vol ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
-        spare_disk_list = []
         data_disk_array = ([], [])
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = pos.target_utils.ss_temp_list[:2]
@@ -263,12 +224,13 @@ def test_multiarray_delete_array_list_vol():
             data_disk_array[0].append(system_disks.pop(0))
             data_disk_array[1].append(system_disks.pop(0))
 
-        for id in range(2):
+        for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
             vol_name = f"{array_name}_{vol_name_pre}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -278,7 +240,7 @@ def test_multiarray_delete_array_list_vol():
             assert pos.cli.mount_volume(
                 vol_name, array_name, nqn=ss_list[id])[0] == True
 
-        for id in range(2):
+        for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             vol_name = f"{array_name}_{vol_name_pre}"
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
@@ -306,25 +268,14 @@ def test_multiarray_recreate_array_and_vol():
         " ==================== Test : test_multiarray_recreate_array_and_vol ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
-        spare_disk_list = []
         data_disk_array = ([], [])
         array_size_list = []
         assert pos.target_utils.get_subsystems_list() == True
@@ -338,8 +289,9 @@ def test_multiarray_recreate_array_and_vol():
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
             vol_name = f"{array_name}_{vol_name_pre}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -365,8 +317,9 @@ def test_multiarray_recreate_array_and_vol():
             uram_name = f"uram{id}"
             vol_name = f"{array_name}_{vol_name_pre}"
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -395,35 +348,25 @@ def test_multiarray_mount_unmount_loop():
         " ==================== Test : test_multiarray_mount_unmount_loop ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
             data_disk_array[0].append(system_disks.pop(0))
             data_disk_array[1].append(system_disks.pop(0))
 
-        for id in range(2):
+        for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -431,7 +374,7 @@ def test_multiarray_mount_unmount_loop():
 
         loop_limit = 20
         for loop_counter in range(loop_limit):
-            for id in range(2):
+            for id in range(num_array):
                 array_name = f"{array_name_pre}_{id+1}"
                 assert pos.cli.unmount_array(array_name=array_name)[0] == True
                 assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -455,24 +398,13 @@ def test_unmount_array1_delete_array2():
         " ==================== Test : test_unmount_array1_delete_array2 ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -482,8 +414,9 @@ def test_unmount_array1_delete_array2():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -518,21 +451,11 @@ def test_array1_spare_as_array2_data_disk():
         " ==================== Test : test_array1_spare_as_array2_data_disk ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
         spare_disk_list = []
@@ -544,14 +467,17 @@ def test_array1_spare_as_array2_data_disk():
 
         array_name = f"{array_name_pre}_1"
         uram_name = f"uram0"
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_list,
-                                    spare=spare_disk_list, raid_type=raid_type,
+        assert pos.cli.create_array(write_buffer=uram_name,
+                                    data=data_disk_list,
+                                    spare=spare_disk_list,
+                                    raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
         # Use Array 1 spare disk as data disk for array 2
         array_name = f"{array_name_pre}_2"
         uram_name = f"uram1"
-        assert pos.cli.create_array(write_buffer=uram_name, data=spare_disk_list,
+        assert pos.cli.create_array(write_buffer=uram_name,
+                                    data=spare_disk_list,
                                     spare=[], raid_type=raid_type,
                                     array_name=array_name)[0] == False
 
@@ -569,24 +495,13 @@ def test_array1_data_as_array2_spare_disk():
         " ==================== Test : test_array1_data_as_array2_spare_disk ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disks {system_disks}. Required min {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -595,15 +510,18 @@ def test_array1_data_as_array2_spare_disk():
 
         array_name = f"{array_name_pre}_1"
         uram_name = f"uram0"
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[0],
-                                    spare=spare_disk_list, raid_type=raid_type,
+        assert pos.cli.create_array(write_buffer=uram_name,
+                                    data=data_disk_array[0],
+                                    spare=[], raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
         # Use Array 1 spare disk as data disk for array 2
         array_name = f"{array_name_pre}_2"
         uram_name = f"uram1"
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[1],
-                                    spare=data_disk_array[0], raid_type=raid_type,
+        assert pos.cli.create_array(write_buffer=uram_name,
+                                    data=data_disk_array[1],
+                                    spare=data_disk_array[0],
+                                    raid_type=raid_type,
                                     array_name=array_name)[0] == False
 
         logger.info(
@@ -620,24 +538,13 @@ def test_multiarray_size_after_unmount_mount():
         " ==================== Test : test_multiarray_size_after_unmount_mount ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * 2):
+        required_disk = nr_data_drives * num_array
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * 2}"
-            )
+                f"Insufficient disk count {system_disks}. Required min {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -647,8 +554,9 @@ def test_multiarray_size_after_unmount_mount():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -680,22 +588,11 @@ def test_array2_unmount_after_detach_spare():
         " ==================== Test : test_array2_unmount_after_detach_spare ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        required_disk = ((nr_data_drives + 1) * 2)
+        required_disk = ((nr_data_drives + 1) * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disk count {system_disks}. Requird {required_disk}")
 
         array_name_pre = "pos_array"
         spare_disk_array = ([], [])
@@ -711,8 +608,10 @@ def test_array2_unmount_after_detach_spare():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_array[id], raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=spare_disk_array[id],
+                                        raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -737,25 +636,13 @@ def test_multiarray_different_num_drives():
         " ==================== Test : test_multiarray_different_num_drives ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        required_disk = ((nr_data_drives + 1) * 2)
+        required_disk = ((nr_data_drives + 1) * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -767,8 +654,9 @@ def test_multiarray_different_num_drives():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -787,25 +675,13 @@ def test_second_array_without_uram():
         " ==================== Test : test_second_array_without_uram ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        required_disk = (nr_data_drives * 2)
+        required_disk = (nr_data_drives * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -815,15 +691,17 @@ def test_second_array_without_uram():
         # Array 1 with valid uram
         array_name = f"{array_name_pre}_1"
         uram_name = f"uram0"
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[0],
-                                    spare=spare_disk_list, raid_type=raid_type,
+        assert pos.cli.create_array(write_buffer=uram_name,
+                                    data=data_disk_array[0],
+                                    spare=[], raid_type=raid_type,
                                     array_name=array_name)[0] == True
 
         # Array 2 with invlaid uram - Expected Fail
         array_name = f"{array_name_pre}_2"
         uram_name = f"uram_ivalid"
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[1],
-                                    spare=spare_disk_list, raid_type=raid_type,
+        assert pos.cli.create_array(write_buffer=uram_name,
+                                    data=data_disk_array[1],
+                                    spare=[], raid_type=raid_type,
                                     array_name=array_name)[0] == False
 
         logger.info(
@@ -840,14 +718,11 @@ def test_multiarray_with_invalid_uram():
         " ==================== Test : test_multiarray_with_invalid_uram ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
+        system_disks = pos.cli.system_disks
+        required_disk = (nr_data_drives * num_array)
+        if len(system_disks) < required_disk:
+            pytest.skip(
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         uram_names = ["uram57", "uram58"]
         # Buffer device must be equal to or greater than 128MB * number of data devices + 512MB.
@@ -860,15 +735,7 @@ def test_multiarray_with_invalid_uram():
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
 
-        system_disks = pos.cli.system_disks
-        required_disk = (nr_data_drives * 2)
-        if len(system_disks) < required_disk:
-            pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
-
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -879,8 +746,9 @@ def test_multiarray_with_invalid_uram():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = uram_names[id]
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == False
 
         logger.info(
@@ -897,25 +765,13 @@ def test_multiarray_unmount_unmounted_array():
         " ==================== Test : test_multiarray_unmount_unmounted_array ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        required_disk = (nr_data_drives * 2)
+        required_disk = (nr_data_drives * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -926,8 +782,9 @@ def test_multiarray_unmount_unmounted_array():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
         # Unmount first array. Expected to fail
@@ -956,25 +813,13 @@ def test_multiarray_invalid_raid():
         " ==================== Test : test_multiarray_invalid_raid ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        required_disk = (nr_data_drives * 2)
+        required_disk = (nr_data_drives * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -987,13 +832,15 @@ def test_multiarray_invalid_raid():
             uram_name = f"uram{id}"
 
             # Invalid RAID - Expected Failure
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type="RAID9",
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type="RAID9",
                                         array_name=array_name)[0] == False
 
             # Valid RAID - Expected Success
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
         logger.info(
@@ -1010,28 +857,16 @@ def test_multiarray_consume_max_array_capacity():
         " ==================== Test : test_multiarray_consume_max_array_capacity ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-        num_array = 2
         num_vols = 256
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
 
         system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -1044,8 +879,7 @@ def test_multiarray_consume_max_array_capacity():
             uram_name = f"uram{id}"
             assert pos.cli.create_array(write_buffer=uram_name,
                                         data=data_disk_array[id],
-                                        spare=spare_disk_list,
-                                        raid_type=raid_type,
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -1078,25 +912,13 @@ def test_multiarray_unmount_array_effect():
         " ==================== Test : test_multiarray_unmount_array_effect ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        required_disk = (nr_data_drives * 2)
+        required_disk = (nr_data_drives * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -1104,11 +926,12 @@ def test_multiarray_unmount_array_effect():
             data_disk_array[1].append(system_disks.pop(0))
 
         # Create two arrays
-        for id in range(2):
+        for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
             assert pos.cli.mount_array(array_name=array_name)[0] == True
 
@@ -1150,25 +973,13 @@ def test_multiarray_unmount_mount_array1():
         " ==================== Test : test_multiarray_unmount_mount_array1 ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        required_disk = (nr_data_drives * 2)
+        required_disk = (nr_data_drives * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -1179,8 +990,9 @@ def test_multiarray_unmount_mount_array1():
         for id in range(2):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
             assert pos.cli.mount_array(array_name=array_name)[0] == True
 
@@ -1209,26 +1021,14 @@ def test_multiarray_vol_unmount_delete_loop():
         " ==================== Test : test_multiarray_vol_unmount_delete_loop ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-        num_array = 2
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * num_array):
+        required_disk = (nr_data_drives * num_array)
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * num_array}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
-        spare_disk_list = []
         data_disk_array = ([], [])
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = pos.target_utils.ss_temp_list[:2]
@@ -1241,8 +1041,9 @@ def test_multiarray_vol_unmount_delete_loop():
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
             vol_name = f"{array_name}_{vol_name_pre}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -1278,25 +1079,13 @@ def test_multiarray_mount_mounted_array():
         " ==================== Test : test_multiarray_mount_mounted_array ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-        num_array = 2
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives * num_array):
+        required_disk = (nr_data_drives * num_array)
+        if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {nr_data_drives * num_array}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -1306,8 +1095,9 @@ def test_multiarray_mount_mounted_array():
         for id in range(num_array):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = f"uram{id}"
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_disk_array[id],
-                                        spare=spare_disk_list, raid_type=raid_type,
+            assert pos.cli.create_array(write_buffer=uram_name,
+                                        data=data_disk_array[id],
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -1329,28 +1119,14 @@ def test_array1_100_vols_array2_257_vols():
         " ==================== Test : test_array1_100_vols_array2_257_vols ================== "
     )
     try:
-        raid_type, nr_data_drives = "RAID5", 3
-        num_array = 2
-        num_vols_list = [101, 257]
-
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(
-                data_dict=pos.data_dict) == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         system_disks = pos.cli.system_disks
         required_disk = (nr_data_drives * num_array)
         if len(system_disks) < required_disk:
             pytest.skip(
-                f"Insufficient disk {system_disks}. Required minimum {required_disk}"
-            )
+                f"Insufficient disks {system_disks}. Required {required_disk}")
 
         array_name_pre = "pos_array"
         vol_name_pre = "pos_vol"
-        spare_disk_list = []
         data_disk_array = ([], [])
 
         for i in range(nr_data_drives):
@@ -1363,8 +1139,7 @@ def test_array1_100_vols_array2_257_vols():
             uram_name = f"uram{id}"
             assert pos.cli.create_array(write_buffer=uram_name,
                                         data=data_disk_array[id],
-                                        spare=spare_disk_list,
-                                        raid_type=raid_type,
+                                        spare=[], raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
             assert pos.cli.mount_array(array_name=array_name)[0] == True
@@ -1372,6 +1147,7 @@ def test_array1_100_vols_array2_257_vols():
 
             array_size = int(pos.cli.array_info[array_name].get("size"))
             # Volume Size in MB
+            num_vols_list = [101, 257]
             vol_size = f"{int((array_size // num_vols_list[id]) // (1024 * 1024))}mb"
 
             assert pos.target_utils.create_volume_multiple(array_name,
