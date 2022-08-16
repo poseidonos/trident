@@ -35,6 +35,7 @@ import re
 import helper
 import logger
 from cli import Cli
+from target_setup import TargetHeteroSetup
 
 logger = logger.get_logger(__name__)
 
@@ -56,6 +57,7 @@ class TargetUtils:
         self.cli = Cli(ssh_obj, self.static_dict, pos_path)
         # self.array = array_name
         self.helper = helper.Helper(ssh_obj)
+        self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_path)
         self.udev_rule = False
         self.total_required = 0
 
@@ -303,6 +305,54 @@ class TargetUtils:
         except Exception as e:
             logger.info("command execution failed with exception  {}".format(e))
             return False
+
+    def get_hetero_device(self, data_device_config: dict, 
+                          spare_device_config: dict=None,
+                          scan_device=False, list_device=True) -> bool:
+        """
+        Method to create array using hetero devices
+        data_device_config: {dev_size: num_dev; '20GiB': 1}
+        Returns:
+            bool
+        """
+        if scan_device:
+            if not self.cli.scan_device():
+                logger.error("Failed to get the device list")
+                return False
+
+        if list_device:
+            if not self.cli.list_device():
+                logger.error("Failed to get the device list")
+                return False
+
+        scan_device = self.cli.NVMe_BDF
+
+        res, devices = self.helper.select_hetro_devices(devices=scan_device,
+                                            data_dev_select=data_device_config,
+                                            spare_dev_select=spare_device_config)
+
+        if res == False:
+            logger.error("Failed to select required hetero data device")
+            return False
+
+        total_data_dev = sum(data_device_config.values())
+
+        if total_data_dev != len(devices["data_dev_list"]):
+            logger.info(f"Selected data devices: {devices['data_dev_list']}")
+            logger.error("Failed to select required hetero data device")
+            return False
+
+        if spare_device_config:
+            total_spare_dev = sum(spare_device_config.values())
+            if total_spare_dev != len(devices["spare_dev_list"]):
+                logger.info(f"Selected spare devices: {devices['spare_dev_list']}")
+                logger.error("Failed to select required hetero spare device")
+                return False
+
+        self.data_drives = devices["data_dev_list"]
+        self.spare_drives = devices["spare_dev_list"]
+        return True
+
 
     def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
         """
@@ -1065,7 +1115,7 @@ class TargetUtils:
             logger.error(f"NPOR and recovery failed due to {e}")
             return False
 
-    def Spor(self, uram_backup=True) -> bool:
+    def Spor(self, uram_backup=True,write_through = False) -> bool:
         """
         Method to spor
         uram_backup : If true, run script to take uram backup
@@ -1122,7 +1172,7 @@ class TargetUtils:
 
             # Restore Array and Volumes
             for array in array_list:
-                assert self.cli.mount_array(array_name=array)[0] == True
+                assert self.cli.mount_array(array_name=array,write_back=write_through)[0] == True
                 assert self.cli.list_volume(array_name=array)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
