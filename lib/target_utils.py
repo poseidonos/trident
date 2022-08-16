@@ -82,7 +82,7 @@ class TargetUtils:
             temp.remove("nqn.2014-08.org.nvmexpress.discovery")
             count = []
             for subsystem in temp:
-                c = int(re.findall("[0-9]+", subsystem)[2])
+                c = int(re.findall("[0-9]+", subsystem)[3])
                 count.append(c)
             next_count = max(count) + 1
             new_ss_name = "{}:subsystem{}".format(default_nqn_name, next_count)
@@ -593,13 +593,10 @@ class TargetUtils:
 
             if static_dict["subsystem"]["phase"] == "true":
                 ss = static_dict["subsystem"]
-                assert (
-                    self.create_subsystems_multiple(
-                        ss["nr_subsystems"],
-                        base_name=ss["base_nqn_name"],
-                        ns_count=ss["ns_count"],
-                        serial_number=ss["serial_number"],
-                        model_name=ss["model_name"],
+             
+                for ssinfo in ss["pos_subsystems"]:
+                    assert (self.create_subsystems_multiple(ssinfo["nr_subsystems"], base_name=ssinfo["base_nqn_name"], ns_count=ssinfo["ns_count"],serial_number=ssinfo["serial_number"],
+                        model_name=ssinfo["model_name"],
                     )
                     == True
                 )
@@ -706,27 +703,21 @@ class TargetUtils:
                         == True
                     )
 
-                    assert self.cli.list_volume(array_name)
-                    cur_vols = self.cli.vols
-                    new_vols = list(set(cur_vols) - set(old_vols))
-
                     if vol["mount"]["phase"]:
+                        assert self.cli.list_volume(array_name)[0] == True
+                        assert self.get_subsystems_list() == True
                         subsystem_range = vol["mount"]["subsystem_range"]
                         nqn_pre = vol["mount"]["nqn_pre"]
-                        start, end = map(int, subsystem_range.split("-"))
-                        nqn_list = [f"{nqn_pre}{s}" for s in range(start, end + 1)]
-
-                        """
-                        nqn_list = []
-                        for s in range(start, end + 1):
-                            for subs in self.ss_temp_list:
-                                if f"subsystem{s}" in subs:
-                                    nqn_list.append(subs)
-                        """
-                        assert (
-                            self.mount_volume_multiple(array_name, new_vols, nqn_list)
-                            == True
-                        )
+                        numss, numvol = map(int, subsystem_range.split("-"))
+                        nqn_list = [nqn for nqn in self.ss_temp_list if array_name in nqn]
+                        start = 0
+                        end = numvol
+                        for nqn in nqn_list:
+                            _vollist = self.cli.vols[start:end]
+                            start = end
+                            end += numvol
+                            assert (self.mount_volume_multiple(array_name, _vollist, [nqn]) == True)
+                           
             return True
         except Exception as e:
             logger.error("POS bring up failed due to {}".format(e))
