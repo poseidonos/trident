@@ -49,7 +49,7 @@
         "phase": "true",
         "pos_volumes": [
             {
-                "num_vol": 2,
+                "num_vol": 256,
                 "vol_name_pre": "pos_vol",
                 "array_name": "array1",
                 "size": "1gb",
@@ -61,13 +61,13 @@
                 },
                 "mount": {
                     "phase": "true",
-                    "nqn_pre": "nqn.2022-10.pos:subsystem",
+                    "nqn_pre": "nqn.2022-10-array1.pos:subsystem",
                     "subsystem_range": "1-1"
                 }
             },
 
             {
-                "num_vol": 2,
+                "num_vol": 256,
                 "vol_name_pre": "pos_vol",
                 "array_name": "array2",
                 "size": "1gb",
@@ -79,7 +79,7 @@
                 },
                 "mount": {
                     "phase": "true",
-                    "nqn_pre": "nqn.2022-10.pos:subsystem",
+                    "nqn_pre": "nqn.2022-10-array2.pos:subsystem",
                     "subsystem_range": "1-1"
                 }
             }
@@ -87,10 +87,21 @@
     },
     "subsystem": {
         "phase": "true",
-        "nr_subsystems": 2,
-        "base_nqn_name": "nqn.2022-10.pos",
+        "pos_subsystems": [
+            {
+        "nr_subsystems": 256,
+        "base_nqn_name": "nqn.2022-10.pos-array1",
         "ns_count": "512",
         "serial_number": "POS000000000001",
-        "model_name": "POS_VOLUME"
+        "model_name": "POS_VOLUME_array1"
+            },
+            {
+                "nr_subsystems": 256,
+                "base_nqn_name": "nqn.2022-10.pos-array2",
+                "ns_count": "512",
+                "serial_number": "POS000000000001",
+                "model_name": "POS_VOLUME_array2"
+                    }
+        ]
     }
 }
