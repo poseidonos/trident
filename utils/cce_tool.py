@@ -1,20 +1,21 @@
+from bs4 import BeautifulSoup
+import subprocess
+from re import S
+import csv
+from calendar import c
+from collections import OrderedDict
+from datetime import datetime
+import json
+import logger
+from node import SSHclient
 from ast import parse
 import sys
 import os
+import mysql.connector as mysql
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../lib")))
 
-from node import SSHclient
-import logger
-import json
-from datetime import datetime
-from collections import OrderedDict
-from calendar import c
-import csv
-from re import S
-import subprocess
-from bs4 import BeautifulSoup
 
 logger = logger.get_logger(__name__)
 
@@ -386,7 +387,7 @@ class Parser():
             ]
             f_out.writerow(headers)
             for file in os.listdir(coverage_file_path):
-                #logger.info(file)
+                # logger.info(file)
                 if "index.html" in file:
                     html_file_path = os.path.join(coverage_file_path, file)
                     with open(html_file_path) as index_file:
@@ -394,22 +395,27 @@ class Parser():
                         soup = BeautifulSoup(index_file, "html.parser")
                         f_name_list = ["lines", "Functions", "Branches"]
 
-                        f_lines_count = soup.find_all("td", attrs={'class': ['headerCovTableEntry']})
-                        f_percentage_count = soup.find_all("td", attrs={'class': ['headerCovTableEntryLo']})
+                        f_lines_count = soup.find_all(
+                            "td", attrs={'class': ['headerCovTableEntry']})
+                        f_percentage_count = soup.find_all(
+                            "td", attrs={'class': ['headerCovTableEntryLo']})
                         # f_name_list = list(f_name)
                         new_list = []
                         for i in range(0, len(f_lines_count), 2):
-                            new_list.append([f_lines_count[i].text, f_lines_count[i+1].text])
+                            new_list.append(
+                                [f_lines_count[i].text, f_lines_count[i+1].text])
 
                         for n in range(len(f_name_list)):
-                            d[f_name_list[n]] = new_list[n] + [f_percentage_count[n].text]
+                            d[f_name_list[n]] = new_list[n] + \
+                                [f_percentage_count[n].text]
 
                     for val in zip(list(d.keys()), list(d.values())):
                         f_out.writerow(val)
                         val_list.append(val)
             f_open.close()
         except Exception as e:
-            logger.error(f"Parsing of index.html failed with error message: {e}")
+            logger.error(
+                f"Parsing of index.html failed with error message: {e}")
         return val_list
 
     @classmethod
@@ -418,36 +424,37 @@ class Parser():
         tar_out = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
         (o, e) = tar_out.communicate()
         if e:
-            logger.error(f"Failed to unzip file '{tar_file_path}' due to '{e}'")
+            logger.error(
+                f"Failed to unzip file '{tar_file_path}' due to '{e}'")
             return False
         return True
-        
-        
+
     @classmethod
-    def prepare_overall_coverage_csv(cls, tar_file_path, 
-                                    coverage_file_path,
-                                    csv_file_path) -> bool:
+    def prepare_overall_coverage_csv(cls, tar_file_path,
+                                     coverage_file_path,
+                                     csv_file_path) -> bool:
         if not cls.unzip_tar(tar_file_path):
             return False
         coverage_loc_path = f"/tmp/{coverage_file_path}/overall_coverage"
         try:
-            overall_list = cls.parse_indexfile(coverage_loc_path, csv_file_path)
+            overall_list = cls.parse_indexfile(
+                coverage_loc_path, csv_file_path)
             logger.info(f"{overall_list}")
         except Exception as e:
             logger.info(f"Failed to prepare overall coverage csv. {e}")
             return False
-        
+
         return True
 
     @classmethod
-    def prepare_test_coverage_csv(cls, test_id, tar_file_path, 
-                        coverage_file_path, csv_file_path) -> bool:
+    def prepare_test_coverage_csv(cls, test_id, tar_file_path,
+                                  coverage_file_path, csv_file_path) -> bool:
         if not cls.unzip_tar(tar_file_path):
             return False
 
         coverage_loc_path = "{}{}".format("/tmp", coverage_file_path)
-        headers = ["file_path", "file_name", "func_name", 
-                    "Hit_count", "coverage", "TC_ID"]
+        headers = ["file_path", "file_name", "func_name",
+                   "Hit_count", "coverage", "TC_ID"]
         val_list = []
         try:
             with open(csv_file_path, "w", newline="") as csv_fp:
@@ -492,9 +499,97 @@ class Parser():
             logger.error(f"Exception occured {e}")
             logger.error(f"Failed to prepare test {test_id} coverage csv")
             return False
-        
+
         return True
 
+
+class DBOperations():
+        def __init__(self, connection=None) -> None:
+            self.conn = connection
+
+        def connect(self, host_ip, user, passwd, database) -> bool:
+            try:
+                conn = mysql.connect(
+                    host=host_ip, user=user, passwd=passwd, database=database,
+                )
+            except Exception as e:
+                logger.error(f"Failed to connect to DB due to {e}")
+
+            self.conn = conn
+            logger.info("Connection to database is successful")
+            
+            return True
+
+        def execute_query(self, query) -> bool:
+            try:
+                conn = self.conn
+                cur = conn.cursor()
+                cur.execute(query)
+                conn.commit()
+            except Exception as e:
+                logger.error(f"Failed to execute the query {query} due to {e}")
+                return False
+            
+            return True
+
+        def insert_code_coverage_data(self, val_list, version=None,
+                                      Inc_Coverage=None) -> bool:
+            for val in val_list:
+                query = f"insert into codecoveragetest(FilePath,FileName,FuncName,HitCount,Coverage,TCId,Version,Inc_Coverage) "\
+                        f"values('{val[0]}','{val[1]}','{val[2]}',{val[3]},'{val[4]}','{val[5]}','{version}','{Inc_Coverage}')"
+
+                if not self.execute_query(self, query):
+                    logger.error("Failed to Insert data to databse")
+                    return False
+                else:
+                    logger.info("Successfully Inserted data to database")
+                
+            return True
+
+        def insert_overalldata(self, val_list, table_name, version=None,
+                               testcase_name=None, Inc_Coverage=None) -> bool:
+            for val in val_list:
+                val_percentage = val[1][2].split("%")[0]
+                if table_name == "overallcodecoverage":
+                    query = "insert into overallcodecoverage(Type,Hit,Total,Coverage_Percentage) values('{}','{}','{}','{}')".format(
+                        val[0], val[1][0], val[1][1], val_percentage
+                    )
+                elif table_name == "codecoveragetest":
+                    query = "insert into codecoveragetest(Type,Coverage_Percentage,TCID,Version,Inc_Coverage) values('{}','{}','{}','{}','{}')".format(
+                        val[0], val_percentage, testcase_name, version, Inc_Coverage
+                    )
+                if self.execute(query):
+                    print(
+                        "Lines, Functions and branches data is inserted in the table {}".format(
+                            table_name
+                        )
+                    )
+                else:
+                    logger.error(
+                        "Data is not saved in {} table with error".format(
+                            table_name
+                        )
+
+    def update_overalldata(self, val_list):
+        try:
+            print(val_list)
+            for val in val_list:
+                val_percentage = val[1][2].split("%")[0]
+                query = "update overallcodecoverage set Hit={},Total={},Coverage_Percentage={} where Type='{}'".format(
+                    val[1][0], val[1][1], val_percentage, val[0]
+                )
+                cur = self.con.cursor()
+                cur.execute(query)
+                self.con.commit()
+                print("Data updated with new results")
+        except Exception as e:
+            logger.error(
+                "Data is not updated in overallcodecoverage table with error message{}".format(
+                    e
+                )
+            )
+
+    pass
 
 class CodeCoverage():
 
@@ -594,14 +689,14 @@ class CodeCoverage():
         csv_file_path = f"/tmp/coverage_{jira_id}_{unique_key}.csv"
         coverage_file_path = "/root/pos-0.11.0-rc5/ibofos/"
         if not self.parser.prepare_test_coverage_csv(jira_id, tar_file_path,
-                                            coverage_file_path, csv_file_path):
+                                                     coverage_file_path, csv_file_path):
             logger.error("Failed to prepare test coverage csv")
 
         tar_file_path = f"/tmp/overall_coverage.tar"
         csv_file_path = f"/tmp/overall_coverage.csv"
 
         if not self.parser.prepare_overall_coverage_csv(jira_id, tar_file_path,
-                                            coverage_file_path, csv_file_path):
+                                                        coverage_file_path, csv_file_path):
             logger.error("Failed to prepare overall coverage csv")
 
         return True
@@ -622,7 +717,7 @@ if __name__ == '__main__':
     csv_file_path = f"/tmp/overall_coverage.csv"
     parser = Parser()
     if not parser.prepare_overall_coverage_csv(tar_file_path,
-                                        coverage_file_path, csv_file_path):
+                                               coverage_file_path, csv_file_path):
         logger.error("Failed to prepare overall coverage csv")
 
     pass
