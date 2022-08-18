@@ -693,7 +693,9 @@ class TargetUtils:
                         data_disk_list = [
                             system_disks.pop(0) for i in range(nr_data_drives)
                         ]
-                        spare_disk_list = [system_disks.pop()]
+                        spare_disk_list = [
+                            system_disks.pop(0) for i in range(nr_spare_drives)
+                            ]
                         assert (
                             self.cli.create_array(
                                 write_buffer=array["uram"],
