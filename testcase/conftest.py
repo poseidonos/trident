@@ -32,17 +32,15 @@
 import pytest, sys, json, os, shutil
 import uuid
 
-
 from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../lib")))
 import logger as logging
 from tags import EnvTags
+
 logger = logging.get_logger(__name__)
 from pos import POS
 from utils import Client
-
-
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 with open("{}/config_files/static.json".format(dir_path)) as f:
@@ -56,26 +54,22 @@ with open("{}/config_files/trident_mapping.json".format(dir_path)) as f:
     mapping_dict = json.load(f)
 
 
-
-
 def make_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def copy_dir(source_item):
 
-    path_list=source_item.split("/")
+def copy_dir(source_item):
+    path_list = source_item.split("/")
     if os.path.isdir(source_item):
-        destination_item="/root/cdc/{}".format(path_list[-1])
+        destination_item = "/root/cdc/{}".format(path_list[-1])
         make_dir(destination_item)
         sub_items = os.listdir(source_item)
         for sub_item in sub_items:
             full_file_name = os.path.join(source_item, sub_item)
-            Full_destination_item =os.path.join(destination_item, sub_item)
+            Full_destination_item = os.path.join(destination_item, sub_item)
             if os.path.isfile(full_file_name):
                 shutil.copy(full_file_name, Full_destination_item)
-
-
 
 
 def pytest_sessionstart(session):
@@ -101,17 +95,18 @@ def pytest_runtest_protocol(item, nextitem):
     )
     start_time = datetime.now()
     logger.info("Start Time : {}".format(start_time.strftime("%m/%d/%Y, %H:%M:%S")))
-    target_ip= login[-1]["ip"]
+    target_ip = login[-1]["ip"]
     logger.info(
-        "TC Unique ID: {}_{}_{}_{}".format(str(uuid.uuid4()),target_ip,method,(start_time.strftime("%m_%d_%Y_%H_%M_%S")))
+        "TC Unique ID: {}_{}_{}_{}".format(str(uuid.uuid4()), target_ip, method,
+                                           (start_time.strftime("%m_%d_%Y_%H_%M_%S")))
     )
     invent = {}
     for item in login:
-        node=[str(item["ip"]),str(item["username"]), str(item["password"])]
-        tag = EnvTags(node, item["ip"],item["username"], item["password"])
+        node = [str(item["ip"]), str(item["username"]), str(item["password"])]
+        tag = EnvTags(node, item["ip"], item["username"], item["password"])
         out = tag.get_tags()
         if out:
-            logger.info("Tags received for the node :  {}".format(node))
+            logger.info("Tags received for the node :  {}".format(node[0]))
             invent[item["ip"]] = tag.inv
         else:
             logger.error("No tags received from the node : {}".format(node))
@@ -124,8 +119,10 @@ def pytest_runtest_protocol(item, nextitem):
     logger.info("Test Case Driver File Name : " + driver)
     logger.info("Test Case Name : " + method)
     logger.info("JIRA_TC_ID : " + issuekey)
-    for key,value in invent.items():
-        logger.info("Test Config : IP : "+str(key)+" : "+ str(dict(value)))
+    for key, value in invent.items():
+        value.update({"IP": str(key)})
+        value.move_to_end("IP", last=False)
+        logger.info("Test Config :" + str(dict(value)))
     logger.info("###################End Tag#####################")
     yield
     end_time = datetime.now()
@@ -182,7 +179,6 @@ def pytest_configure(config):
 
 
 def pytest_sessionfinish(session):
-
     session_end_time = datetime.now()
     log_path = logging.get_logpath()
     logger.info(
@@ -297,6 +293,6 @@ def nvmf_transport(vol_fixture):
 def user_io(nvmf_transport):
     client = init_client()
     client.nvme_connect(nqn_name, config_dict["login"]["tar_mlnx_ip"], "1158")
-    combo = {"client" :  client, "target" :  pos}
+    combo = {"client": client, "target": pos}
     yield combo
     client.nvme_disconnect()
