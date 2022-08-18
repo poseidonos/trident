@@ -73,7 +73,7 @@ qos_test_list = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"]
 @pytest.mark.parametrize("qos_test", qos_test_list)
 def test_qos_maxiops_maxbw_value(qos_test):
     logger.info(
-        " ==================== Test : test_qos_maxiops_maxbw_value ================== "
+        f" ==================== Test : test_qos_maxiops_maxbw_value[qos_test] ================== "
     )
     try:
         qos_values = qos_tests[qos_test]["iops_bw"]
@@ -120,7 +120,8 @@ qos_iops_bw_res = [
 @pytest.mark.parametrize("max_iops, max_bw, exp_result", qos_iops_bw_res)
 def test_vol_create_with_qos_value(max_iops, max_bw, exp_result):
     logger.info(
-        " ==================== Test : test_vol_create_with_qos_value ================== "
+        f" ================== Test : test_vol_create_with_qos_value"\
+        f"[{max_iops}-{max_bw}-{exp_result}] ===================== "
     )
     try:
         assert pos.cli.create_volume(
