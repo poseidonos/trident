@@ -32,7 +32,7 @@ class EnvTags(SSHclient):
         try:
             logger.info(
                 "Running command 'lshw -xml -numeric' in the node : {}".format(
-                    self.item
+                    self.item[0]
                 )
             )
             inventory = self.conn.execute("lshw -xml -numeric")
