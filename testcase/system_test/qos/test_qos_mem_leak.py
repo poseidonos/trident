@@ -56,7 +56,7 @@ loop_action = [
 @pytest.mark.parametrize("action", loop_action)
 def test_qos_mem_leak(action):
     logger.info(
-        " ==================== Test : test_create_array3_after_array2_delete ================== "
+        f" ==================== Test : test_qos_mem_leak[{action}] ================== "
     )
     try:
         vol_name_pre = "pos_vol"
@@ -83,6 +83,8 @@ def test_qos_mem_leak(action):
                     array_name, pos.cli.vols, nqn_list=nqn) == True
 
         start_time = time()
+
+        # TODO Read from the JSON
         loop_time = 60 * 60         # 1 hour
         loop_counter = 0
         # Loop operation
@@ -130,7 +132,7 @@ def test_qos_mem_leak(action):
                     assert pos.cli.mount_array(array_name=array_name)[0] == True
 
             loop_counter += 1
-            if loop_counter == 100:
+            if loop_counter == 50:
                 assert pos.target_utils.helper.check_system_memory() == True
                 loop_counter = 0
 

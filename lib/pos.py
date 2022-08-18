@@ -139,7 +139,7 @@ class POS:
             logger.error(f" failed to read {json_file} due to {e}")
             exit()
 
-    def exit_handler(self, expected=False):
+    def exit_handler(self, expected=False, hetero_setup=False):
         """method to exit out of a test script as per the the result"""
 
         try:
@@ -161,8 +161,9 @@ class POS:
             self.pos_conf.restore_config()
 
             # Reset the target to previous state
-            if not self.target_utils.hetero_setup.reset():
-                raise Exception("Failed to reset the target state")
+            if hetero_setup:
+                if not self.target_utils.hetero_setup.reset():
+                    raise Exception("Failed to reset the target state")
 
         except Exception as e:
 
