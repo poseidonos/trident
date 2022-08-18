@@ -78,7 +78,7 @@ def test_qos_maxiops_maxbw_value(qos_test):
     try:
         qos_values = qos_tests[qos_test]["iops_bw"]
         exp_result = qos_tests[qos_test]["result"]
-        logger.info(f"{qos_values}, {exp_result}")
+
         assert pos.cli.create_volume(vol_name, '10GB', array_name)[0] == True
 
         for max_iops,max_bw in qos_values:
@@ -101,4 +101,44 @@ def test_qos_maxiops_maxbw_value(qos_test):
         traceback.print_exc()
         assert 0
 
-        
+
+qos_iops_bw_res = [
+    (0, 100, True),
+    (100, 9, False),
+    (9, 100, False),
+    (100, 2^64-1, True),
+    (100, 18446744073709551615, False),
+    (18446744073709551615, 100, False),
+    (100, 17592186044415, True),
+    (100, 11, True),
+    (10, 100, True),
+    (100, 0, True),
+    (100, 10, True),
+]
+
+@pytest.mark.regression
+@pytest.mark.parametrize("max_iops, max_bw, exp_result", qos_iops_bw_res)
+def test_vol_create_with_qos_value(max_iops, max_bw, exp_result):
+    logger.info(
+        " ==================== Test : test_vol_create_with_qos_value ================== "
+    )
+    try:
+        assert pos.cli.create_volume(
+            vol_name, '10GB', array_name, iops=max_iops, bw=max_bw
+        )[0] == exp_result
+
+        if exp_result:
+            assert pos.cli.info_volume(
+                array_name=array_name, vol_name=vol_name)[0] == True
+
+            vol_info = pos.cli.volume_info[array_name][vol_name]
+            assert vol_info["max_iops"] == max_iops
+            assert vol_info["max_bw"] == max_bw
+
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        traceback.print_exc()
+        assert 0
