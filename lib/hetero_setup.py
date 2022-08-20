@@ -5,6 +5,7 @@ import json
 import os
 import re
 import pickle
+from os import path
 
 import logger
 
@@ -258,7 +259,7 @@ class NVMe_Dev(NVMe_Command):
     def verify_dev_mount(self) -> bool:
         cmd = f'cat /proc/mounts | grep {self.device_path}n'
         res = self.conn.execute(cmd)
-        if not res[0]:
+        if res:
             self.is_mounted = False
             logger.info(f"Device {self.name} is not mounted")
         else:
@@ -498,11 +499,21 @@ class TargetHeteroSetup:
         self.nvme_devices = []
         self.nvme_device_scanned = False
 
+    def execute(self, command):
+        try:
+            response = self.ssh_obj.execute(command)
+            print(type(response))
+            print(response)
+            if type(response) == 'tuple':
+                return None
+            else:
+                return " ".join(response)
+        except Exception as e:
+            logger.error(f"Exception occured {e}")
+
     def _get_nvme_device_list(self):
         cmd = 'ls /dev/nvme* | grep -E "nvme[0-9]{1,3}$"'
-        res = self.ssh_obj.execute(cmd)
-        print(res)
-        nvme_device = " ".join(res)
+        nvme_device = self.execute(cmd)
         device_list = re.findall(r"nvme\d+", nvme_device)
         return device_list
 
@@ -551,10 +562,8 @@ class TargetHeteroSetup:
 
         return True
 
-    def save_test_device_state(self, magic_number):
-        file_name = f"target_hetero_setup_{magic_number}.pickle"
-
-        if os.path.exists(file_name):
+    def save_test_device_state(self, file_name: str):
+        if path.exists(file_name):
             logger.error(f"Pickle file {file_name} already exist.")
             logger.error(f"Recover the data OR Delete the file")
             return False
@@ -571,7 +580,7 @@ class TargetHeteroSetup:
 
             logger.info(f"Pickle dump is created: {file_name}")
         except Exception as e:
-            logger.error("Failed to load object. {e}")
+            logger.error(f"Failed to load object. {e}")
             return False
 
         for dev_obj in self.nvme_test_device.values():
@@ -579,20 +588,23 @@ class TargetHeteroSetup:
 
         return True
 
-    def load_test_device_state(self, magic_number):
-        file_name = f"target_hetero_setup_{magic_number}.pickle"
-
+    def load_test_device_state(self, file_name):
         try:
+            if not path.exists(file_name):
+                logger.error(f"File {file_name} dose not exist")
+                return False
+
             with open(file_name, 'rb') as fp:
                 data = pickle.load(fp)
                 self.recovered_nvme_dev_data = data
         except Exception as e:
-            logger.log("Failed to load object")
+            logger.error(f"Failed to load object {e}")
             return False
 
         return True
 
-    def load_test_devices(self, device_list: list) -> bool:
+
+    def load_test_devices(self, device_list: list, recovery_file: str) -> bool:
         '''
         device_list: i.e ['nvme0', 'nvme1']
         '''
@@ -615,27 +627,25 @@ class TargetHeteroSetup:
                 logger.error(f"Test device {dev_name} does not exist")
                 return False
 
-        magic_num = "1001_8008"
-        if not self.save_test_device_state(magic_num):
+        if not self.save_test_device_state(recovery_file):
             logger.error("Failed to save test device info")
             return False
 
         return True
 
-    def recover_test_devices(self) -> bool:
+    def recover_test_devices(self, recovery_file) -> bool:
         '''
         '''
+        if not self.load_test_device_state(recovery_file):
+            logger.error("Failed to read test device info")
+            return False
+
         if not self.scan_nvme_devices():
             logger.error("NVMe device scan Failed")
             return False
 
         sys_nvme_devs = self.nvme_sys_devices.keys()
         logger.info(f"System NVMe Devices : {list(sys_nvme_devs)}")
-
-        magic_num = "1001_8008"
-        if not self.load_test_device_state(magic_num):
-            logger.error("Failed to save test device info")
-            return False
 
         for dev_name, dev_data in self.recovered_nvme_dev_data.items():
             dev_sn = dev_data.get_serial_number()
@@ -658,26 +668,47 @@ class TargetHeteroSetup:
 
         return True
 
+    def get_recovery_file_name(self, recovery_data: dict):
+        file_name = recovery_data["file_name"]
+        magic_num = recovery_data["magic_number"]
+        dir_name  = recovery_data["dir_name"]
+
+        file_name = f"_{magic_num}.".join(file_name.split("."))
+
+        return f"{dir_name}/{file_name}"
+    
+    def remove_recovery_file(self, file_name):
+        if not path.exists(file_name):
+            logger.error(f"Recovery File {file_name} does not exist")
+            return False
+
+        os.remove(file_name)
+        return True
+
     def prepare(self, hetero_setup_data: dict) -> bool:
         '''
         
         '''
         self.hetero_setup_data = hetero_setup_data
+        logger.info(self.hetero_setup_data)
 
         prepare_setup = True if hetero_setup_data["enable"] == "true" else False
         nr_device = int(hetero_setup_data["num_test_device"])
         config_data = hetero_setup_data["test_devices"]
+        recovery_data = hetero_setup_data["recovery"]
 
         if not prepare_setup:
             logger.warning("Hetero device setup creation is disabled")
             return True
+
+        recovery_file = self.get_recovery_file_name(recovery_data)
 
         # Select the minimum from the config
         end = len(config_data) if nr_device > len(config_data) else nr_device
 
         nvme_dev_list = [dev["dev_name"]
                          for dev in hetero_setup_data["test_devices"]]
-        if not self.load_test_devices(device_list=nvme_dev_list[:end]):
+        if not self.load_test_devices(nvme_dev_list[:end], recovery_file):
             return False
 
         for index in range(end):
@@ -701,16 +732,22 @@ class TargetHeteroSetup:
         display_message("successfully created the pos hetero device setup")
         return True
 
-    def reset(self, hetero_config):
+    def reset(self, hetero_config, remove_recovery_file=False):
         hetero_config = hetero_config or self.hetero_setup_data
         if hetero_config["enable"] == "false":
-            logger.info("Hetero device setup creation was disabled."
+            logger.info("Hetero device setup creation was disabled. "
                         "Setup reset is not required.")
             return True
 
         logger.info("Hetero setup enabled")
         if not self._do_spdk_setup_reset():
-            logger.error(f"Failed to reset nvme device binding: {reset_error}")
+            logger.warning("Failed to reset nvme device binding")
+
+        recovery_data = hetero_config["recovery"]
+        recovery_file = self.get_recovery_file_name(recovery_data)
+
+        if not self.recover_test_devices(recovery_file):
+            logger.error("Failed to recover test devices")
             return False
 
         reset_error = []
@@ -721,6 +758,10 @@ class TargetHeteroSetup:
         if reset_error:
             logger.error(f"Failed to reset following devices: {reset_error}")
             return False
+
+        if remove_recovery_file:
+            logger.info(f"Delete Recovery File {recovery_file}")
+            self.remove_recovery_file(recovery_file)
 
         display_message("Successfuly reset all nvme devices")
         return True
@@ -743,6 +784,6 @@ if __name__ == '__main__':
     test_devic = ['nvme0', 'nvme1']
 
     #assert tgt_setup.load_test_devices(test_devic)
-    assert tgt_setup.recover_test_devices()
+    #assert tgt_setup.recover_test_devices()
     #assert tgt_setup.prepare(tgt_conf_data)
     assert tgt_setup.reset(tgt_conf_data)
