@@ -1,9 +1,9 @@
 {
     "enable": "false",
-    "num_test_device": 1,
+    "num_test_device": 2,
     "test_devices": [
         {
-            "dev_name": "/dev/nvme0",
+            "dev_name": "nvme0",
             "ns_config": [
                 {
                     "num_namespace": 1,
@@ -18,7 +18,7 @@
             ]
         },
         {
-            "dev_name": "/dev/nvme1",
+            "dev_name": "nvme1",
             "ns_config": [
                 {
                     "num_namespace": 1,
@@ -26,11 +26,16 @@
                     "attach": "true"
                 },
                 {
-                    "num_namespace": 15,
+                    "num_namespace": 1,
                     "ns_size": "20GiB",
                     "attach": "true"
                 }
             ]
         }
-    ]
+    ],
+    "recovery": {
+        "magic_number": "9877",
+        "file_name": "target_hetero_setup.pickle",
+        "dir_name": "/root/nehal/trident/logs/"
+    }
 }
