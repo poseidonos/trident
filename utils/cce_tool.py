@@ -506,6 +506,8 @@ class Parser():
 class DBOperations():
         def __init__(self, connection=None) -> None:
             self.conn = connection
+            self.test_coverage_table = None
+            self.overall_coverage_table = None
 
         def connect(self, host_ip, user, passwd, database) -> bool:
             try:
@@ -522,6 +524,9 @@ class DBOperations():
 
         def execute_query(self, query) -> bool:
             try:
+                if not self.con.is_connected():
+                    logger.error("DB connection does not exist")
+                    return False
                 conn = self.conn
                 cur = conn.cursor()
                 cur.execute(query)
@@ -530,6 +535,55 @@ class DBOperations():
                 logger.error(f"Failed to execute the query {query} due to {e}")
                 return False
             
+            return True
+
+        def create_coverage_main_table(self, table_name_suf='test') -> bool:
+            if not self.con.is_connected():
+                logger.error("DB connection does not exist")
+                return False
+                
+            table_name = f"codecoverage{table_name_suf}"
+            cur = self.con.cursor()
+            cur.execute("select database();")
+            record = cur.fetchone()
+            logger.info("Connected to database: ", record)
+
+            cur.execute(f"SHOW TABLES LIKE '{table_name}';")
+            result = cur.fetchone()
+            if table_name in result:
+                logger.warning(f"The table {table_name} already exist")
+                return True
+            
+            logger.info(f"Creating table {table_name}....")
+            query = f"CREATE TABLE {table_name} (Type VARCHAR(25), Coverage_Percentage NUMERIC(5,2), "\
+                     "FilePath VARCHAR(100), FileName VARCHAR(100),FuncName VARCHAR(1000), HitCount BIGINT, "\
+                     "Coverage VARCHAR(25), Inc_Coverage VARCHAR(25), TCId VARCHAR(25), Version VARCHAR(25))"
+                    
+            cur.execute(query)
+            self.test_coverage_table = table_name
+            logger.info("The table {self.test_coverage_table} is created...")
+            return True
+
+        def create_coverage_overall_table(self, table_name_suf=None):
+            if not self.con.is_connected():
+                logger.error("DB connection does not exist")
+                return False
+
+            table_name = f"overallcodecoverage{table_name_suf}"
+            cur = self.con.cursor()
+            cur.execute(f"SHOW TABLES LIKE '{table_name}';")
+            result = cur.fetchone()
+            if table_name in result:
+                logger.warning(f"The table {table_name} already exist")
+                return True
+
+            logger.info(f"Creating table {table_name}....")
+            query = f"CREATE TABLE {table_name} (Type VARCHAR(25), Hit INT, "\
+                    f"Total INT, overage_Percentage NUMERIC(5,2))"
+            cur.execute(query)
+
+            self.overall_coverage_table = table_name
+            logger.info("The table {self.overall_coverage_table} is created...")
             return True
 
         def insert_code_coverage_data(self, val_list, version=None,
@@ -546,50 +600,39 @@ class DBOperations():
                 
             return True
 
-        def insert_overalldata(self, val_list, table_name, version=None,
-                               testcase_name=None, Inc_Coverage=None) -> bool:
+        def insert_overall_data(self, val_list, table_name, version=None, 
+                        tc_name=None, Inc_Coverage=None) -> bool:
             for val in val_list:
-                val_percentage = val[1][2].split("%")[0]
-                if table_name == "overallcodecoverage":
-                    query = "insert into overallcodecoverage(Type,Hit,Total,Coverage_Percentage) values('{}','{}','{}','{}')".format(
-                        val[0], val[1][0], val[1][1], val_percentage
-                    )
-                elif table_name == "codecoveragetest":
-                    query = "insert into codecoveragetest(Type,Coverage_Percentage,TCID,Version,Inc_Coverage) values('{}','{}','{}','{}','{}')".format(
-                        val[0], val_percentage, testcase_name, version, Inc_Coverage
-                    )
-                if self.execute(query):
-                    print(
-                        "Lines, Functions and branches data is inserted in the table {}".format(
-                            table_name
-                        )
-                    )
-                else:
-                    logger.error(
-                        "Data is not saved in {} table with error".format(
-                            table_name
-                        )
+                val_pcent = val[1][2].split("%")[0]
+                if table_name == self.overall_coverage_table:
+                    query = f"insert into {table_name}(Type,Hit,Total,Coverage_Percentage) "\
+                            f"values('{val[0]}','{val[1][0]}','{val[1][1]}','{val_pcent}')"
+                elif table_name == self.test_coverage_table:
+                    query = f"insert into {table_name}(Type,Coverage_Percentage,TCID,Version,Inc_Coverage) "\
+                            f"values('{val[0]}','{val_pcent}','{tc_name}','{version}','{Inc_Coverage}')"
 
-    def update_overalldata(self, val_list):
-        try:
-            print(val_list)
-            for val in val_list:
-                val_percentage = val[1][2].split("%")[0]
-                query = "update overallcodecoverage set Hit={},Total={},Coverage_Percentage={} where Type='{}'".format(
-                    val[1][0], val[1][1], val_percentage, val[0]
-                )
-                cur = self.con.cursor()
-                cur.execute(query)
-                self.con.commit()
-                print("Data updated with new results")
-        except Exception as e:
-            logger.error(
-                "Data is not updated in overallcodecoverage table with error message{}".format(
-                    e
-                )
-            )
+                if not self.execute(query):
+                    logger.error(f"Failed to insert data in table {table_name}")
+                    return False
 
-    pass
+                logger.ingo(f"Data inserted in the table {table_name}")
+                return True
+                    
+        def update_overall_data(self, val_list):
+            try:
+                table_name = self.overall_coverage_table
+                for val in val_list:
+                    cov_pcent = val[1][2].split("%")[0]
+                    hit = val[1][0]
+                    total = val[1][1]
+                    type = val[0]
+                    query = "update {} set Hit={},Total={},Coverage_Percentage={} where "\
+                            "Type='{}'".format(table_name, hit, total, cov_pcent, type)
+                    cur = self.con.cursor()
+                    cur.execute(query)
+                    self.con.commit()
+            except Exception as e:
+                logger.error(f"Data is not updated in {table_name} table due to {e}")
 
 class CodeCoverage():
 
@@ -695,7 +738,7 @@ class CodeCoverage():
         tar_file_path = f"/tmp/overall_coverage.tar"
         csv_file_path = f"/tmp/overall_coverage.csv"
 
-        if not self.parser.prepare_overall_coverage_csv(jira_id, tar_file_path,
+        if not self.parser.prepare_overall_coverlsage_csv(jira_id, tar_file_path,
                                                         coverage_file_path, csv_file_path):
             logger.error("Failed to prepare overall coverage csv")
 
