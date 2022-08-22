@@ -33,15 +33,14 @@ import time
 from node import SSHclient
 from cli import Cli
 from target_utils import TargetUtils
-from utils import Client
 from pos_config import POS_Config
+from utils import Client
 from json import load
 from os import path
 from sys import exit
 import logger
 import pathlib
 import inspect
-
 
 logger = logger.get_logger(__name__)
 
@@ -110,7 +109,8 @@ class POS:
                 password = self.config_dict["login"]["initiator"]["client"][client_cnt][
                     "password"
                 ]
-                self.client_handle.append(Client(ip, username, password))
+                client_obj = SSHclient(ip, username, password)
+                self.client_handle.append(Client(client_obj))
         else:
             assert 0
         if self.client_cnt == 1:

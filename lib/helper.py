@@ -362,7 +362,6 @@ class Helper:
             logger.info("could not generate pattern!!!")
             raise Exception("could not generate pattern!!!")
         return pattern
-<<<<<<< HEAD
     
     def generate_simple_testcases(self,fs_mode):
         """

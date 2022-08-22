@@ -37,31 +37,23 @@ import datetime
 import random
 import json
 import traceback
-from node import SSHclient
 import helper
-
 logger = logger.get_logger(__name__)
-import node
-
-
 class Client:
     """
     The Client objects contains methods for host application
 
     Args:
-        ip: "ip of the host",
-        username: "username of the host",
-        password: "password of the host",
+        ssh_obj : client paramiko object
         client_cleanup : " flag to clean up client" (Default: True)
     """
 
     def __init__(
-        self, ip: str, username: str, password: str, client_cleanup: bool = True
+        self, ssh_obj, client_cleanup: bool = True
     ):
 
-        ssh_obj = SSHclient(ip, username, password)
-        self.helper = helper.Helper(ssh_obj)
         self.ssh_obj = ssh_obj
+        self.helper = helper.Helper(ssh_obj)
         self.client_clean = client_cleanup
         if self.client_clean == True:
             self.client_cleanup()

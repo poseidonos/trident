@@ -114,8 +114,9 @@ class Cli:
                     return False, out
                 else:
 
-                    if "volume mount" in cmd:
+                    if "volume mount" in cmd :
                         return True, out
+                
                 parse_out = self.parse_out(out, cmd)
                 self.add_cli_history(parse_out)
 
