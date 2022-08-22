@@ -1,4 +1,3 @@
-from tempfile import TemporaryFile
 import pytest
 import logger
 import random
@@ -106,3 +105,42 @@ def test_multiple_volume_create(volnum):
     except Exception as e:
         logger.info(f" Test Script failed due to {e}")
         pos.exit_handler(expected=False)
+
+
+@pytest.mark.regression
+def test_volume_create_duplicate_name():
+    '''The purpose is to create volume with duplicate names'''
+
+    logger.info("================ Test : test_volume_create_duplicate_name =================")
+
+    try:
+
+        assert pos.cli.create_volume(
+                array_name=array_name, size="10gb", volumename="vol-duplicate"
+            )[0] == True
+
+        assert pos.cli.create_volume(
+                array_name=array_name, size="10gb", volumename="vol-duplicate"
+            )[0] == False
+
+        # Delete the existing volume and retry creating with same name
+        assert pos.cli.delete_volume(
+                 array_name=array_name, volumename="vol-duplicate"
+        )[0] == True
+
+        assert pos.cli.create_volume(
+                array_name=array_name, size="10gb", volumename="vol-duplicate"
+            )[0] == True
+
+
+        logger.info("=============== TEST ENDs ================")
+
+    except Exception as e:
+        logger.info(f" Test Script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+
+
+
+
+    
