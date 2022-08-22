@@ -57,6 +57,7 @@ def teardown_module():
     (generate_volume_name(3)+"  ", True),
     (generate_volume_name(254), True),
     (generate_volume_name(1), False),
+    (generate_volume_name(2), True),
     (generate_volume_name(255), True)
 ])
 def test_volume_create(vol_name, expected_res):
@@ -70,6 +71,11 @@ def test_volume_create(vol_name, expected_res):
             volumename=vol_name, size="10gb", array_name=array_name)[0] == expected_res
         assert pos.cli.info_volume(array_name=array_name, vol_name=vol_name)[
             0] == expected_res
+
+        if len(vol_name)==2 or len(vol_name)==255:
+            assert pos.cli.mount_volume(array_name=array_name,volumename=vol_name)[0]== True
+            assert pos.cli.unmount_volume(array_name=array_name,volumename=vol_name)[0]== True
+        
 
         logger.info("=============== TEST ENDs ================")
 
