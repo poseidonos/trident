@@ -73,7 +73,7 @@ qos_test_list = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"]
 @pytest.mark.parametrize("qos_test", qos_test_list)
 def test_qos_maxiops_maxbw_value(qos_test):
     logger.info(
-        f" ==================== Test : test_qos_maxiops_maxbw_value[qos_test] ================== "
+        f" ==================== Test : test_qos_maxiops_maxbw_value[{qos_test}] ================== "
     )
     try:
         qos_values = qos_tests[qos_test]["iops_bw"]
