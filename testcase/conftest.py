@@ -29,20 +29,47 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-import pytest, sys, json, os
+import pytest, sys, json, os, shutil
+import uuid
+
 from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../lib")))
 import logger as logging
+from tags import EnvTags
 
 logger = logging.get_logger(__name__)
 from pos import POS
 from utils import Client
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
+with open("{}/config_files/static.json".format(dir_path)) as f:
+    static_dict = json.load(f)
+login = []
 with open("{}/config_files/topology.json".format(dir_path)) as f:
     config_dict = json.load(f)
-    logger.info(config_dict)
+login = config_dict["login"]["initiator"]["client"]
+login.append(config_dict["login"]["target"]["server"][0])
+with open("{}/config_files/trident_mapping.json".format(dir_path)) as f:
+    mapping_dict = json.load(f)
+
+
+def make_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def copy_dir(source_item):
+    path_list = source_item.split("/")
+    if os.path.isdir(source_item):
+        destination_item = "/root/cdc/{}".format(path_list[-1])
+        make_dir(destination_item)
+        sub_items = os.listdir(source_item)
+        for sub_item in sub_items:
+            full_file_name = os.path.join(source_item, sub_item)
+            Full_destination_item = os.path.join(destination_item, sub_item)
+            if os.path.isfile(full_file_name):
+                shutil.copy(full_file_name, Full_destination_item)
 
 
 def pytest_sessionstart(session):
@@ -59,11 +86,44 @@ def pytest_sessionstart(session):
 def pytest_runtest_protocol(item, nextitem):
     driver = item.nodeid.split("::")[0]
     method = item.nodeid.split("::")[1]
+    try:
+        issuekey = mapping_dict[method]
+    except:
+        issuekey = "No mapping found"
     logger.info(
         "======================== START OF {} ========================".format(method)
     )
     start_time = datetime.now()
     logger.info("Start Time : {}".format(start_time.strftime("%m/%d/%Y, %H:%M:%S")))
+    target_ip = login[-1]["ip"]
+    logger.info(
+        "TC Unique ID: {}_{}_{}_{}".format(str(uuid.uuid4()), target_ip, method,
+                                           (start_time.strftime("%m_%d_%Y_%H_%M_%S")))
+    )
+    invent = {}
+    for item in login:
+        node = [str(item["ip"]), str(item["username"]), str(item["password"])]
+        tag = EnvTags(node, item["ip"], item["username"], item["password"])
+        out = tag.get_tags()
+        if out:
+            logger.info("Tags received for the node :  {}".format(node[0]))
+            invent[item["ip"]] = tag.inv
+        else:
+            logger.error("No tags received from the node : {}".format(node))
+            assert 0
+    logger.info("###################Start Tag###################")
+    for key in static_dict["Project Info"]:
+        logger.info(key + " : " + str(static_dict["Project Info"][key]))
+    for key in static_dict["Test Cycle Info"]:
+        logger.info(key + " : " + str(static_dict["Test Cycle Info"][key]))
+    logger.info("Test Case Driver File Name : " + driver)
+    logger.info("Test Case Name : " + method)
+    logger.info("JIRA_TC_ID : " + issuekey)
+    for key, value in invent.items():
+        value.update({"IP": str(key)})
+        value.move_to_end("IP", last=False)
+        logger.info("Test Config :" + str(dict(value)))
+    logger.info("###################End Tag#####################")
     yield
     end_time = datetime.now()
     logger.info("End Time : {}".format(end_time.strftime("%m/%d/%Y, %H:%M:%S")))
@@ -77,6 +137,7 @@ def pytest_runtest_protocol(item, nextitem):
     logger.info(
         "======================== END OF {} ========================".format(method)
     )
+    logger.info("\n")
 
 
 def pytest_runtest_logreport(report):
@@ -135,6 +196,7 @@ def pytest_sessionfinish(session):
     logger.info(
         "Logs and Html report for executed TCs are present in {}".format(log_path)
     )
+    copy_dir(log_path)
 
 
 target_obj, pos, client_obj, client_setup = None, None, None, None
