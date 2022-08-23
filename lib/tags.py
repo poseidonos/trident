@@ -158,7 +158,7 @@ class EnvTags(SSHclient):
         except Exception as e:
             logger.error(
                 "lshw command execution on node {} failed due to: {}".format(
-                    self.item, e
+                    self.item[0], e
                 )
             )
             return False
