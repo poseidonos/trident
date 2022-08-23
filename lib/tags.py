@@ -10,7 +10,7 @@ from subprocess import Popen, PIPE
 # from hurry.filesize import size
 
 sys.path.insert(0, "../")
-from lib.node import SSHclient
+from node import SSHclient
 
 logger = logger.get_logger(__name__)
 
