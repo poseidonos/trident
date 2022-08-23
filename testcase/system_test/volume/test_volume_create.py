@@ -34,11 +34,12 @@ def setup_module():
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
-
-    assert pos.cli.list_volume(array_name=array_name)[0] == True
-    for vol in pos.cli.vols:
-        assert pos.cli.delete_volume(
-            volumename=vol, array_name=array_name)[0] == True
+    assert pos.cli.info_array(array_name=array_name)[0] == True
+    if pos.cli.array_dict[array_name].lower() == "mounted":
+        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        for vol in pos.cli.vols:
+            assert pos.cli.delete_volume(
+                volumename=vol, array_name=array_name)[0] == True
 
     logger.info("==========================================")
 
@@ -145,6 +146,26 @@ def test_volume_create_duplicate_name():
         logger.info(f" Test Script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
+@pytest.mark.regression
+def test_volume_create_without_array_mount():
+    ''' The purpose of test is to create a volume on unmounted array'''
+
+    logger.info("================ Test : test_volume_create_without_array_mount =================")
+    try:
+        #Unmount the Array 
+        assert pos.cli.unmount_array(array_name= array_name)[0]== True
+
+        assert pos.cli.create_volume(
+                array_name=array_name, size="10gb", volumename="invalid-vol"
+            )[0] == False 
+
+        logger.info("=============== TEST ENDs ================")
+
+    except Exception as e:
+        logger.info(f" Test Script failed due to {e}")
+        pos.exit_handler(expected=False)
+        assert 0
 
 
 
