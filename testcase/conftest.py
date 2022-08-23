@@ -96,11 +96,12 @@ def pytest_runtest_protocol(item, nextitem):
     start_time = datetime.now()
     logger.info("Start Time : {}".format(start_time.strftime("%m/%d/%Y, %H:%M:%S")))
     target_ip = login[-1]["ip"]
+    logger.info("################### Start Tag - Test Info ###################")
     logger.info(
-        "TC Unique ID: {}_{}_{}_{}".format(str(uuid.uuid4()), target_ip, method,
+        "TC Unique ID : {}_{}_{}_{}".format(str(uuid.uuid4()), target_ip, method,
                                            (start_time.strftime("%m_%d_%Y_%H_%M_%S")))
     )
-    logger.info("###################Start Tag###################")
+
     for key in static_dict["Project Info"]:
         logger.info(key + " : " + str(static_dict["Project Info"][key]))
     for key in static_dict["Test Cycle Info"]:
@@ -108,7 +109,7 @@ def pytest_runtest_protocol(item, nextitem):
     logger.info("Test Case Driver File Name : " + driver)
     logger.info("Test Case Name : " + method)
     logger.info("JIRA_TC_ID : " + issuekey)
-    
+    logger.info("################### End Tag - Test Info #####################")
     invent = {}
     for item in login:
         node = [str(item["ip"]), str(item["username"]), str(item["password"])]
@@ -120,12 +121,12 @@ def pytest_runtest_protocol(item, nextitem):
         else:
             logger.error("No tags received from the node : {}".format(node[0]))
             assert 0
-
+    logger.info("################### Start Tag - System Info #####################")
     for key, value in invent.items():
         value.update({"IP": str(key)})
         value.move_to_end("IP", last=False)
         logger.info("Test Config :" + str(dict(value)))
-    logger.info("###################End Tag#####################")
+    logger.info("################### End Tag - System Info #####################")
     yield
     end_time = datetime.now()
     logger.info("End Time : {}".format(end_time.strftime("%m/%d/%Y, %H:%M:%S")))
