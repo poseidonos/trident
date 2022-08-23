@@ -100,6 +100,15 @@ def pytest_runtest_protocol(item, nextitem):
         "TC Unique ID: {}_{}_{}_{}".format(str(uuid.uuid4()), target_ip, method,
                                            (start_time.strftime("%m_%d_%Y_%H_%M_%S")))
     )
+    logger.info("###################Start Tag###################")
+    for key in static_dict["Project Info"]:
+        logger.info(key + " : " + str(static_dict["Project Info"][key]))
+    for key in static_dict["Test Cycle Info"]:
+        logger.info(key + " : " + str(static_dict["Test Cycle Info"][key]))
+    logger.info("Test Case Driver File Name : " + driver)
+    logger.info("Test Case Name : " + method)
+    logger.info("JIRA_TC_ID : " + issuekey)
+    
     invent = {}
     for item in login:
         node = [str(item["ip"]), str(item["username"]), str(item["password"])]
@@ -109,16 +118,9 @@ def pytest_runtest_protocol(item, nextitem):
             logger.info("Tags received for the node :  {}".format(node[0]))
             invent[item["ip"]] = tag.inv
         else:
-            logger.error("No tags received from the node : {}".format(node))
+            logger.error("No tags received from the node : {}".format(node[0]))
             assert 0
-    logger.info("###################Start Tag###################")
-    for key in static_dict["Project Info"]:
-        logger.info(key + " : " + str(static_dict["Project Info"][key]))
-    for key in static_dict["Test Cycle Info"]:
-        logger.info(key + " : " + str(static_dict["Test Cycle Info"][key]))
-    logger.info("Test Case Driver File Name : " + driver)
-    logger.info("Test Case Name : " + method)
-    logger.info("JIRA_TC_ID : " + issuekey)
+
     for key, value in invent.items():
         value.update({"IP": str(key)})
         value.move_to_end("IP", last=False)
