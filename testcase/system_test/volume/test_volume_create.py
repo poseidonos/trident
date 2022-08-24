@@ -1,4 +1,3 @@
-from tempfile import TemporaryFile
 import pytest
 import logger
 import random
@@ -35,11 +34,19 @@ def setup_module():
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
+    assert pos.cli.list_array()[0] == True
+    array_list = list(pos.cli.array_dict.keys())
+    if len(array_list) == 0:
+        logger.info("No array found in the config")
 
-    assert pos.cli.list_volume(array_name=array_name)[0] == True
-    for vol in pos.cli.vols:
-        assert pos.cli.delete_volume(
-            volumename=vol, array_name=array_name)[0] == True
+    else:
+        for array in array_list:
+            assert pos.cli.info_array(array_name=array)[0] == True
+            if pos.cli.array_dict[array].lower() == "mounted":
+                assert pos.cli.list_volume(array_name=array)[0] == True
+                for vol in pos.cli.vols:
+                    assert pos.cli.delete_volume(
+                        volumename=vol, array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -58,6 +65,7 @@ def teardown_module():
     (generate_volume_name(3)+"  ", True),
     (generate_volume_name(254), True),
     (generate_volume_name(1), False),
+    (generate_volume_name(2), True),
     (generate_volume_name(255), True)
 ])
 def test_volume_create(vol_name, expected_res):
@@ -71,6 +79,12 @@ def test_volume_create(vol_name, expected_res):
             volumename=vol_name, size="10gb", array_name=array_name)[0] == expected_res
         assert pos.cli.info_volume(array_name=array_name, vol_name=vol_name)[
             0] == expected_res
+
+        if len(vol_name) == 2 or len(vol_name) == 255:
+            assert pos.cli.mount_volume(
+                array_name=array_name, volumename=vol_name)[0] == True
+            assert pos.cli.unmount_volume(
+                array_name=array_name, volumename=vol_name)[0] == True
 
         logger.info("=============== TEST ENDs ================")
 
@@ -106,3 +120,58 @@ def test_multiple_volume_create(volnum):
     except Exception as e:
         logger.info(f" Test Script failed due to {e}")
         pos.exit_handler(expected=False)
+
+
+@pytest.mark.regression
+def test_volume_create_duplicate_name():
+    '''The purpose is to create volume with duplicate names'''
+
+    logger.info(
+        "================ Test : test_volume_create_duplicate_name =================")
+
+    try:
+
+        assert pos.cli.create_volume(
+            array_name=array_name, size="10gb", volumename="vol-duplicate"
+        )[0] == True
+
+        assert pos.cli.create_volume(
+            array_name=array_name, size="10gb", volumename="vol-duplicate"
+        )[0] == False
+
+        # Delete the existing volume and retry creating with same name
+        assert pos.cli.delete_volume(
+            array_name=array_name, volumename="vol-duplicate"
+        )[0] == True
+
+        assert pos.cli.create_volume(
+            array_name=array_name, size="10gb", volumename="vol-duplicate"
+        )[0] == True
+
+        logger.info("=============== TEST ENDs ================")
+
+    except Exception as e:
+        logger.info(f" Test Script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+
+@pytest.mark.regression
+def test_volume_create_without_array_mount():
+    ''' The purpose of test is to create a volume on unmounted array'''
+
+    logger.info(
+        "================ Test : test_volume_create_without_array_mount =================")
+    try:
+        #Unmount the Array
+        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+
+        assert pos.cli.create_volume(
+            array_name=array_name, size="10gb", volumename="invalid-vol"
+        )[0] == False
+
+        logger.info("=============== TEST ENDs ================")
+
+    except Exception as e:
+        logger.info(f" Test Script failed due to {e}")
+        pos.exit_handler(expected=False)
+        assert 0
