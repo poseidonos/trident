@@ -10,7 +10,7 @@ from subprocess import Popen, PIPE
 # from hurry.filesize import size
 
 sys.path.insert(0, "../")
-from lib.node import SSHclient
+from node import SSHclient
 
 logger = logger.get_logger(__name__)
 
@@ -158,7 +158,7 @@ class EnvTags(SSHclient):
         except Exception as e:
             logger.error(
                 "lshw command execution on node {} failed due to: {}".format(
-                    self.item, e
+                    self.item[0], e
                 )
             )
             return False
