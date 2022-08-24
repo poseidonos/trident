@@ -175,3 +175,48 @@ def test_volume_create_without_array_mount():
         logger.info(f" Test Script failed due to {e}")
         pos.exit_handler(expected=False)
         assert 0
+
+@pytest.mark.regression
+def test_volume_create_lt_aligned_blocksize():
+    ''' The purpose of test is to create volume less than aligned block size '''
+
+    logger.info("================ Test : test_volume_create_size_lt_aligned =================")
+    try:
+        # 1MB = 1024 * 1024 Bytes
+        # Less than 1MB => Unaligned blocksize
+        assert pos.cli.create_volume(
+                array_name=array_name, size="1024B", volumename="invalid-vol"
+            )[0] == False
+
+        logger.info("=============== TEST ENDs ================")
+
+    except Exception as e:
+        logger.info(f" Test Script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+@pytest.mark.regression
+def test_volume_create_gt_max_array_capacity():
+    ''' The purpose of test is to create volume exceeding max array capacity '''
+
+    logger.info("================ Test : test_volume_gt_array_capacity =================")
+    try:
+        num_vol =255
+        assert pos.cli.info_array(array_name=array_name)[0] == True
+        array_size =  int(pos.cli.array_info[array_name].get("size"))
+        vol_size = f"{int((array_size // num_vol) // (1024 * 1024))}mb"
+        assert pos.target_utils.create_volume_multiple(
+                array_name=array_name, num_vol=255, size=vol_size
+            ) == True
+
+        # 255 Volumes used up the Max array Capacity 
+        #Creating 256th Volume with exceeded array capacity
+
+        assert pos.cli.create_volume(
+                array_name=array_name, size="10gb", volumename="invalid-vol"
+            )[0] == False
+
+        logger.info("=============== TEST ENDs ================")
+
+    except Exception as e:
+        logger.info(f" Test Script failed due to {e}")
+        pos.exit_handler(expected=False)  
