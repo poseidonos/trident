@@ -1,6 +1,9 @@
+import os,sys
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../lib")))
+
 from bs4 import BeautifulSoup
 import subprocess
-from re import S
 import csv
 from calendar import c
 from collections import OrderedDict
@@ -9,13 +12,7 @@ import json
 import logger
 from node import SSHclient
 from ast import parse
-import sys
-import os
 import mysql.connector as mysql
-
-sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../lib")))
-
 
 logger = logger.get_logger(__name__)
 
@@ -263,7 +260,7 @@ class Target(object):
             try:
                 self.ssh_obj.file_transfer(src=tar_path, destination=dest)
             except Exception as e:
-                logger.error("Failed to transefer the tar file.")
+                logger.error(f"Failed to transefer the tar file due to {e}")
                 return False
 
         coverage_dict["file_transfered"] = True
@@ -376,7 +373,7 @@ class Parser():
         pass
 
     @classmethod
-    def parse_indexfile(cls, coverage_file_path, csv_file_path) -> list:
+    def parse_indexfile(cls, coverage_file_path, csv_file_path) -> tuple:
         try:
             val_list = []
             f_open = open(csv_file_path, "w", newline="")
@@ -416,7 +413,9 @@ class Parser():
         except Exception as e:
             logger.error(
                 f"Parsing of index.html failed with error message: {e}")
-        return val_list
+            return False, val_list
+
+        return True, val_list
 
     @classmethod
     def unzip_tar(cls, tar_file_path):
@@ -448,14 +447,14 @@ class Parser():
 
     @classmethod
     def prepare_test_coverage_csv(cls, test_id, tar_file_path,
-                                  coverage_file_path, csv_file_path) -> bool:
+                                  coverage_file_path, csv_file_path) -> tuple:
+        val_list = []
         if not cls.unzip_tar(tar_file_path):
             return False
 
         coverage_loc_path = "{}{}".format("/tmp", coverage_file_path)
         headers = ["file_path", "file_name", "func_name",
                    "Hit_count", "coverage", "TC_ID"]
-        val_list = []
         try:
             with open(csv_file_path, "w", newline="") as csv_fp:
                 csv_writer = csv.writer(csv_fp)
@@ -491,276 +490,394 @@ class Parser():
                                     status.append("covered")
                                 else:
                                     status.append("uncovered")
+
                             for val in zip(files_list, file_names, list(d.keys()),
-                                           list(d.values()), status, test_id):
+                                           list(d.values()), status, test_id.lower()):
                                 csv_writer.writerow(val)
                                 val_list.append(val)
         except Exception as e:
             logger.error(f"Exception occured {e}")
             logger.error(f"Failed to prepare test {test_id} coverage csv")
-            return False
+            return False, val_list
 
+        return True, val_list
+
+    def get_coverage_csv_data(self, file_name):
+        val_list = []
+        try:
+            with open(file_name, "r", newline="") as csv_fp:
+                csv_reader = csv.reader(csv_fp)
+
+                for row in csv_reader:
+                    val_list.append(row)
+        except Exception as e:
+            logger.error(f"Failed to read coverage data due to {e}")
+            return False, val_list
+        return True, val_list
+
+class DBOperator():
+    def __init__(self, connection=None) -> None:
+        self.conn = connection
+        self.test_coverage_table = None
+        self.overall_coverage_table = None
+
+    def connect(self, host_ip, user, passwd, database) -> bool:
+        try:
+            conn = mysql.connect(
+                host=host_ip, user=user, passwd=passwd, database=database,
+            )
+        except Exception as e:
+            logger.error(f"Failed to connect to DB due to {e}")
+
+        self.conn = conn
+        logger.info("Connection to database is successful")
+        
         return True
 
-
-class DBOperations():
-        def __init__(self, connection=None) -> None:
-            self.conn = connection
-            self.test_coverage_table = None
-            self.overall_coverage_table = None
-
-        def connect(self, host_ip, user, passwd, database) -> bool:
-            try:
-                conn = mysql.connect(
-                    host=host_ip, user=user, passwd=passwd, database=database,
-                )
-            except Exception as e:
-                logger.error(f"Failed to connect to DB due to {e}")
-
-            self.conn = conn
-            logger.info("Connection to database is successful")
-            
-            return True
-
-        def execute_query(self, query) -> bool:
-            try:
-                if not self.con.is_connected():
-                    logger.error("DB connection does not exist")
-                    return False
-                conn = self.conn
-                cur = conn.cursor()
-                cur.execute(query)
-                conn.commit()
-            except Exception as e:
-                logger.error(f"Failed to execute the query {query} due to {e}")
-                return False
-            
-            return True
-
-        def create_coverage_main_table(self, table_name_suf='test') -> bool:
-            if not self.con.is_connected():
+    def execute_query(self, query) -> bool:
+        try:
+            if not self.conn.is_connected():
                 logger.error("DB connection does not exist")
                 return False
-                
-            table_name = f"codecoverage{table_name_suf}"
-            cur = self.con.cursor()
-            cur.execute("select database();")
-            record = cur.fetchone()
-            logger.info("Connected to database: ", record)
-
-            cur.execute(f"SHOW TABLES LIKE '{table_name}';")
-            result = cur.fetchone()
-            if table_name in result:
-                logger.warning(f"The table {table_name} already exist")
-                return True
-            
-            logger.info(f"Creating table {table_name}....")
-            query = f"CREATE TABLE {table_name} (Type VARCHAR(25), Coverage_Percentage NUMERIC(5,2), "\
-                     "FilePath VARCHAR(100), FileName VARCHAR(100),FuncName VARCHAR(1000), HitCount BIGINT, "\
-                     "Coverage VARCHAR(25), Inc_Coverage VARCHAR(25), TCId VARCHAR(25), Version VARCHAR(25))"
-                    
+            conn = self.conn
+            cur = conn.cursor()
             cur.execute(query)
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to execute the query {query} due to {e}")
+            return False
+        
+        return True
+
+    def is_table_exist(self, table_name):
+        if not self.conn.is_connected():
+            logger.error("DB connection does not exist")
+            return False
+
+        cur = self.conn.cursor()
+        cur.execute("select database();")
+        record = cur.fetchone()
+        logger.info(f"Connected to database: {record}")
+
+        cur.execute(f"SHOW TABLES LIKE '{table_name}';")
+        if cur.fetchone():
+            logger.warning(f"The table {table_name} already exist")
+            return True
+        
+        return False
+
+    def create_coverage_main_table(self, table_name) -> bool: 
+        if self.is_table_exist(table_name):
             self.test_coverage_table = table_name
-            logger.info("The table {self.test_coverage_table} is created...")
             return True
 
-        def create_coverage_overall_table(self, table_name_suf=None):
-            if not self.con.is_connected():
-                logger.error("DB connection does not exist")
+        logger.info(f"Creating table {table_name}....")
+        query = f"CREATE TABLE {table_name} (Type VARCHAR(25), Coverage_Percentage NUMERIC(5,2), "\
+                    "FilePath VARCHAR(100), FileName VARCHAR(100),FuncName VARCHAR(1000), HitCount BIGINT, "\
+                    "Coverage VARCHAR(25), Inc_Coverage VARCHAR(25), TCId VARCHAR(25), Version VARCHAR(25))"
+                
+        if not self.execute_query(query):
+            logger.error(f"Failed to create coverage main table {table_name}")
+            return False
+
+        logger.info("The table {self.test_coverage_table} is created...")
+        return True
+
+    def create_coverage_overall_table(self, table_name):
+        if self.is_table_exist(table_name):
+            self.overall_coverage_table = table_name
+            return True
+
+        logger.info(f"Creating table {table_name}....")
+        query = f"CREATE TABLE {table_name} (Type VARCHAR(25), Hit INT, "\
+                f"Total INT, overage_Percentage NUMERIC(5,2))"
+        if not self.execute_query(query):
+            logger.error(f"Failed to create coverage main table {table_name}")
+            return False
+
+        self.overall_coverage_table = table_name
+        logger.info("The table {self.overall_coverage_table} is created...")
+        return True
+
+    def insert_code_coverage_data(self, val_list, version,
+                                  Inc_Coverage=None) -> bool:
+        table_name = self.test_coverage_table
+        for val in val_list:
+            query = f"insert into {table_name}(FilePath,FileName,FuncName,HitCount,Coverage,TCId,Version,Inc_Coverage) "\
+                    f"values('{val[0]}','{val[1]}','{val[2]}',{val[3]},'{val[4]}','{val[5]}','{version}','{Inc_Coverage}')"
+
+            print(query)
+            if not self.execute_query(query):
+                logger.error("Failed to Insert data to databse")
+                return False
+            else:
+                logger.info("Successfully Inserted data to database")
+            
+        return True
+
+    def insert_overall_data(self, val_list, version=None, 
+                    tc_name=None, Inc_Coverage=None) -> bool:
+        table_name = self.overall_coverage_table
+        for val in val_list:
+            val_pcent = val[1][2].split("%")[0]
+            if table_name == self.overall_coverage_table:
+                query = f"insert into {table_name}(Type,Hit,Total,Coverage_Percentage) "\
+                        f"values('{val[0]}','{val[1][0]}','{val[1][1]}','{val_pcent}')"
+
+            """
+            elif table_name == self.test_coverage_table:
+                query = f"insert into {table_name}(Type,Coverage_Percentage,TCID,Version,Inc_Coverage) "\
+                        f"values('{val[0]}','{val_pcent}','{tc_name}','{version}','{Inc_Coverage}')"
+            """
+            if not self.execute_query(query):
+                logger.error(f"Failed to insert data in table {table_name}")
                 return False
 
-            table_name = f"overallcodecoverage{table_name_suf}"
-            cur = self.con.cursor()
-            cur.execute(f"SHOW TABLES LIKE '{table_name}';")
-            result = cur.fetchone()
-            if table_name in result:
-                logger.warning(f"The table {table_name} already exist")
-                return True
-
-            logger.info(f"Creating table {table_name}....")
-            query = f"CREATE TABLE {table_name} (Type VARCHAR(25), Hit INT, "\
-                    f"Total INT, overage_Percentage NUMERIC(5,2))"
-            cur.execute(query)
-
-            self.overall_coverage_table = table_name
-            logger.info("The table {self.overall_coverage_table} is created...")
+            logger.ingo(f"Data inserted in the table {table_name}")
             return True
-
-        def insert_code_coverage_data(self, val_list, version=None,
-                                      Inc_Coverage=None) -> bool:
-            for val in val_list:
-                query = f"insert into codecoveragetest(FilePath,FileName,FuncName,HitCount,Coverage,TCId,Version,Inc_Coverage) "\
-                        f"values('{val[0]}','{val[1]}','{val[2]}',{val[3]},'{val[4]}','{val[5]}','{version}','{Inc_Coverage}')"
-
-                if not self.execute_query(self, query):
-                    logger.error("Failed to Insert data to databse")
-                    return False
-                else:
-                    logger.info("Successfully Inserted data to database")
                 
-            return True
-
-        def insert_overall_data(self, val_list, table_name, version=None, 
-                        tc_name=None, Inc_Coverage=None) -> bool:
+    def update_overall_data(self, val_list):
+        try:
+            table_name = self.overall_coverage_table
             for val in val_list:
-                val_pcent = val[1][2].split("%")[0]
-                if table_name == self.overall_coverage_table:
-                    query = f"insert into {table_name}(Type,Hit,Total,Coverage_Percentage) "\
-                            f"values('{val[0]}','{val[1][0]}','{val[1][1]}','{val_pcent}')"
-                elif table_name == self.test_coverage_table:
-                    query = f"insert into {table_name}(Type,Coverage_Percentage,TCID,Version,Inc_Coverage) "\
-                            f"values('{val[0]}','{val_pcent}','{tc_name}','{version}','{Inc_Coverage}')"
-
-                if not self.execute(query):
-                    logger.error(f"Failed to insert data in table {table_name}")
-                    return False
-
-                logger.ingo(f"Data inserted in the table {table_name}")
-                return True
-                    
-        def update_overall_data(self, val_list):
-            try:
-                table_name = self.overall_coverage_table
-                for val in val_list:
-                    cov_pcent = val[1][2].split("%")[0]
-                    hit = val[1][0]
-                    total = val[1][1]
-                    type = val[0]
-                    query = "update {} set Hit={},Total={},Coverage_Percentage={} where "\
-                            "Type='{}'".format(table_name, hit, total, cov_pcent, type)
-                    cur = self.con.cursor()
-                    cur.execute(query)
-                    self.con.commit()
-            except Exception as e:
-                logger.error(f"Data is not updated in {table_name} table due to {e}")
+                cov_pcent = val[1][2].split("%")[0]
+                hit = val[1][0]
+                total = val[1][1]
+                type = val[0]
+                query = "update {} set Hit={},Total={},Coverage_Percentage={} where "\
+                        "Type='{}'".format(table_name, hit, total, cov_pcent, type)
+                cur = self.conn.cursor()
+                cur.execute(query)
+                self.conn.commit()
+        except Exception as e:
+            logger.error(f"Data is not updated in {table_name} table due to {e}")
 
 class CodeCoverage():
 
-    def __init__(self) -> None:
-        self.target = POSTarget()
+    def __init__(self, config_file="cce_config.json", abs_path=False) -> None:
         self.parser = Parser()
-        self.topology_data = None
+        self.tgt_obj = None
+        self.tgt_type = None
+        self.tgt_initialised = False
+        self.db_oprator = DBOperator()
+        self.db_type = None
+        self.db_initialised = False
+        self.config_data = None
+        self.config_file = None
+        if not self._load_config(config_file, abs_path):
+            raise Exception("Load Config Error")
+
+    def _config_gcov(self):
         pass
 
-    def __config_gcov(self):
-        pass
-
-    def load_topology(self, topology_file=None, abs_path=False):
-        if not topology_file:
-            topology_file = "topology.json"
+    def _load_config(self, config_file, abs_path=False):
+        self.config_file = config_file
 
         if not abs_path:
             file_dir = os.path.join(os.path.dirname(__file__),
                                     "../testcase/config_files")
             file_abs_path = os.path.abspath(file_dir)
-            file_name = "{}/{}".format(file_abs_path, topology_file)
-        else:
-            file_name = topology_file
+            config_file = "{}/{}".format(file_abs_path, config_file)
 
-        if not os.path.exists(file_name):
-            logger.error("File {} does not exist".format(file_name))
+        if not os.path.exists(config_file):
+            logger.error("File {} does not exist".format(config_file))
             return False
         try:
-            with open(f"{file_name}") as f:
-                self.topology_data = json.load(f)
+            with open(config_file) as f:
+                self.config_data = json.load(f)
         except Exception as e:
-            logger.error(f"Failed to read {file_name} due to {e}")
+            logger.error(f"Failed to read {config_file} due to {e}")
             return False
 
+        self.coverage_file_path = self.config_data["target"]["source_path"]
         return True
 
-    def connect_target(self, target_obj=None):
-        if target_obj:
-            if not self.target.set_connection(target_obj):
+    def target_init(self, tgt_ssh_obj=None):
+        self.tgt_type = self.config_data["target"]["type"]
+        if self.tgt_type.lower() in ["pos", "ibof"]:
+            logger.info("POS target, Init the POS Target Object")
+            self.tgt_obj = POSTarget()
+        else:
+            logger.info("Generaic target, Init the Target Object")
+            self.tgt_obj = Target()
+
+        if tgt_ssh_obj:
+            if not self.tgt_obj.set_connection(tgt_ssh_obj):
                 logger.error("Failed to connect to target")
                 return False
         else:
-            if not self.load_topology() or not self.topology_data:
-                logger.error("Failed to load topology file")
+            if not self.config_data:
+                logger.error("Failed: Config data dose not exist!!")
                 return False
 
-            data_dict = self.topology_data
-            tgt_ip_addr = data_dict["login"]["target"]["server"][0]["ip"]
-            tgt_user_id = data_dict["login"]["target"]["server"][0]["username"]
-            tgt_password = data_dict["login"]["target"]["server"][0]["password"]
+            target_login_data = self.config_data["target"]["login"]
+            tgt_ip_addr = target_login_data["ip_addr"]
+            tgt_user_id = target_login_data["username"]
+            tgt_password = target_login_data["password"]
 
-            if not self.target.connect(tgt_ip_addr, tgt_user_id, tgt_password):
+            if not self.tgt_obj.connect(tgt_ip_addr, tgt_user_id, tgt_password):
                 logger.error("Failed to connect to target.")
                 return False
 
-            tgt_pos_path = data_dict["login"]["paths"]["pos_path"]
-
-        if not self.target.set_pos_path(tgt_pos_path):
+        source_path = self.config_data["target"]["source_path"]
+        if not self.tgt_obj.set_source_path(source_path):
             logger.error("Failed to set pos path")
             return False
+        self.coverage_file_path = source_path
 
-        if not self.target.set_lcov_path("/usr/bin/lcov"):
+        lcov_path = self.config_data["target"]["lcov_path"]
+        if not self.tgt_obj.set_lcov_path(lcov_path):
             logger.error("Failed to set lcov path")
             return False
 
-        return True
-
-    def get_code_coverage(self, jira_id):
-        if not self.target.verify_coverage_pre():
+        if not self.tgt_obj.verify_coverage_pre():
             logger.error("Target code coverage precondition is not done")
             return False
 
-        if not self.target.generate_coverage(jira_id):
+        self.tgt_initialised = True
+        logger.info("Target initialised successfully!!!")
+        return True
+
+    def databse_init(self):
+        self.db_type = self.config_data["database"]["type"]
+        db_connect = self.config_data["database"]["connect"]
+        database = db_connect["db_name"]
+        host = db_connect["host_id"]
+        user = db_connect["username"]
+        password = db_connect["password"]
+        if not self.db_oprator.connect(host, user, password, database):
+            logger.error("Failed to connect to database")
+            return False
+
+        # Create Test Main coverage Table
+        table_name = self.config_data["database"]["test_covrage_table"]
+        if not self.db_oprator.create_coverage_main_table(table_name):
+            logger.error("Failed to create coverage main table")
+            return False
+
+        # Create Test Overall Coverage Table
+        table_name = self.config_data["database"]["overall_coverage_table"]
+        if not self.db_oprator.create_coverage_overall_table(table_name):
+            logger.error("Failed to create coverage overall table")
+            return False
+        
+        self.db_initialised = True
+        logger.info("Database initialised successfully!!!")
+        return True
+
+    def get_code_coverage(self, jira_id, magic_number=None):
+        if not self.tgt_initialised:
+            logger.error("Target is not initialised")
+            return False
+
+        if not self.tgt_obj.generate_coverage(jira_id):
             logger.error("Failed to get code coverage")
             return False
 
-        if not self.target.generate_html_report(jira_id):
+        if not self.tgt_obj.generate_html_report(jira_id):
             logger.error("Failed to generate html report")
             return False
 
-        if not self.target.fetch_coverage_report(jira_id):
+        if not self.tgt_obj.fetch_coverage_report(jira_id):
             logger.error("Failed to fetch the coverage report")
             return False
 
-        self.target.delete_coverage_files(jira_id)
+        self.tgt_obj.delete_coverage_files(jira_id)
         return True
 
     def parse_coverage_report(self, jira_id):
         jira_id = jira_id.upper()
-        test_file_dict = self.target.get_coverage_data_dict(jira_id)
+        test_file_dict = self.tgt_obj.get_coverage_data_dict(jira_id)
         if not test_file_dict or not test_file_dict["file_transfered"]:
             logger.error("Failed to get the coverage file information")
             return False
 
         unique_key = test_file_dict["unique_key"]
-        tar_file_path = f"/tmp/coverage_{jira_id}_{unique_key}.tar"
-        csv_file_path = f"/tmp/coverage_{jira_id}_{unique_key}.csv"
-        coverage_file_path = "/root/pos-0.11.0-rc5/ibofos/"
+        local_file_dir = self.config_data["host"]["store_dir"]
+
+        tar_file_path = f"{local_file_dir}/coverage_{jira_id}_{unique_key}.tar"
+        csv_file_path = f"{local_file_dir}/coverage_{jira_id}_{unique_key}.csv"
+        
+        coverage_file_path = self.coverage_file_path
+        
         if not self.parser.prepare_test_coverage_csv(jira_id, tar_file_path,
                                                      coverage_file_path, csv_file_path):
             logger.error("Failed to prepare test coverage csv")
 
-        tar_file_path = f"/tmp/overall_coverage.tar"
-        csv_file_path = f"/tmp/overall_coverage.csv"
+        tar_file_path = f"{local_file_dir}/overall_coverage.tar"
+        csv_file_path = f"{local_file_dir}/overall_coverage.csv"
 
-        if not self.parser.prepare_overall_coverlsage_csv(jira_id, tar_file_path,
-                                                        coverage_file_path, csv_file_path):
+        if not self.parser.prepare_overall_coverage_csv(tar_file_path,
+                                    coverage_file_path, csv_file_path):
             logger.error("Failed to prepare overall coverage csv")
 
         return True
 
     def save_coverage_report(self, jira_id):
-        pass
+        jira_id = jira_id.upper()
+        test_file_dict = self.tgt_obj.get_coverage_data_dict(jira_id)
+        if not test_file_dict or not test_file_dict["file_transfered"]:
+            logger.error("Failed to get the coverage file information")
+            return False
+
+        if not self.db_initialised:
+            logger.error("Database is not initialized for this transection")
+            return False
+
+        unique_key = test_file_dict["unique_key"]
+        local_file_dir = self.config_data["host"]["store_dir"]
+
+        # Insert the test coverage test data
+        test_cov_csv_file = f"{local_file_dir}/coverage_{jira_id}_{unique_key}.csv"
+        res, cov_val = self.parser.get_coverage_csv_data(test_cov_csv_file)
+        if not res:
+            logger.info("Failed to get coverage data from csv file")
+            return False
+
+        version = 0
+        cov_val.pop(0)
+        if not self.db_oprator.insert_code_coverage_data(cov_val, version):
+            logger.error("Failed to insert the code coverage data")
+            return False
+
+        # Insert the overall coverage test data
+        csv_file_path = f"{local_file_dir}/overall_coverage.csv"
+        res, cov_val = self.parser.get_coverage_csv_data(csv_file_path)
+        if not res:
+            logger.info("Failed to get coverage data from csv file")
+            return False
+
+        if not self.db_oprator.insert_overall_data(cov_val):
+            logger.error("Failed to insert the code coverage data")
+            return False
+
+        return True
 
 
 if __name__ == '__main__':
     jira_id = "SPS_1100"
-    #cc = CodeCoverage()
-    #assert cc.connect_target()
-    #assert cc.get_code_coverage(jira_id)
-    #assert cc.parse_coverage_report(jira_id)
 
-    coverage_file_path = "/root/pos-0.11.0-rc5/ibofos/"
-    tar_file_path = f"/tmp/overall_coverage.tar"
-    csv_file_path = f"/tmp/overall_coverage.csv"
-    parser = Parser()
-    if not parser.prepare_overall_coverage_csv(tar_file_path,
-                                               coverage_file_path, csv_file_path):
-        logger.error("Failed to prepare overall coverage csv")
+    # Setup
+    cc = CodeCoverage("cce_config.json", abs_path=True)
+    assert cc.target_init()
+    assert cc.databse_init()
+    
+    # Test execution state
 
-    pass
+    # Test execution done
+    # Get the code coverge
+    """
+    assert cc.get_code_coverage(jira_id)
+    assert cc.parse_coverage_report(jira_id)
+    assert cc.save_coverage_report(jira_id)
+    """
+    csv_file_path = "/tmp/overall_coverage.csv"
+    res, cov_val = cc.parser.get_coverage_csv_data(csv_file_path)
+    if not res:
+        logger.info("Failed to get coverage data from csv file")
+
+    print(cov_val)
+    cov_val.pop(0)
+
+    if not cc.db_oprator.insert_overall_data(cov_val):
+        logger.error("Failed to insert the code coverage data")
