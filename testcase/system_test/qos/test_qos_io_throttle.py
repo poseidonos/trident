@@ -82,8 +82,8 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
 
         fio_cmd = f"fio --name=sequential_write --ioengine=libaio --rw=write "\
                     "--iodepth=64 --direct=1 --bs=128k --size=1g"
-
-        if fio_io_type == "file":   # Run File IO
+        mount_point = None
+        if io_type == "file":   # Run File IO
             assert pos.client.create_File_system(
                 nvme_devs, fs_format="xfs") == True
             out, mount_point = pos.client.mount_FS(nvme_devs)
@@ -92,6 +92,7 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
             assert pos.client.fio_generic_runner(
                 mount_point, fio_user_data=fio_cmd, IO_mode=io_mode)[0] == True
             assert pos.client.unmount_FS(mount_point) == True
+            mount_point = None
         else:   # Run Block IO
             io_mode = True  # Set True for Block IO
             assert pos.client.fio_generic_runner(
@@ -111,5 +112,7 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
+        if mount_point:
+            assert pos.client.unmount_FS(mount_point) == True
         traceback.print_exc()
         assert 0
