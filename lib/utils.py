@@ -508,8 +508,8 @@ class Client:
         logger.info(f"Compare fio output '{fio_out}' and qos values '{qos_data}'")
 
         bs, kiops = 4096, 1000
-        qos_max_bw = qos_data["max_iops"]
-        qos_max_iops = qos_data["max_bw"]
+        qos_max_bw = qos_data["max_bw"]
+        qos_max_iops = qos_data["max_iops"]
         fio_bw = fio_out["bw"]
         fio_iops = fio_out["iops"]
 
