@@ -87,3 +87,70 @@ def test_vol_mnt_unmnt():
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+@pytest.mark.regression
+def test_rename_vol_after_array_unmnt_mnt():
+    logger.info(" ==================== Test : test_rename_vol_doub_char ================== ")
+    try:
+        assert pos.cli.create_volume(array_name=array_name, size="10gb", volumename="vol")[0]== True
+        assert pos.cli.list_volume(array_name=array_name)
+        assert pos.cli.rename_volume(array_name=array_name,volname=pos.cli.vols[0],new_volname='posvol')[0] == True
+        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.mount_array(array_name=array_name)[0] == True
+        try:
+            if pos.cli.vols[0] == 'posvol':
+                logger.info("As expected newname matched after array mnt and unmnt")
+        except Exception as e:
+            logger.error(f"Test script failed due to {e}")
+            
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+
+
+@pytest.mark.regression
+def test_create_vol_larger_array_size():
+    logger.info(" ==================== Test : test_rename_vol_doub_char ================== ")
+    try:
+        assert pos.cli.info_array(array_name)[0] == True
+        array_status = pos.cli.array_info[array_name]
+        logger.info(str(array_status))
+        logger.info(array_status["size"])
+        capacity = int(array_status["size"])+2048
+        logger.info(capacity)
+        assert pos.cli.create_volume(array_name=array_name, size=capacity, volumename="vol")[0]== False
+        logger.info("As expected volume creation failed with huge volume size than array size")
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+
+@pytest.mark.regression
+def test_vol_array_normal_states():
+    logger.info(
+        " ==================== Test : test_mnt_vol_fault_arrray_state ================== "
+    )
+    try:
+        assert pos.cli.info_array(array_name)[0] == True
+        array_status = pos.cli.array_info[array_name]
+        logger.info(str(array_status))
+        logger.info(array_status["state"])
+        if pos.cli.array_info[array_name]["state"] == "NORMAL":
+            assert pos.cli.create_volume(array_name=array_name, size="10gb", volumename="vol")[0]== True
+            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.mount_volume(array_name=array_name,volumename=pos.cli.vols[0])[0]== True
+            assert pos.cli.unmount_volume(array_name=array_name,volumename=pos.cli.vols[0])[0]== True
+            logger.info("Expected array state match with output{} and volume mount was sucessful".format(array_status["state"]))
+        else:
+            assert 0
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+
