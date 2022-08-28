@@ -18,7 +18,7 @@ def generate_volume_name(len_name):
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
 
-    global pos, data_dict, array_name
+    global pos, data_dict, array_name, nr_data_drives
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
 
@@ -27,6 +27,7 @@ def setup_module():
     data_dict['subsystem']['pos_subsystems'][0]['nr_subsystems'] = 1
     data_dict['subsystem']['pos_subsystems'][1]['nr_subsystems'] = 0
     array_name = data_dict["array"]["pos_array"][0]["array_name"]
+    nr_data_drives = data_dict["array"]["pos_array"][0]["data_device"]
 
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
@@ -45,6 +46,11 @@ def teardown_function():
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.list_volume(array_name=array)[0] == True
                 for vol in pos.cli.vols:
+                    assert pos.cli.info_volume(array_name=array, vol_name=vol)[0]== True
+
+                    if pos.cli.volume_info[array_name][vol]["status"] == "Mounted": 
+                        assert pos.cli.unmount_volume(
+                        volumename=vol, array_name=array)[0] == True
                     assert pos.cli.delete_volume(
                         volumename=vol, array_name=array)[0] == True
 
@@ -214,6 +220,34 @@ def test_volume_create_gt_max_array_capacity():
         assert pos.cli.create_volume(
                 array_name=array_name, size="10gb", volumename="invalid-vol"
             )[0] == False
+
+        logger.info("=============== TEST ENDs ================")
+
+    except Exception as e:
+        logger.info(f" Test Script failed due to {e}")
+        pos.exit_handler(expected=False)  
+
+@pytest.mark.regression
+def test_array_create_with_invalid_uram():
+    ''' The pupose of testcase is to create an array with invalid uram '''
+
+    logger.info("================ Test : test_array_create_with_invalid_uram =================")
+    try:
+        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.delete_array(array_name=array_name)[0] == True
+        assert pos.cli.scan_device()[0] == True
+        assert pos.cli.list_device()[0] == True
+        system_disks = pos.cli.system_disks
+        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
+    
+
+        assert pos.cli.create_array(write_buffer="uram-invalid",
+        data = data_disk_list,
+        spare = None,
+        raid_type = "RAID5",
+        array_name = array_name,
+        )[0] == False
+
 
         logger.info("=============== TEST ENDs ================")
 
