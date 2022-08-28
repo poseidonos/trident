@@ -101,9 +101,16 @@ def test_hetero_array_all_raid_using_19gib_data_disk():
                     num_disk, len(pos.cli.system_disks)))
 
             data_device_conf = {'19GiB':1, 'any':num_disk-1}
+            if not pos.target_utils.get_hetero_device(data_device_conf):
+                logger.info("Failed to get the required hetero devcies")
+                pytest.skip("Required condition not met. Refer to logs for more details")
 
-            assert pos.target_utils.create_hetero_array(array_name, uram=uram_name,
-                 data_device_config=data_device_conf, raid_type=raid_type) == False
+            data_drives = pos.target_utils.data_drives
+            spare_drives = pos.target_utils.spare_drives
+
+            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                                        spare=spare_drives, raid_type=raid_type,
+                                        array_name=array_name)[0] == False
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -140,10 +147,17 @@ def test_hetero_array_all_raid_using_19gib_spare_disk():
             spare_device_conf = {'19GiB':1}
             data_device_conf = {'any':num_disk}
 
-            assert pos.target_utils.create_hetero_array(array_name, uram=uram_name,
-                                                data_device_config=data_device_conf, 
-                                                spare_device_config=spare_device_conf,
-                                                raid_type=raid_type) == False
+            if not pos.target_utils.get_hetero_device(data_device_conf, spare_device_config=spare_device_conf):
+                logger.info("Failed to get the required hetero devcies.")
+                logger.info("Test Skiped: Required condition not met.")
+                pytest.skip()
+
+            data_drives = pos.target_utils.data_drives
+            spare_drives = pos.target_utils.spare_drives
+
+            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                                        spare=spare_drives, raid_type=raid_type,
+                                        array_name=array_name)[0] == False
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

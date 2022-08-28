@@ -27,7 +27,7 @@ def setup_module():
                        "The hetero setup creation will be skipped.")
     
     min_hetero_dev = MIN_HETERO_DEV
-    if (min_hetero_dev < tgt_conf_data["num_test_device"]):
+    if (tgt_conf_data["num_test_device"] < min_hetero_dev):
         logger.warning("The setup required minimum {} Hetero devices. "
                         "Only {} Hetero devices is added in config file".format(
                         min_hetero_dev, tgt_conf_data["num_test_device"]))
@@ -36,7 +36,7 @@ def setup_module():
     # Atleast 1 device with 16 NS
     matched = 0
     min_16ns_dev = MIN_16_NS_DEV
-    for device in range(tgt_conf_data["test_devices"]):
+    for device in tgt_conf_data["test_devices"]:
         ns_count = sum([ns["num_namespace"] for ns in device["ns_config"]])
         if ns_count >= 16:    # If Num of NS of a drive more than 16
             matched += 1
@@ -72,7 +72,8 @@ def teardown_function():
             assert pos.cli.info_array(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
-
+            assert pos.cli.delete_array(array_name=array)[0] == True  
+        assert pos.cli.reset_devel()[0] == True
     logger.info("==========================================")
 
 
@@ -80,10 +81,10 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
-
-
+array = [("RAID0",2), ("RAID5",3), ("RAID10",4)]
 @pytest.mark.regression
-def test_hetero_array_all_raid():
+@pytest.mark.parametrize("raid_type,num_disk", array)
+def test_hetero_array_all_raid(raid_type,num_disk):
     """
     Test to create one array of all RAID type using minimum required devices of 
     different size. Atleast one device of size 20 GiB.
@@ -94,35 +95,27 @@ def test_hetero_array_all_raid():
     try:
         array_name = "array1"
         uram_name = data_dict["device"]["uram"][0]["uram_name"]
+        assert pos.cli.list_device()[0] == True
+        if len(pos.cli.system_disks) < num_disk:
+            logger.warning("Avilable drive {} is insufficient, required {}".format(
+                num_disk, len(pos.cli.system_disks)))
 
-        raid_list = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
-        for raid_type, num_disk in raid_list:
-            assert pos.cli.reset_devel()[0] == True
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+        data_device_conf = {'20GiB':1, 'any':num_disk-1}
 
-            if len(pos.cli.system_disks) < num_disk:
-                logger.warning("Avilable drive {} is insufficient, required {}".format(
-                    num_disk, len(pos.cli.system_disks)))
+        if not pos.target_utils.get_hetero_device(data_device_conf):
+            logger.info("Failed to get the required hetero devcies")
+            logger.info("Test Skipped!! Required condition not met.")
+            pytest.skip()
+        data_drives = pos.target_utils.data_drives
+        spare_drives = pos.target_utils.spare_drives
 
-            data_device_conf = {'20GiB':1, 'any':num_disk-1}
+        assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                                    spare=spare_drives, raid_type=raid_type,
+                                    array_name=array_name)[0] == True
+        
+        assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
 
-            if not pos.target_utils.get_hetero_device(data_device_conf):
-                logger.info("Failed to get the required hetero devcies")
-                pytest.skip("Required condition not met. Refer to logs for more details")
-
-            data_drives = pos.target_utils.data_drives
-            spare_drives = pos.target_utils.spare_drives
-
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
-            
-            assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
-
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
-
-            assert pos.cli.delete_array(array_name=array_name)[0] == True
+        assert pos.cli.unmount_array(array_name=array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -145,17 +138,14 @@ def test_hetero_array_all_dev_fio(raid_type, mount_type):
         " ==================== Test : test_hetero_array_all_dev_fio ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         array_name = "array1"
+        assert pos.cli.list_device()[0] == True
         uram_name = data_dict["device"]["uram"][0]["uram_name"]
         data_device_conf = {'any': len(pos.cli.system_disks)}
 
         if raid_type != "RAID5":
             if len(pos.cli.system_disks) % 2 != 0:
-                data_device_conf = {'20giB':1, 'any': len(pos.cli.system_disks) - 2}
+                data_device_conf = {'20GiB':1, 'any': len(pos.cli.system_disks) - 2}
 
         if not pos.target_utils.get_hetero_device(data_device_conf):
             logger.info("Failed to get the required hetero devcies")
