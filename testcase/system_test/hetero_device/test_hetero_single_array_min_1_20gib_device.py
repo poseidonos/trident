@@ -68,7 +68,10 @@ def teardown_function():
             assert pos.cli.info_array(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
-
+            assert pos.cli.delete_array(array_name=array)[0] == True
+        
+        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.scan_device()[0] == True
     logger.info("==========================================")
 
 
@@ -76,8 +79,10 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
+array = [("RAID0",2), ("RAID5",3), ("RAID10",4)]
 @pytest.mark.regression
-def test_hetero_array_all_raid():
+@pytest.mark.parametrize("raid_type,num_disk", array)
+def test_hetero_array_all_raid(raid_type,num_disk):
     """
     Test to create one array of all RAID type using minimum required devices of 
     different size. Atleast one device of size 20 GiB.
@@ -88,35 +93,27 @@ def test_hetero_array_all_raid():
     try:
         array_name = "array1"
         uram_name = data_dict["device"]["uram"][0]["uram_name"]
+        assert pos.cli.list_device()[0] == True
+        if len(pos.cli.system_disks) < num_disk:
+            logger.warning("Avilable drive {} is insufficient, required {}".format(
+                num_disk, len(pos.cli.system_disks)))
 
-        raid_list = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
-        for raid_type, num_disk in raid_list:
-            assert pos.cli.reset_devel()[0] == True
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+        data_device_conf = {'20GiB':1, 'any':num_disk-1}
 
-            if len(pos.cli.system_disks) < num_disk:
-                logger.warning("Avilable drive {} is insufficient, required {}".format(
-                    num_disk, len(pos.cli.system_disks)))
+        if not pos.target_utils.get_hetero_device(data_device_conf):
+            logger.info("Failed to get the required hetero devcies")
+            pytest.skip("Required condition not met. Refer to logs for more details")
 
-            data_device_conf = {'20GiB':1, 'any':num_disk-1}
+        data_drives = pos.target_utils.data_drives
+        spare_drives = pos.target_utils.spare_drives
 
-            if not pos.target_utils.get_hetero_device(data_device_conf):
-                logger.info("Failed to get the required hetero devcies")
-                pytest.skip("Required condition not met. Refer to logs for more details")
+        assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                                    spare=spare_drives, raid_type=raid_type,
+                                    array_name=array_name)[0] == True
+        
+        assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
 
-            data_drives = pos.target_utils.data_drives
-            spare_drives = pos.target_utils.spare_drives
-
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
-            
-            assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
-
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
-
-            assert pos.cli.delete_array(array_name=array_name)[0] == True
+        assert pos.cli.unmount_array(array_name=array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -139,11 +136,8 @@ def test_hetero_array_all_dev_fio(raid_type, mount_type):
         " ==================== Test : test_hetero_array_all_dev_fio ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
-
         array_name = "array1"
+        assert pos.cli.list_device()[0] == True
         uram_name = data_dict["device"]["uram"][0]["uram_name"]
         data_device_conf = {'any': len(pos.cli.system_disks)}
 
