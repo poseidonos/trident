@@ -49,7 +49,7 @@
         "phase": "true",
         "pos_volumes": [
             {
-                "num_vol": 256,
+                "num_vol": 1,
                 "vol_name_pre": "pos_vol",
                 "array_name": "array1",
                 "size": "1gb",
@@ -67,7 +67,7 @@
             },
 
             {
-                "num_vol": 256,
+                "num_vol": 1,
                 "vol_name_pre": "pos_vol",
                 "array_name": "array2",
                 "size": "1gb",

@@ -480,7 +480,7 @@ class Client:
         logger.info(printout)
         self.fio_par_out = {}
         str_out = "".join(str_out).replace("\n", "")
-
+        """
         jout = json.loads(str_out)
 
         self.fio_par_out["read"] = {
@@ -493,7 +493,7 @@ class Client:
             "iops": jout["jobs"][0]["write"]["iops"],
             "clat": jout["jobs"][0]["write"]["clat_ns"],
         }
-
+        """
         return True
 
     def fio_verify_qos(self, qos_data: dict, fio_out: dict, num_dev: int) -> bool:
