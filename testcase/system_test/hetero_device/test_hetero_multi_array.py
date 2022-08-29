@@ -112,6 +112,7 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
 
     logger.info(
         " ============================= Test ENDs ======================================"
@@ -172,6 +173,7 @@ def test_hetero_multi_array_max_size_volume():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
 
     logger.info(
         " ============================= Test ENDs ======================================"
@@ -262,6 +264,7 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
 
     logger.info(
         " ============================= Test ENDs ======================================"
@@ -330,6 +333,7 @@ def test_hetero_degraded_array_create_delete_vols():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
 
     logger.info(
         " ============================= Test ENDs ======================================"
@@ -394,6 +398,7 @@ def test_hetero_degraded_array_unmount():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
 
     logger.info(
         " ============================= Test ENDs ======================================"

@@ -173,6 +173,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
     
     logger.info(
         " ============================= Test ENDs ======================================"

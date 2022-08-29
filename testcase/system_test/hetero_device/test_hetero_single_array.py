@@ -80,6 +80,7 @@ def test_hetero_single_array_mount():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
 
     logger.info(
         " ============================= Test ENDs ======================================"
