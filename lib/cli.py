@@ -1245,10 +1245,10 @@ class Cli:
             model_name (str) : Model number of subsystem
         """
         try:
-            subsystem = self.data_dict["subsystem"]
-            ns_count = ns_count or subsystem["ns_count"]
-            serial_number = serial_number or subsystem["serial_number"]
-            model_name = model_name or subsystem["model_name"]
+            subsystem = self.data_dict["subsystem"]["pos_subsystems"]
+            ns_count = ns_count or subsystem[0]["ns_count"]
+            serial_number = serial_number or subsystem[0]["serial_number"]
+            model_name = model_name or subsystem[0]["model_name"]
 
             cmd = "create --subnqn {} --serial-number {} --model-number {} \
                     --max-namespaces {} --allow-any-host".format(

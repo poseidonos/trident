@@ -103,6 +103,7 @@ def test_hetero_multi_array_smart_log(array_raid, num_devs):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
 
     logger.info(
         " ============================= Test ENDs ======================================"

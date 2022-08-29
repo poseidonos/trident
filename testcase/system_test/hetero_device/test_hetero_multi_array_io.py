@@ -29,13 +29,11 @@ def teardown_function():
 
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+    for array in array_list:
+        assert pos.cli.info_array(array_name=array)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.delete_array(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -159,6 +157,7 @@ def test_hetero_multi_array_max_size_volume_FIO(
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
 
     logger.info(
         " ============================= Test ENDs ======================================"
@@ -294,6 +293,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=False)
     
     logger.info(
         " ============================= Test ENDs ======================================"
