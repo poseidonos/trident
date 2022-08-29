@@ -178,27 +178,6 @@ def test_volume_create_duplicate_name():
 
 
 @pytest.mark.regression
-def test_volume_create_without_array_mount():
-    ''' The purpose of test is to create a volume on unmounted array'''
-
-    logger.info(
-        "================ Test : test_volume_create_without_array_mount =================")
-    try:
-        # Unmount the Array
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
-
-        assert pos.cli.create_volume(
-            array_name=array_name, size="10gb", volumename="invalid-vol"
-        )[0] == False
-
-        logger.info("=============== TEST ENDs ================")
-
-    except Exception as e:
-        logger.info(f" Test Script failed due to {e}")
-        pos.exit_handler(expected=False)
-        assert 0
-
-@pytest.mark.regression
 def test_volume_create_lt_aligned_blocksize():
     ''' The purpose of test is to create volume less than aligned block size '''
 
@@ -254,8 +233,6 @@ def test_array_create_with_invalid_uram():
     logger.info(
         "================ Test : test_array_create_with_invalid_uram =================")
     try:
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
-        assert pos.cli.delete_array(array_name=array_name)[0] == True
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
@@ -265,7 +242,7 @@ def test_array_create_with_invalid_uram():
                                     data=data_disk_list,
                                     spare=None,
                                     raid_type="RAID5",
-                                    array_name=array_name,
+                                    array_name="invalid_" + array_name,
                                     )[0] == False
 
         logger.info("=============== TEST ENDs ================")
@@ -273,3 +250,33 @@ def test_array_create_with_invalid_uram():
     except Exception as e:
         logger.info(f" Test Script failed due to {e}")
         pos.exit_handler(expected=False)
+
+
+@pytest.mark.regression
+def test_volume_create_without_array_mount():
+    ''' The purpose of test is to create a volume on unmounted array'''
+
+    logger.info(
+        "================ Test : test_volume_create_without_array_mount =================")
+    try:
+
+        # unmount the array
+        assert pos.cli.unmount_array(
+            array_name=array_name,
+        )[0] == True
+
+        assert pos.cli.create_volume(
+            array_name=array_name, size="10gb", volumename="invalid-vol"
+        )[0] == False
+
+        # mount the array
+        assert pos.cli.mount_array(
+            array_name=array_name,
+        )[0] == True
+
+        logger.info("=============== TEST ENDs ================")
+
+    except Exception as e:
+        logger.info(f" Test Script failed due to {e}")
+        pos.exit_handler(expected=False)
+        assert 0
