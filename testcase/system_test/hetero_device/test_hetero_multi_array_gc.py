@@ -53,7 +53,7 @@ def test_hetero_multi_array_GC(array_raid, num_devs, num_vols):
     Create and mount 100 (Default) volumes from each array. Trigger GC.
     """
     logger.info(
-        " ==================== Test :  test_hetero_multi_array_GC ================== "
+        f" ==================== Test :  test_hetero_multi_array_GC[{array_raid}-{num_devs}-{num_vols}] ================== "
     )
     try:
         num_array = 2
@@ -96,10 +96,27 @@ def test_hetero_multi_array_GC(array_raid, num_devs, num_vols):
 
             assert pos.target_utils.create_volume_multiple(array_name, num_vols,
                     vol_name=vol_name, size=vol_size, maxiops=0, bw=0) == True
-
+            assert pos.cli.list_volume(array_name=array_name)[0] == True
             nqn=ss_list[id]
             assert pos.target_utils.mount_volume_multiple(array_name=array_name,
                             volume_list=pos.cli.vols, nqn_list=[nqn]) == True
+
+            # Connect client
+            assert pos.client.nvme_connect(nqn, 
+                    pos.target_utils.helper.ip_addr[0], "1158") == True
+
+        assert pos.client.nvme_list() == True
+        nvme_devs = pos.client.nvme_list_out
+
+        # Run Block IO
+        fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --bs=128k "\
+                  f"--iodepth=64 --time_based --runtime=120 --size={vol_size}"
+
+        # Run GC two times to create invalid blocks
+        assert pos.client.fio_generic_runner(
+                    nvme_devs, fio_user_data=fio_cmd)[0] == True
+        assert pos.client.fio_generic_runner(
+                    nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():

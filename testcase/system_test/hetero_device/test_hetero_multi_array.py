@@ -16,7 +16,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
+    assert pos.cli.reset_devel()[0] == True
     yield pos
 
 
@@ -27,15 +27,11 @@ def teardown_function():
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
     assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
-
+    for array in pos.cli.array_dict.keys():
+        assert pos.cli.info_array(array_name=array)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.delete_array(array_name=array)[0] == True
     logger.info("==========================================")
 
 
@@ -57,7 +53,6 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
         " ==================== Test : test_hetero_multi_array ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         raid_types = (array1_raid, array2_raid)
         num_devs = (array1_devs, array2_devs)

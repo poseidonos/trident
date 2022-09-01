@@ -33,8 +33,7 @@ def teardown_function():
 
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
-    # pos.exit_handler(expected=False)
-
+    #pos.exit_handler(expected=True)
 
 @pytest.mark.parametrize("action", ["setup", "reset", "reset_delete", "setup_reset"])
 def test_hetero_setup_play(action):
@@ -65,12 +64,16 @@ def test_hetero_array_sample():
         " ==================== Test : test_hetero_array_sample ================== "
     )
     try:
+        data_dict = pos.data_dict
+        data_dict["array"]["phase"] = "false"
+        data_dict["volume"]["phase"] = "false"
+        assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
         assert pos.cli.reset_devel()[0] == True
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
 
-        array_name = "array1"
-        raid_type = "RAID0"
+        array_name = data_dict["array"]["pos_array"][0]["array_name"]
+        raid_type = data_dict["array"]["pos_array"][0]["raid_type"]
         uram_name = data_dict["device"]["uram"][0]["uram_name"]
 
         data_device_conf = {"20GiB": 0, "mix": 1, "any": 4}
@@ -96,6 +99,7 @@ def test_hetero_array_sample():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        pos.exit_handler(expected=True)
 
     logger.info(
         " ============================= Test ENDs ======================================"
