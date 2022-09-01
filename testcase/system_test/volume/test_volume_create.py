@@ -70,7 +70,7 @@ volume_create_tests = {}
 volume_create_tests["t0"] = {
     "volume_name_gen": generate_volume_name(3), "result": True}
 volume_create_tests["t1"] = {
-    "volume_name_gen": generate_volume_name(0), "result": False}
+    "volume_name_gen": " ", "result": False}
 volume_create_tests["t2"] = {"volume_name_gen": generate_volume_name(
     3)+"  "+generate_volume_name(3), "result": True}
 volume_create_tests["t3"] = {
@@ -100,6 +100,10 @@ def test_volume_create(volume_create_test):
 
         assert pos.cli.create_volume(
             volumename=vol_name, size="10gb", array_name=array_name)[0] == expected_res
+
+        if expected_res == False:
+            logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
+
         assert pos.cli.info_volume(array_name=array_name, vol_name=vol_name)[
             0] == expected_res
 
@@ -445,6 +449,9 @@ def test_unmount_volume_connected():
         # Unmounting the connected Volume
         assert pos.cli.unmount_volume(
             array_name=array_name, volumename="vol1")[0] == False
+
+        logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
+
         assert pos.client.nvme_disconnect(
             nqn=[pos.target_utils.ss_temp_list[0]]) == True
         assert pos.cli.unmount_volume(
@@ -468,6 +475,8 @@ def test_volume_mount_invalid_name():
 
         assert pos.cli.mount_volume(
             array_name=array_name, volumename="non_existing_vol")[0] == False
+
+        logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
 
     except Exception as e:
         logger.info(f"Test script failed due to {e}")
