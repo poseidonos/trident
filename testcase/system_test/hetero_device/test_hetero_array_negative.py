@@ -60,9 +60,11 @@ def test_hetero_three_raid5_array():
             if id >= len(data_dict["device"]["uram"]):
                 # Create 3rd buffer dev
                 uram_name=f"uram{id}"
-                numa = id % 2
+                numa = data_dict["device"]["uram"][0]["numa_node"]
+                bufer_size=data_dict["device"]["uram"][0]["bufer_size"]
+                strip_size=data_dict["device"]["uram"][0]["strip_size"]
                 assert pos.cli.create_device(uram_name=uram_name, numa=numa,
-                            bufer_size="8388608", strip_size="512")[0] == True
+                        bufer_size=bufer_size, strip_size=strip_size)[0] == True
             else:
                 uram_name = data_dict["device"]["uram"][id]["uram_name"]
 
@@ -371,7 +373,7 @@ def test_hetero_multi_array_mount_vol_to_same_subs():
             assert pos.cli.mount_array(array_name=array_name)[0] == True
 
         assert pos.cli.list_array()[0] == True
-        for id,array_name in enumerate(pos.cli.array_dict.keys()):
+        for id, array_name in enumerate(pos.cli.array_dict.keys()):
             vol_size = "1G"
             vol_name = f"{array_name}_pos_vol"
             assert pos.cli.create_volume(vol_name, vol_size, array_name=array_name)[0] == True

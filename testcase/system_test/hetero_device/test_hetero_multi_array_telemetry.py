@@ -27,14 +27,11 @@ def teardown_function():
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
     assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+    for array in pos.cli.array_dict.keys():
+        assert pos.cli.info_array(array_name=array)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.delete_array(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -107,6 +104,7 @@ def test_hetero_multi_array_telemetry(array_raid, num_devs):
                         vol_name=vol_name, size=vol_size, maxiops=0, bw=0) == True
 
                 nqn=ss_list[id]
+                assert pos.cli.list_volume(array_name=array_name)[0] == True
                 assert pos.target_utils.mount_volume_multiple(array_name=array_name,
                                 volume_list=pos.cli.vols, nqn_list=[nqn]) == True
 
@@ -131,7 +129,8 @@ def test_hetero_multi_array_telemetry(array_raid, num_devs):
 
             assert pos.cli.list_array()[0] == True
             for array in pos.cli.array_dict.keys():
-                    assert pos.cli.delete_array(array_name=array)[0] == True
+                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.delete_array(array_name=array)[0] == True
 
             logger.info(f"End of {counter+1}/{repeat_ops} Execution!")
 

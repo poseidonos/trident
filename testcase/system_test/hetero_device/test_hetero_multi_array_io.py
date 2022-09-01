@@ -17,7 +17,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
+    assert pos.cli.reset_devel()[0] == True
     yield pos
 
 
@@ -47,7 +47,7 @@ array_mount_type = ["wt", "wb"]
 fio_io_type = ["block", "file"]
 
 @pytest.mark.regression
-@pytest.mark.parametrize("fio_runtime", ["5"])
+@pytest.mark.parametrize("fio_runtime", ["120"])
 @pytest.mark.parametrize("io_type", fio_io_type)
 @pytest.mark.parametrize("array2_mount", array_mount_type)
 @pytest.mark.parametrize("array2_raid, array2_devs", array_raid_disk)
@@ -65,8 +65,6 @@ def test_hetero_multi_array_max_size_volume_FIO(
         " ==================== Test : test_hetero_multi_array_max_size_volume_FIO ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
-
         assert pos.target_utils.get_subsystems_list() == True
         ss_temp_list = pos.target_utils.ss_temp_list
         raid_types = (array1_raid, array2_raid)
@@ -120,7 +118,7 @@ def test_hetero_multi_array_max_size_volume_FIO(
             vol_name = f"{array_name}_pos_vol"
             assert pos.cli.create_volume(vol_name, vol_size, array_name=array_name)[0] == True
 
-            ss_list = [ss for ss in ss_temp_list if f"subsystem{id + 1}" in ss]
+            ss_list = [ss for ss in ss_temp_list if f"array{id + 1}" in ss]
             nqn=ss_list[0]
             assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == True
 
@@ -129,34 +127,31 @@ def test_hetero_multi_array_max_size_volume_FIO(
                     pos.target_utils.helper.ip_addr[0], "1158") == True
         
         assert pos.client.nvme_list() == True
-
-        # Run IO
         nvme_devs = pos.client.nvme_list_out
 
         # Run File IO or Block IO
         fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --bs=128k "\
                   f"--iodepth=64 --time_based --runtime={fio_runtime} --size={vol_size}"
-
-        if (io_type == "block"):
-            io_mode = True      # Set True for Block IO
-            assert pos.client.fio_generic_runner(
-                    nvme_devs, fio_user_data=fio_cmd, IO_mode=io_mode) == True
-        elif (io_type == "file"):
+        mount_point = None
+        io_mode = True
+        if (io_type == "file"):
             assert pos.client.create_File_system(nvme_devs, fs_format="xfs")
             out, mount_point = pos.client.mount_FS(nvme_devs)
             assert out == True
             io_mode = False     # Set False this to File IO
-            try:
-                assert pos.client.fio_generic_runner(
-                        mount_point, fio_user_data=fio_cmd, IO_mode=io_mode) == True
-            finally:
-                assert pos.client.unmount_FS(mount_point) == True
-        else:
-            logger.warning("Unsupported io type.")
+            nvme_devs = mount_point
+
+        assert pos.client.fio_generic_runner(
+                    nvme_devs, fio_user_data=fio_cmd, IO_mode=io_mode)[0] == True
+        if mount_point:
+            assert pos.client.unmount_FS(mount_point) == True
+            mount_point = None
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
+        if mount_point:
+            assert pos.client.unmount_FS(mount_point) == True
         pos.exit_handler(expected=False)
 
     logger.info(
@@ -176,13 +171,12 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
         " ==================== Test : test_hetero_multi_array_512_volume_mix_FIO ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
         assert pos.target_utils.get_subsystems_list() == True
 
         repeat_ops = 1 if additional_ops == "no" else 5
         num_array = 2
         num_vols = 256
-        fio_runtime = 5  # FIO for 2 minutes
+        fio_runtime = 120  # FIO for 2 minutes
         ss_list = pos.target_utils.ss_temp_list[:num_array]
 
         for counter in range(repeat_ops):
@@ -225,6 +219,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                         vol_name=vol_name, size=vol_size, maxiops=0, bw=0) == True
 
                 nqn=ss_list[id]
+                assert pos.cli.list_volume(array_name=array_name)[0] == True
                 assert pos.target_utils.mount_volume_multiple(array_name=array_name,
                                 volume_list=pos.cli.vols, nqn_list=[nqn]) == True
 
@@ -233,7 +228,6 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                         pos.target_utils.helper.ip_addr[0], "1158") == True
             
             assert pos.client.nvme_list() == True
-
             nvme_devs = pos.client.nvme_list_out
 
             # Run File IO or Block IO
@@ -245,11 +239,12 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                 nvme_dev_list = nvme_devs[i * nr_dev : (i + 1) * nr_dev]
                 file_io_devs = nvme_dev_list[:32]
                 # File IO
+                mount_point = None
                 assert pos.client.create_File_system(file_io_devs, fs_format="xfs")
                 out, mount_point = pos.client.mount_FS(file_io_devs)
                 assert out == True
                 io_mode = True  # Set True for File IO
-
+  
                 out, async_file_io = pos.client.fio_generic_runner(mount_point,
                         fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True)
                 assert out == True
@@ -272,21 +267,26 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                         logger.info(f"{','.join(msg)} is still running. Wait 30 seconds...")
                         continue
                     break
-            
-            if additional_ops == "npor":
-                assert pos.target_utils.Npor() == True
-            elif additional_ops == "vol_del_reverse" :
+
+                if mount_point:
+                    assert pos.client.unmount_FS(mount_point) == True
+
+            if repeat_ops > 1:
                 if pos.client.ctrlr_list()[1]:
                     assert pos.client.nvme_disconnect(ss_list) == True
-
                 assert pos.cli.list_array()[0] == True
-                array_list = pos.cli.array_dict.keys()
-                for array in array_list:
-                    assert pos.cli.list_volume(array_name=array)[0] == True
-                    for vol in pos.cli.vols[::-1]:
-                        assert pos.cli.unmount_volume(vol, array_name=array)[0] == True
-                        assert pos.cli.delete_volume(vol, array_name=array)[0] == True
-
+                if additional_ops == "npor":
+                    # Perform NPOR
+                    assert pos.target_utils.Npor() == True
+                elif additional_ops == "vol_del_reverse" :
+                    for array in pos.cli.array_dict.keys():
+                        # Delete volumes in reverse order
+                        assert pos.cli.list_volume(array_name=array)[0] == True
+                        for vol in pos.cli.vols[::-1]:
+                            assert pos.cli.unmount_volume(vol, array_name=array)[0] == True
+                            assert pos.cli.delete_volume(vol, array_name=array)[0] == True
+                # Delete bot array Array     
+                for array in pos.cli.array_dict.keys():
                     assert pos.cli.unmount_array(array_name=array)[0] == True
                     assert pos.cli.delete_array(array_name=array)[0] == True
 

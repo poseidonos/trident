@@ -23,7 +23,7 @@ def setup_module():
                        "The hetero setup creation will be skipped.")
     
     min_hetero_dev = 1
-    if (min_hetero_dev < tgt_conf_data["num_test_device"]):
+    if (min_hetero_dev > tgt_conf_data["num_test_device"]):
         logger.warning("The setup required minimum {} Hetero devices. "
                         "Only {} Hetero devices is added in config file".format(
                         min_hetero_dev, tgt_conf_data["num_test_device"]))
@@ -144,7 +144,6 @@ def test_hetero_array_all_dev_fio(raid_type, mount_type):
         if raid_type != "RAID5":
             if len(pos.cli.system_disks) % 2 != 0:
                 data_device_conf = {'20giB':1, 'any': len(pos.cli.system_disks) - 2}
-
             if not pos.target_utils.get_hetero_device(data_device_conf):
                 logger.info("Failed to get the required hetero devcies")
                 pytest.skip("Required condition not met. Refer to logs for more details")

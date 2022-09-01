@@ -19,7 +19,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
+    assert pos.cli.reset_devel()[0] == True
     yield pos
 
 
@@ -30,14 +30,11 @@ def teardown_function():
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
     assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+    for array in pos.cli.array_dict.keys():
+        assert pos.cli.info_array(array_name=array)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.delete_array(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -61,8 +58,6 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
         " ==================== Test : test_hetero_multi_array_long_io_mem_leak ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
-
         num_arrays = 2
 
         assert pos.target_utils.get_subsystems_list() == True
@@ -121,7 +116,7 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
         nvme_devs = pos.client.nvme_list_out
 
         # Run File IO or Block IO
-        fio_runtime = 5 # 60 * 60 * 10 = 10 hours
+        fio_runtime = 60 * 60 * 1 # 1 hours
         fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --bs=128k "\
                   f"--iodepth=64 --time_based --runtime={fio_runtime} --size={vol_size}"
 

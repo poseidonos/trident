@@ -16,7 +16,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
+    assert pos.cli.reset_devel()[0] == True
     yield pos
 
 
@@ -27,14 +27,11 @@ def teardown_function():
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
     assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+    for array in pos.cli.array_dict.keys():
+        assert pos.cli.info_array(array_name=array)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.delete_array(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -53,7 +50,6 @@ def test_hetero_single_array_mount():
         " ==================== Test : test_hetero_single_array_mount ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
 

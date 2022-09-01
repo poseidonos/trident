@@ -65,7 +65,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
         repeat = 10
         num_array = 2
         num_vols = 256
-        fio_runtime = 5  # FIO for 2 minutes
+        fio_runtime = 120  # FIO for 2 minutes
         ss_list_temp = pos.target_utils.ss_temp_list[:]
 
         for id in range(repeat):
