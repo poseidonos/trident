@@ -65,6 +65,8 @@ def test_hetero_multi_array_max_size_volume_FIO(
         " ==================== Test : test_hetero_multi_array_max_size_volume_FIO ================== "
     )
     try:
+        mount_point = None
+        io_mode = True
         assert pos.target_utils.get_subsystems_list() == True
         ss_temp_list = pos.target_utils.ss_temp_list
         raid_types = (array1_raid, array2_raid)
@@ -132,8 +134,7 @@ def test_hetero_multi_array_max_size_volume_FIO(
         # Run File IO or Block IO
         fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --bs=128k "\
                   f"--iodepth=64 --time_based --runtime={fio_runtime} --size={vol_size}"
-        mount_point = None
-        io_mode = True
+
         if (io_type == "file"):
             assert pos.client.create_File_system(nvme_devs, fs_format="xfs")
             out, mount_point = pos.client.mount_FS(nvme_devs)

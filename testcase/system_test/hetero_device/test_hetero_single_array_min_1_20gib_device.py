@@ -146,16 +146,17 @@ def test_hetero_array_all_dev_fio(raid_type, mount_type):
         if raid_type != "RAID5":
             if len(pos.cli.system_disks) % 2 != 0:
                 data_device_conf = {'20giB':1, 'any': len(pos.cli.system_disks) - 2}
-            if not pos.target_utils.get_hetero_device(data_device_conf):
-                logger.info("Failed to get the required hetero devcies")
-                pytest.skip("Required condition not met. Refer to logs for more details")
+                
+        if not pos.target_utils.get_hetero_device(data_device_conf):
+            logger.info("Failed to get the required hetero devcies")
+            pytest.skip("Required condition not met. Refer to logs for more details")
 
-            data_drives = pos.target_utils.data_drives
-            spare_drives = pos.target_utils.spare_drives
+        data_drives = pos.target_utils.data_drives
+        spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
+        assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                                    spare=spare_drives, raid_type=raid_type,
+                                    array_name=array_name)[0] == True
 
         write_back = False if mount_type == 'WT' else True
             
