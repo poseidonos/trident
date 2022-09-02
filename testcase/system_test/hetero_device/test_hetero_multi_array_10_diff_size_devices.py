@@ -83,6 +83,7 @@ def teardown_module():
 
 
 
+@pytest.mark.hetero_setup
 @pytest.mark.regression
 def test_hetero_array_all_raid():
     """

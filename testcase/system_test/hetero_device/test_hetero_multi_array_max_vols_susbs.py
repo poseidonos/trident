@@ -49,6 +49,7 @@ def teardown_module():
 
 
 array = [("RAID5", 12)]
+@pytest.mark.regression
 @pytest.mark.parametrize("raid_type, num_disk", array)
 def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
     """
