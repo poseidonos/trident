@@ -42,12 +42,12 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
-array_raid_disk = [("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
-array_mount_type = ["wt", "wb"]
+array_raid_disk = [("RAID0", 2), ("RAID0", 4), ("RAID5", 3), ("RAID10", 4), ("RAID5", 16)]
+array_mount_type = ["WT", "WB"]
 fio_io_type = ["block", "file"]
 
 @pytest.mark.regression
-@pytest.mark.parametrize("fio_runtime", ["120"])
+@pytest.mark.parametrize("fio_runtime", ["60", "120"])
 @pytest.mark.parametrize("io_type", fio_io_type)
 @pytest.mark.parametrize("array2_mount", array_mount_type)
 @pytest.mark.parametrize("array2_raid, array2_devs", array_raid_disk)

@@ -80,6 +80,7 @@ def teardown_module():
     pos.exit_handler(expected=True)
 
 array = [("RAID0",2), ("RAID5",3), ("RAID10",4)]
+@pytest.mark.hetero_setup
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type,num_disk", array)
 def test_hetero_array_all_raid(raid_type,num_disk):
@@ -124,6 +125,7 @@ def test_hetero_array_all_raid(raid_type,num_disk):
         " ============================= Test ENDs ======================================"
     )
 
+@pytest.mark.hetero_setup
 @pytest.mark.regression
 @pytest.mark.parametrize("mount_type", ["WT", "WB"])
 @pytest.mark.parametrize("raid_type", ["RAID0", "RAID5", "RAID10"])
