@@ -89,15 +89,15 @@ class Cli:
             run_end_time = start_time + timeout
 
             while time.time() < run_end_time:
-                out = self.ssh_obj.execute(cmd, get_pty=True)
-
+                listout = self.ssh_obj.execute(cmd, get_pty=True)
+                
                 elapsed_time_secs = time.time() - start_time
                 logger.info(
                     "Command execution completed in : {} secs".format(
                         timedelta(seconds=elapsed_time_secs)
                     )
                 )
-                out = "".join(out)
+                out = "".join(listout)
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
                         "POS is not running! Please start POS and try again!"
@@ -112,10 +112,12 @@ class Cli:
                 elif "Receiving error" in out:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
+                
                 else:
 
                     if "volume mount" in cmd :
-                        return True, out
+                        out = listout[1] if len(listout) > 1 else "".join(listout)
+                                             
                 
                 parse_out = self.parse_out(out, cmd)
                 self.add_cli_history(parse_out)
@@ -151,7 +153,7 @@ class Cli:
         return True
 
     def parse_out(self, jsonout, command):
-
+        
         out = json.loads(jsonout)
         command = command
         if "param" in out.keys():
