@@ -13,8 +13,10 @@ logger = logger.get_logger(__name__)
 def setup_module():
 
     global pos, data_dict
-    pos = POS("wt_array.json")
+    pos = POS("pos_config.json")
     data_dict = pos.data_dict
+    data_dict['array']['phase'] = "false"
+    data_dict['volume']['phase'] = "false"
     # bring devices to user mode, setup core, setup udev, setup max map count
     # assert pos.target_utils.setup_env_pos() == True
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
