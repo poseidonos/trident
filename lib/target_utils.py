@@ -60,6 +60,7 @@ class TargetUtils:
         self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_path)
         self.udev_rule = False
         self.total_required = 0
+        assert self.helper.get_mellanox_interface_ip()[0] == True
 
     def generate_nqn_name(self, default_nqn_name: str = "nqn.2022-10.pos") -> str:
         """
@@ -492,31 +493,20 @@ class TargetUtils:
         return True
 
     def mount_volume_multiple(
-        self, array_name: str, volume_list: list, nqn_list: list
+        self, array_name: str, volume_list: list, nqn: str
     ) -> bool:
         """
         mount volumes to the SS
         Args:
             array_name (str) : name of the array
             volume_list (list) : list of the volumes to be mounted
-            nqn_list (list) : list of Subsystems to be mounted
+            nqn : subsystems to be mounted
         Returns:
             bool
         """
-        num_ss = len(nqn_list)
-        num_vol = len(volume_list)
-        logger.info("nqn {} and vols {} ".format(str(nqn_list), str(volume_list)))
-
-        temp, num = 0, 0
-        for num in range(num_vol):
-            ss = nqn_list[temp] if len(nqn_list) > 1 else nqn_list[0]
-            logger.info("ss {} and temp {} ".format(ss, str(temp)))
-            assert self.cli.mount_volume(volume_list[num], array_name, ss)[0] == True
-
-            if temp == num_ss - 1:
-                temp = 0
-            else:
-                temp += 1
+        
+        for vol in volume_list:
+            assert self.cli.mount_volume(volumename=vol, array_name=array_name,nqn = nqn)[0] == True
         return True
 
     def create_subsystems_multiple(
@@ -606,27 +596,22 @@ class TargetUtils:
         except Exception as e:
             logger.error(e)
             return False
+    def bringupSysten(self,data_dict: dict ) -> bool:
+        """method to bringup system phase"""
 
-    def pos_bring_up(self, data_dict: dict = None) -> bool:
-        """
-        method to perform the pos_bringup_sequence ../testcase/config_files/pos_config.json
-        Returns:
-            bool
-        """
-        try:
-            if data_dict:
-                self.static_dict = data_dict
-            static_dict = self.static_dict
-            assert self.helper.get_mellanox_interface_ip()[0] == True
-            logger.info(self.static_dict)
-            ###system config
-
-            if static_dict["system"]["phase"] == "true":
+        
+        self.static_dict = data_dict
+                   ###system config
+        if self.static_dict["system"]["phase"] == "true":
                 assert self.cli.start_system()[0] == True
                 assert self.cli.create_transport_subsystem()[0] == True
+        return True
 
-            if static_dict["device"]["phase"] == "true":
-                device_list = static_dict["device"]["uram"]
+    def bringupDevice(self, data_dict:dict) -> bool:
+        """method to bringup device"""
+        self.static_dict = data_dict
+        if self.static_dict["device"]["phase"] == "true":
+                device_list = self.static_dict["device"]["uram"]
                 for uram in device_list:
                     assert (
                         self.cli.create_device(
@@ -640,10 +625,13 @@ class TargetUtils:
 
                 assert self.cli.scan_device()[0] == True
                 assert self.cli.list_device()[0] == True
+        return True
 
-            if static_dict["subsystem"]["phase"] == "true":
-                ss = static_dict["subsystem"]
-             
+    def bringupSubsystem(self, data_dict:dict) -> bool:
+        """method to bringup subsystem"""
+        self.static_dict = data_dict
+        if self.static_dict["subsystem"]["phase"] == "true":
+                ss = self.static_dict["subsystem"]
                 for ssinfo in ss["pos_subsystems"]:
                     assert (self.create_subsystems_multiple(ssinfo["nr_subsystems"], base_name=ssinfo["base_nqn_name"], ns_count=ssinfo["ns_count"],serial_number=ssinfo["serial_number"],
                         model_name=ssinfo["model_name"],
@@ -660,15 +648,17 @@ class TargetUtils:
                         )[0]
                         == True
                     )
-
-            ####### array_config
-            if static_dict["array"]["phase"] == "true":
+        return True
+    def bringupArray(self, data_dict :dict) -> bool:
+        """method to bringup array"""
+        self.static_dict = data_dict
+        if self.static_dict["array"]["phase"] == "true":
                 assert self.cli.reset_devel()[0] == True
                 assert self.cli.list_device()[0] == True
                 system_disks = self.cli.system_disks
 
-                pos_array_list = static_dict["array"]["pos_array"]
-                nr_pos_array = static_dict["array"]["num_array"]
+                pos_array_list = self.static_dict["array"]["pos_array"]
+                nr_pos_array = self.static_dict["array"]["num_array"]
                 if nr_pos_array != len(pos_array_list):
                     logger.warning(
                         "JSON file data is inconsistent. POS bringup may fail."
@@ -733,14 +723,15 @@ class TargetUtils:
                             )[0]
                             == True
                         )
-
-            ##### volume config
-            if static_dict["volume"]["phase"] == "true":
+        return True
+    def bringupVolume(self, data_dict:dict) -> bool:
+        self.static_dict = data_dict
+        if self.static_dict["volume"]["phase"] == "true":
                 assert self.cli.list_array()[0] == True
                 if len(list(self.cli.array_dict.keys())) == 2:
-                    volumes = static_dict["volume"]["pos_volumes"]
+                    volumes = self.static_dict["volume"]["pos_volumes"]
                 else:
-                    volumes = [static_dict["volume"]["pos_volumes"][0]]
+                    volumes = [self.static_dict["volume"]["pos_volumes"][0]]
                 for vol in volumes:
                     array_name = vol["array_name"]
                     assert self.cli.list_volume(array_name)
@@ -759,17 +750,41 @@ class TargetUtils:
                         assert self.cli.list_volume(array_name)[0] == True
                         assert self.get_subsystems_list() == True
                         subsystem_range = vol["mount"]["subsystem_range"]
-                        nqn_pre = vol["mount"]["nqn_pre"]
+                        
                         numss, numvol = map(int, subsystem_range.split("-"))
                         nqn_list = [nqn for nqn in self.ss_temp_list if array_name in nqn]
-                        start = 0
-                        end = numvol
-                        for nqn in nqn_list:
-                            _vollist = self.cli.vols[start:end]
-                            start = end
-                            end += numvol
-                            assert (self.mount_volume_multiple(array_name, _vollist, [nqn]) == True)
-                           
+                        logger.info(f"Number of volumes per Subsystem is {str(numvol)}")
+                        if len(nqn_list) == 1:
+                            assert self.mount_volume_multiple(array_name=array_name,volume_list= self.cli.vols, nqn=nqn_list[0]) == True
+                        else:
+                            mountcount = 0
+                            nqn_index = 0
+                            while mountcount < len(self.cli.vols):
+                                nqnname = nqn_list[nqn_index]
+                                volname = self.cli.vols[mountcount]
+                                assert self.cli.mount_volume(volumename=volname,array_name=array_name, nqn=nqnname)[0] == True
+                                mountcount += 1
+                                if mountcount % numvol == 0:
+                                    nqn_index += 1
+        return True    
+
+    def pos_bring_up(self, data_dict: dict = None) -> bool:
+        """
+        method to perform the pos_bringup_sequence ../testcase/config_files/pos_config.json
+        Returns:
+            bool
+        """
+        try:
+            if data_dict:
+                self.static_dict = data_dict
+            logger.info(self.static_dict)
+
+            assert self.bringupSysten(data_dict=self.static_dict) == True
+            assert self.bringupDevice(data_dict=self.static_dict) == True
+            assert self.bringupSubsystem(data_dict=self.static_dict) == True
+            assert self.bringupArray(data_dict=self.static_dict) == True
+            assert self.bringupVolume(data_dict=self.static_dict) == True
+     
             return True
         except Exception as e:
             logger.error("POS bring up failed due to {}".format(e))
@@ -1106,10 +1121,19 @@ class TargetUtils:
                     if len(self.cli.vols) == 0:
                         logger.info("No volumes found")
                     else:
-                        for vol in self.cli.vols:
-                            # ss_list = [ss for ss in self.ss_temp_list if array in ss]
-                            # TODO skip mount volumes those were not mounted.
-                            assert self.cli.mount_volume(vol, array)[0] == True
+                        ss_list = [ss for ss in self.ss_temp_list if array in ss]
+                        if len(ss_list) == 1:
+                           assert self.mount_volume_multiple(array_name=array,volume_list= self.cli.vols, nqn=ss_list[0]) == True
+                        else:
+                            mountcount = 0
+                            nqn_index = 0
+                            while mountcount < len(self.cli.vols):
+                                             nqnname = ss_list[nqn_index]
+                                             volname = self.cli.vols[mountcount]
+                                             assert self.cli.mount_volume(volumename=volname,array_name=array, nqn=nqnname)[0] == True
+                                             mountcount += 1
+                                             if mountcount % 2 == 0:
+                                                        nqn_index += 1
             else:
                 logger.info("No array found")
             return True
