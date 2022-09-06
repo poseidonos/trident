@@ -77,6 +77,7 @@ def teardown_module():
     pos.exit_handler(expected=True)
 
 
+@pytest.mark.hetero_setup
 @pytest.mark.regression
 def test_hetero_array_all_raid_using_19gib_data_disk():
     """
@@ -84,7 +85,7 @@ def test_hetero_array_all_raid_using_19gib_data_disk():
     different size. Atleast one device of size 19 GiB.
     """
     logger.info(
-        " ==================== Test : test_hetero_array_all_raid_using_19gib_disk ================== "
+        " ==================== Test : test_hetero_array_all_raid_using_19gib_data_disk ================== "
     )
     try:
         array_name = "array1"
@@ -121,6 +122,7 @@ def test_hetero_array_all_raid_using_19gib_data_disk():
         " ============================= Test ENDs ======================================"
     )
 
+@pytest.mark.hetero_setup
 @pytest.mark.regression
 def test_hetero_array_all_raid_using_19gib_spare_disk():
     """
@@ -128,7 +130,7 @@ def test_hetero_array_all_raid_using_19gib_spare_disk():
     different size. Atleast one spare device of size 19 GiB.
     """
     logger.info(
-        " ==================== Test : test_hetero_array_all_raid_using_19gib_disk ================== "
+        " ==================== Test : test_hetero_array_all_raid_using_19gib_spare_disk ================== "
     )
     try:
         array_name = "array1"
