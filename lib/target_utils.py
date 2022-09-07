@@ -1066,31 +1066,35 @@ class TargetUtils:
                                     )
 
             assert self.cli.stop_system()[0] == True
-            assert self.cli.start_system()[0] == True
-            uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
-            for uram in uram_list:
+            assert self.bringupPOR(array_list) == True
+            return True
+        except Exception as e:
+            logger.error(f"NPOR failed due to {e}")
+            return False
+    def bringupPOR(self, array_list) -> bool:
+
+        assert self.cli.start_system()[0] == True
+        uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
+        for uram in uram_list:
                 assert (
                     self.cli.create_device(
                         uram_name=uram, bufer_size="8388608", strip_size="512"
                     )[0]
                     == True
                 )
-            assert self.cli.scan_device()[0] == True
-            assert self.cli.list_array()[0] == True
-            array_list = list(self.cli.array_dict.keys())
-            if len(array_list) == 0:
-                logger.info("No Array Present in the config")
+        assert self.cli.scan_device()[0] == True
+        assert self.cli.list_array()[0] == True
+        array_list = list(self.cli.array_dict.keys())
+        if len(array_list) == 0:
+                logger.info("No POSArray ")
                 return False
-            else:
+        else:
                 for array in array_list:
                     assert self.cli.mount_array(array_name=array)[0] == True
                     assert self.cli.list_volume(array_name=array)[0] == True
                     if len(self.cli.vols) == 0:
                         logger.info("No volumes found")
-            return True
-        except Exception as e:
-            logger.error(f"NPOR failed due to {e}")
-            return False
+        return True
 
     def Npor(self) -> bool:
         """method to perform NPOR
@@ -1188,7 +1192,7 @@ class TargetUtils:
             # Create subsystem and Add listner
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in subsystem_list:
-                assert self.cli.create_subsystem(ss, ns_count= "512", serial_number = "POS000000000001", model_name="POS_VOLUME")[0] == True
+                assert self.cli.create_subsystem(ss, ns_count= "1024", serial_number = "POS000000000001", model_name="POS_VOLUME")[0] == True
                 assert (
                     self.cli.add_listner_subsystem(
                         nqn_name=ss, mellanox_interface=ip_addr, port="1158"
