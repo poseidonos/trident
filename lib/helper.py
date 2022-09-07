@@ -501,6 +501,58 @@ class Helper:
 
         return device_size_dict
 
+    def _get_sized_disks(self, device_size_dict: dict, 
+                         device_select: dict):
+        selected_devices = []
+        for dev_size, num_device in device_select.items():
+            if dev_size.lower() in ('any', 'mix'):
+                continue
+
+            device_list = device_size_dict.get(dev_size, [])
+            
+            if len(device_list) < num_device:
+                logger.error("Only {} devices of {} size are available. "\
+                            "But {} drives are required.".format(
+                            len(device_list), dev_size, num_device))
+                return False, selected_devices
+
+            for i in range(num_device):
+                dev_name = device_size_dict[dev_size].pop(0)
+                selected_devices.append(dev_name)
+
+        return True, selected_devices
+
+    def _get_remaining_disks(self, device_size_dict: dict, 
+                             device_select: dict):
+        selected_devices = []
+        for dev_type in ('mix', 'any'):
+            device_types = [dev_size for dev_size, dev_list in device_size_dict.items() if dev_list]
+            device_count = sum(len(dev_list) for dev_list in device_size_dict.values())
+            num_device = device_select.get(dev_type, 0)
+            if (num_device == 0):
+                continue
+
+            if dev_type == 'mix' and len(device_types) < num_device:
+                logger.error("Only {} device types are available. But {} are "\
+                             "required.".format(len(device_types), num_device))
+                return False, device_select
+            elif dev_type == 'any' and device_count < num_device:
+                logger.error("Only {} devices are available. But {} are "\
+                             "required.".format(device_count, num_device))
+                return False, device_select
+
+            counter = 0
+            while counter < num_device:
+                for dev_type in device_size_dict.keys():
+                    if counter == num_device:
+                            break
+                    if device_size_dict[dev_type]:
+                        dev_name = device_size_dict[dev_type].pop(0)
+                        selected_devices.append(dev_name)
+                        counter += 1
+
+        return True, device_select 
+
     def select_hetro_devices(self, devices: dict, data_dev_select: dict,
                             spare_dev_select: dict=None) -> tuple:
         '''
@@ -521,96 +573,32 @@ class Helper:
         logger.info(f"Requested spare drives: {spare_dev_select}")
 
         # Select the data device based on size
-        for dev_size, num_device in data_dev_select.items():
-            if dev_size.lower() in ('any', 'mix'):
-                continue
+        res, device_list = self._get_sized_disks(device_size_dict, data_dev_select)
+        if not res:
+            return False, selected_devices
+        selected_devices["data_dev_list"].extend(device_list)
 
-            device_list = device_size_dict.get(dev_size, [])
-            
-            if len(device_list) < num_device:
-                logger.error("Only {} devices of {} size are available. "\
-                            "But {} drives are required.".format(
-                            len(device_list), dev_size, num_device))
-                return False, selected_devices
-
-            for i in range(num_device):
-                dev_name = device_size_dict[dev_size].pop(0)
-                selected_devices["data_dev_list"].append(dev_name)
-
-        # Select the spare device based on size
         if spare_dev_select != None:
-            for dev_size, num_device in spare_dev_select.items():
-                if dev_size.lower() in ('any', 'mix'):
-                    continue
-
-                device_list = device_size_dict.get(dev_size, [])
-                if len(device_list) < num_device:
-                    logger.error("Only {} device of {} size are available. "\
-                                 "But {} drives are required.".format(
-                                 len(device_list), dev_size, num_device))
-                    return False, selected_devices
-
-                for i in range(num_device):
-                    dev_name = device_size_dict[dev_size].pop(0)
-                    selected_devices["spare_dev_list"].append(dev_name)
+            # Select the spare device based on size
+            res, device_list = self._get_sized_disks(device_size_dict, spare_dev_select)
+            if not res:
+                return False, selected_devices
+            selected_devices["spare_dev_list"].extend(device_list)
 
         # Select the data device of mix/different sizes
-        for dev_type in ('mix', 'any'):
-            device_types = [dev_size for dev_size, dev_list in device_size_dict.items() if dev_list]
-            device_count = sum(len(dev_list) for dev_list in device_size_dict.values())
-            num_device = data_dev_select.get(dev_type, 0)
-            if (num_device == 0):
-                continue
-
-            if dev_type == 'mix' and len(device_types) < num_device:
-                logger.error("Only {} device types are available. But {} are "\
-                             "required.".format(len(device_types), num_device))
-                return False, selected_devices
-            elif dev_type == 'any' and device_count < num_device:
-                logger.error("Only {} devices are available. But {} are "\
-                             "required.".format(device_count, num_device))
-                return False, selected_devices
-
-            counter = 0
-            while counter < num_device:
-                for dev_type in device_size_dict.keys():
-                    if counter == num_device:
-                            break
-                    if device_size_dict[dev_type]:
-                        dev_name = device_size_dict[dev_type].pop(0)
-                        selected_devices["data_dev_list"].append(dev_name)
-                        counter += 1
+        res, device_list = self._get_remaining_disks(device_size_dict, data_dev_select)
+        if not res:
+            return False, selected_devices
+        selected_devices["data_dev_list"].extend(device_list)
 
         logger.info(f"Selected data device: {selected_devices['data_dev_list']}")
 
-        # Select the spare device of any and mix/differnt size
         if spare_dev_select != None:
-            for dev_type in ('mix', 'any'):
-                device_types = [dev_size for dev_size, dev_list in device_size_dict.items() if dev_list]
-                device_count = sum(len(dev_list) for dev_list in device_size_dict.values())
-                num_device = data_dev_select.get(dev_type, 0)
-                if (num_device == 0):
-                    continue
-
-                if dev_type == 'mix' and len(device_types) < num_device:
-                    logger.error("Only {} device types are available. But {} are "\
-                                "required.".format(len(device_types), num_device))
-                    return False, selected_devices
-                elif dev_type == 'any' and device_count < num_device:
-                    logger.error("Only {} devices are available. But {} are "\
-                                "required.".format(device_count, num_device))
-                    return False, selected_devices
-
-                counter = 0
-                while counter < num_device:
-                    for dev_type in device_size_dict.keys():
-                        if counter == num_device:
-                                break
-                        if device_size_dict[dev_type]:
-                            dev_name = device_size_dict[dev_type].pop(0)
-                            selected_devices["spare_dev_list"].append(dev_name)
-                            counter += 1
+            # Select the spare device of any and mix/differnt size
+            res, device_list = self._get_remaining_disks(device_size_dict, spare_dev_select)
+            if not res:
+                return False, selected_devices
+            selected_devices["spare_dev_list"].extend(device_list)
 
             logger.info(f"Selected spare device: {selected_devices['spare_dev_list']}")
-                        
         return True, selected_devices
