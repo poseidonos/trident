@@ -1,118 +1,41 @@
 import pytest
-import traceback
 
-from pos import POS
-import logger
-import random
+import logger as logging
 import time
 import pprint
+from array_test_common import *
 
-logger = logger.get_logger(__name__)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict['array']['phase'] = "false"
-    data_dict['volume']['phase'] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
-def wt_test_setup_function(array_name: str, raid_type: str, nr_data_drives: int):
-    try:
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
-        system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives):
-            pytest.skip(
-                f"Insufficient disk count {system_disks}. Required minimum {nr_data_drives + 1}"
-            )
-        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-        spare_disk_list = []
-
-        if raid_type.upper() == "NORAID":
-            raid_type = "no-raid"
-
-        assert (
-            pos.cli.create_array(
-                write_buffer="uram0",
-                data=data_disk_list,
-                spare=spare_disk_list,
-                raid_type=raid_type,
-                array_name=array_name,
-            )[0]
-            == True
-        )
-
-        assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
-
-        return True
-    except Exception as e:
-        logger.error(f"Test setup failed due to {e}")
-        traceback.print_exc()
-        return False
-
+logger = logging.get_logger(__name__)
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
     "raid_type, nr_data_drives",
     [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
 )
-def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
+def test_wt_array_block_file_FIO(setup_cleanup_array_function, raid_type, nr_data_drives):
     logger.info(
         " ==================== Test : test_wt_array_block_file_FIO ================== "
     )
     try:
-        array_name = "array1"
-        vol_size = "2200mb"  # Volume Size
-        io_size = "2g"  # FIO IO size
-        if raid_type in ("NORAID", "RAID10") and nr_data_drives <= 2:
-            vol_size = "1200mb"
-            io_size = "1g"
+        mount_point = None
+        pos = setup_cleanup_array_function
+        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
 
-        assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
+        assert wt_array_setup(pos, raid_type, nr_data_drives, 0) == True
+
+        num_vols = 256
+        array_size = int(pos.cli.array_info[array_name].get("size"))
+        vol_size = f"{int(array_size // (1024 * 1024) / num_vols)}mb"  # Volume Size in MB
+        io_size = f"{int((array_size * 0.9) // (1024 * 1024) / num_vols)}mb"  # FIO IO size in MB
 
         assert (
             pos.target_utils.create_volume_multiple(
-                array_name, 256, "pos_vol", size=vol_size
-            )
-            == True
+                array_name, num_vols, "pos_vol", size=vol_size
+            ) == True
         )
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
-        ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
+        ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
         assert (
             pos.target_utils.mount_volume_multiple(
                 array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
@@ -120,7 +43,7 @@ def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
             == True
         )
 
-        for ss in pos.target_utils.ss_temp_list:
+        for ss in ss_list:
             assert (
                 pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
                 == True
@@ -170,14 +93,16 @@ def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
             break
         # assert pos.client.delete_FS(mount_point) == True
         assert pos.client.unmount_FS(mount_point) == True
+        mount_point = None
 
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        assert pos.client.unmount_FS(mount_point) == True
-        pos.exit_handler(expected=False)
+        if mount_point:
+            assert pos.client.unmount_FS(mount_point) == True
+            pos.exit_handler(expected=False)
 
 
 @pytest.mark.regression
@@ -186,18 +111,21 @@ def test_wt_array_block_file_FIO(raid_type, nr_data_drives):
     [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
 )
 @pytest.mark.parametrize("io_type", ["block", "xfs", "ext4"])
-def test_wt_array_one_hour_FIO(raid_type, nr_data_drives, io_type):
+def test_wt_array_one_hour_FIO(setup_cleanup_array_function, raid_type, nr_data_drives, io_type):
     logger.info(
         " ==================== Test : test_wt_array_xfs_file_FIO ================== "
     )
     try:
-        array_name = "array1"
-        assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
+        mount_point = None
+        pos = setup_cleanup_array_function
+        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+
+        assert wt_array_setup(pos, raid_type, nr_data_drives, 0) == True
 
         assert pos.cli.info_array(array_name=array_name)[0] == True
         array_size = int(pos.cli.array_info[array_name].get("size"))
-        vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
-        io_size = f"{(array_size * 0.9) // (1024 * 1024)}mb"  # FIO IO size in MB
+        vol_size = f"{int(array_size // (1024 * 1024))}mb"  # Volume Size in MB
+        io_size = f"{int((array_size * 0.9) // (1024 * 1024))}mb"  # FIO IO size in MB
 
         assert (
             pos.target_utils.create_volume_multiple(
@@ -207,7 +135,7 @@ def test_wt_array_one_hour_FIO(raid_type, nr_data_drives, io_type):
         )
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
-        ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
+        ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
         assert (
             pos.target_utils.mount_volume_multiple(
                 array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
@@ -215,7 +143,7 @@ def test_wt_array_one_hour_FIO(raid_type, nr_data_drives, io_type):
             == True
         )
 
-        for ss in pos.target_utils.ss_temp_list:
+        for ss in ss_list:
             assert (
                 pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
                 == True
@@ -233,7 +161,8 @@ def test_wt_array_one_hour_FIO(raid_type, nr_data_drives, io_type):
         else:
             io_mode = False  # Set False this to File IO
             assert pos.client.create_File_system(nvme_devs, fs_format=io_type)
-            out, nvme_devs = pos.client.mount_FS(nvme_devs)
+            out, mount_point = pos.client.mount_FS(nvme_devs)
+            nvme_devs = mount_point
             assert out == True
 
         out, async_io = pos.client.fio_generic_runner(
@@ -248,17 +177,18 @@ def test_wt_array_one_hour_FIO(raid_type, nr_data_drives, io_type):
                 logger.info("Sleep for 2 minutes. FIO is running...")
                 continue
             break
-        assert pos.client.fio_parser()
-        logger.info(pprint.pformat(pos.client.fio_par_out["write"]))
+        assert pos.client.fio_parser() == True
 
-        if not io_mode:
+        if mount_point:
             assert pos.client.unmount_FS(nvme_devs) == True
+            mount_point = None
         logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        # assert pos.client.unmount_FS(mount_point) == True
+        if mount_point:
+            assert pos.client.unmount_FS(mount_point) == True
         pos.exit_handler(expected=False)
 
 
@@ -267,13 +197,15 @@ def test_wt_array_one_hour_FIO(raid_type, nr_data_drives, io_type):
     "raid_type, nr_data_drives",
     [("no-raid", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
 )
-def test_wt_array_block_IO(raid_type, nr_data_drives):
+def test_wt_array_block_IO(setup_cleanup_array_function, raid_type, nr_data_drives):
     logger.info(
         " ==================== Test : test_wt_array_block_IO ================== "
     )
     try:
-        array_name = "posarray1"
-        assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
+        pos = setup_cleanup_array_function
+        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+
+        assert wt_array_setup(pos, raid_type, nr_data_drives, 0) == True
 
         assert (
             pos.target_utils.create_volume_multiple(
@@ -283,7 +215,7 @@ def test_wt_array_block_IO(raid_type, nr_data_drives):
         )
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
-        ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
+        ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
         assert (
             pos.target_utils.mount_volume_multiple(
                 array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
@@ -291,7 +223,7 @@ def test_wt_array_block_IO(raid_type, nr_data_drives):
             == True
         )
 
-        for ss in pos.target_utils.ss_temp_list:
+        for ss in ss_list:
             assert (
                 pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
                 == True
@@ -300,7 +232,7 @@ def test_wt_array_block_IO(raid_type, nr_data_drives):
         assert pos.client.nvme_list() == True
 
         # Run Block IO for an Hour
-        fio_out = pos.client.fio_generic_runner(
+        fio_out = pos.client.fio_genericrunner(
             pos.client.nvme_list_out,
             fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=3600",
         )
@@ -312,3 +244,7 @@ def test_wt_array_block_IO(raid_type, nr_data_drives):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
+
+def test_empty_1_1():
+    logger.info("Empty Test 1 of Script 1")

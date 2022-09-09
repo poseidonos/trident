@@ -1,50 +1,11 @@
 import pytest
-import traceback
 
-from pos import POS
 import logger
-
 logger = logger.get_logger(__name__)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
 @pytest.mark.regression
-def test_auto_array_with_all_numa():
+def test_auto_array_with_all_numa(setup_cleanup_array_function):
     """
     Test auto create arrays of no-raid with different NUMA node
     """
@@ -52,6 +13,7 @@ def test_auto_array_with_all_numa():
         " ==================== Test : test_auto_array_with_all_numa ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         numa_dev_list = [{"ssd": [], "nvram": []}, {"ssd": [], "nvram": []}]
 
         assert pos.cli.reset_devel()[0] == True
@@ -97,7 +59,7 @@ def test_auto_array_with_all_numa():
 
 
 @pytest.mark.regression
-def test_auto_array_with_insufficient_numa_dev():
+def test_auto_array_with_insufficient_numa_dev(setup_cleanup_array_function):
     """
     Test auto create arrays of with insufficient NUMA node device
     """
@@ -105,6 +67,7 @@ def test_auto_array_with_insufficient_numa_dev():
         " ==================== Test : test_auto_array_with_insufficient_numa_dev ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         numa_dev_list = [{"ssd": [], "nvram": []}, {"ssd": [], "nvram": []}]
 
         assert pos.cli.reset_devel()[0] == True
