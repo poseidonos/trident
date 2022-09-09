@@ -2,108 +2,11 @@ import pytest
 
 import traceback
 
-from pos import POS
 import logger
 import random
 import time
-
-# from pos import POS
-
+from array_test_common import *
 logger = logger.get_logger(__name__)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict['array']['phase'] = "false"
-    data_dict['volume']['phase'] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
-
-    assert pos.target_utils.pci_rescan() == True
-
-    # assert pos.cli.reset_devel()[0] == True
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
-def wt_test_setup_function(array_name: str, raid_type: str, nr_data_drives: int):
-    try:
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
-
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
-        system_disks = pos.cli.system_disks
-        if len(system_disks) < (nr_data_drives + 1):
-            pytest.skip(
-                f"Insufficient disk count {system_disks}. Required minimum {nr_data_drives + 1}"
-            )
-        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-        spare_disk_list = [system_disks.pop()]
-
-        assert (
-            pos.cli.create_array(
-                write_buffer="uram0",
-                data=data_disk_list,
-                spare=spare_disk_list,
-                raid_type=raid_type,
-                array_name=array_name,
-            )[0]
-            == True
-        )
-
-        assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
-        assert (
-            pos.cli.create_volume("pos_vol1", array_name=array_name, size="1000gb")[0]
-            == True
-        )
-        assert pos.target_utils.get_subsystems_list() == True
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
-        ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
-        assert (
-            pos.target_utils.mount_volume_multiple(
-                array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
-            )
-            == True
-        )
-
-        for ss in pos.target_utils.ss_temp_list:
-            assert (
-                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
-                == True
-            )
-        return True
-    except Exception as e:
-        logger.error(f"Test setup failed due to {e}")
-        traceback.print_exc()
-        return False
-
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
@@ -117,13 +20,14 @@ def wt_test_setup_function(array_name: str, raid_type: str, nr_data_drives: int)
         ("RAID10", 4, False),
     ],
 )
-def test_wt_array_rebuild_after_FIO(raid_type, nr_data_drives, file_io):
+def test_wt_array_rebuild_after_FIO(setup_cleanup_array_function, raid_type, nr_data_drives, file_io):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
     try:
-        array_name = "array1"
-        assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
+        pos = setup_cleanup_array_function
+        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+        assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
         if file_io:
@@ -176,14 +80,15 @@ def test_wt_array_rebuild_after_FIO(raid_type, nr_data_drives, file_io):
         ("RAID10", 4, False),
     ],
 )
-def test_wt_array_rebuild_during_FIO(raid_type, nr_data_drives, file_io):
+def test_wt_array_rebuild_during_FIO(setup_cleanup_array_function, 
+                                     raid_type, nr_data_drives, file_io):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
     try:
-        array_name = "array1"
-        assert wt_test_setup_function(array_name, raid_type, nr_data_drives) == True
-
+        pos = setup_cleanup_array_function
+        assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
+        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
         if file_io:

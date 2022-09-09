@@ -1,11 +1,11 @@
 import pytest
 
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
 
-
+raid_type, nr_data_drives = "RAID5", 3
+num_array = 2
 def check_disk_precondition(pos, req_disk):
     '''Checks the minimum disks requirements '''
     assert pos.cli.scan_device()[0] == True
@@ -14,52 +14,13 @@ def check_disk_precondition(pos, req_disk):
     if len(sys_disks) < req_disk:
         pytest.skip(f"Insufficient disks {sys_disks}. Required min {req_disk}")
 
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, raid_type, nr_data_drives, num_array
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    raid_type, nr_data_drives = "RAID5", 3
-    num_array = 2
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-
-    assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
-            assert pos.cli.delete_array(array_name=array)[0] == True
-
-    assert pos.cli.reset_devel()[0] == True
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
 @pytest.mark.regression
-def test_create_array3_after_array2_delete():
+def test_create_array3_after_array2_delete(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_create_array3_after_array2_delete ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = nr_data_drives * num_array
         check_disk_precondition(pos, required_disk)
 
@@ -107,11 +68,12 @@ def test_create_array3_after_array2_delete():
 
 
 @pytest.mark.regression
-def test_multiarray_add_max_spare():
+def test_multiarray_add_max_spare(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_add_max_spare ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = ((nr_data_drives + 1) * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -149,11 +111,12 @@ def test_multiarray_add_max_spare():
 
 
 @pytest.mark.regression
-def test_multiarray_unmount_array_unmount_vol():
+def test_multiarray_unmount_array_unmount_vol(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_unmount_array_unmount_vol ================== "
     )
     try:
+        pos =setup_cleanup_array_function
         required_disk = nr_data_drives * num_array
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -207,11 +170,12 @@ def test_multiarray_unmount_array_unmount_vol():
 
 
 @pytest.mark.regression
-def test_multiarray_delete_array_list_vol():
+def test_multiarray_delete_array_list_vol(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_delete_array_list_vol ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = nr_data_drives * num_array
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -265,11 +229,12 @@ def test_multiarray_delete_array_list_vol():
 
 
 @pytest.mark.regression
-def test_multiarray_recreate_array_and_vol():
+def test_multiarray_recreate_array_and_vol(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_recreate_array_and_vol ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = nr_data_drives * num_array
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -343,11 +308,12 @@ def test_multiarray_recreate_array_and_vol():
 
 
 @pytest.mark.regression
-def test_multiarray_mount_unmount_loop():
+def test_multiarray_mount_unmount_loop(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_mount_unmount_loop ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = nr_data_drives * num_array
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -391,11 +357,12 @@ def test_multiarray_mount_unmount_loop():
 
 
 @pytest.mark.regression
-def test_unmount_array1_delete_array2():
+def test_unmount_array1_delete_array2(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_unmount_array1_delete_array2 ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = nr_data_drives * num_array
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -442,11 +409,12 @@ def test_unmount_array1_delete_array2():
 
 
 @pytest.mark.regression
-def test_array1_spare_as_array2_data_disk():
+def test_array1_spare_as_array2_data_disk(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_array1_spare_as_array2_data_disk ================== "
     )
     try:
+        pos =setup_cleanup_array_function
         required_disk = nr_data_drives * num_array
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -525,11 +493,12 @@ def test_array1_data_as_array2_spare_disk():
 
 
 @pytest.mark.regression
-def test_multiarray_size_after_unmount_mount():
+def test_multiarray_size_after_unmount_mount(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_size_after_unmount_mount ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = nr_data_drives * num_array
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -573,11 +542,12 @@ def test_multiarray_size_after_unmount_mount():
 
 
 @pytest.mark.regression
-def test_array2_unmount_after_detach_spare():
+def test_array2_unmount_after_detach_spare(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_array2_unmount_after_detach_spare ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = ((nr_data_drives + 1) * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -619,11 +589,12 @@ def test_array2_unmount_after_detach_spare():
 
 
 @pytest.mark.regression
-def test_multiarray_different_num_drives():
+def test_multiarray_different_num_drives(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_different_num_drives ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = ((nr_data_drives + 1) * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -656,11 +627,12 @@ def test_multiarray_different_num_drives():
 
 
 @pytest.mark.regression
-def test_second_array_without_uram():
+def test_second_array_without_uram(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_second_array_without_uram ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -697,11 +669,12 @@ def test_second_array_without_uram():
 
 
 @pytest.mark.regression
-def test_multiarray_with_invalid_uram():
+def test_multiarray_with_invalid_uram(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_with_invalid_uram ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -742,11 +715,12 @@ def test_multiarray_with_invalid_uram():
 
 
 @pytest.mark.regression
-def test_multiarray_unmount_unmounted_array():
+def test_multiarray_unmount_unmounted_array(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_unmount_unmounted_array ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -788,11 +762,12 @@ def test_multiarray_unmount_unmounted_array():
 
 
 @pytest.mark.regression
-def test_multiarray_invalid_raid():
+def test_multiarray_invalid_raid(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_invalid_raid ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -830,11 +805,12 @@ def test_multiarray_invalid_raid():
 
 
 @pytest.mark.regression
-def test_multiarray_consume_max_array_capacity():
+def test_multiarray_consume_max_array_capacity(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_consume_max_array_capacity ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         num_vols = 256
 
         required_disk = (nr_data_drives * num_array)
@@ -883,11 +859,12 @@ def test_multiarray_consume_max_array_capacity():
 
 
 @pytest.mark.regression
-def test_multiarray_unmount_array_effect():
+def test_multiarray_unmount_array_effect(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_unmount_array_effect ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -942,11 +919,12 @@ def test_multiarray_unmount_array_effect():
 
 
 @pytest.mark.regression
-def test_multiarray_unmount_mount_array1():
+def test_multiarray_unmount_mount_array1(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_unmount_mount_array1 ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -988,11 +966,12 @@ def test_multiarray_unmount_mount_array1():
 
 
 @pytest.mark.regression
-def test_multiarray_vol_unmount_delete_loop():
+def test_multiarray_vol_unmount_delete_loop(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_vol_unmount_delete_loop ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -1044,11 +1023,12 @@ def test_multiarray_vol_unmount_delete_loop():
 
 
 @pytest.mark.regression
-def test_multiarray_mount_mounted_array():
+def test_multiarray_mount_mounted_array(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_multiarray_mount_mounted_array ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
@@ -1082,11 +1062,12 @@ def test_multiarray_mount_mounted_array():
 
 
 @pytest.mark.regression
-def test_array1_100_vols_array2_257_vols():
+def test_array1_100_vols_array2_257_vols(setup_cleanup_array_function):
     logger.info(
         " ==================== Test : test_array1_100_vols_array2_257_vols ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         required_disk = (nr_data_drives * num_array)
         check_disk_precondition(pos, required_disk)
         system_disks = pos.cli.system_disks
