@@ -7,7 +7,7 @@ logger = logger.get_logger(__name__)
 @pytest.mark.regression
 @pytest.mark.parametrize(
     "raid_type, nr_data_drives",
-    [("no-raid", 1), ("RAID0", 2), ("RAID10", 4), ("RAID10", 2)],
+    [("no-raid", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4), ("RAID10", 2)],
 )
 def test_wt_multi_array_256vols(setup_cleanup_array_function, raid_type, nr_data_drives):
     """The purpose of this test case is to Create 2 array in Write Through mode. Create and mount 256 volume on each array"""
