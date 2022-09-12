@@ -4,7 +4,7 @@ import sys
 import logger
 import pytest
 from collections import OrderedDict
-#from lxml import etree
+from lxml import etree
 from subprocess import Popen, PIPE
 
 # from hurry.filesize import size
