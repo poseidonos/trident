@@ -50,54 +50,35 @@ def teardown_module():
     pos.exit_handler(expected=True)
 
 @pytest.mark.regression
-def test_513_volumes():
-    '''The purpose of test is to try to create 513 volumes (256 array 1, 257 array 2) '''
+@pytest.mark.parametrize("num_vols", [(256, 257), (257, 257)])
+def test_unsupported_volumes(num_vols):
+    '''
+    The purpose of test is to try to create 513 volumes (256 array 1, 257 array 2) and
+    514 volumes (257 array 1, 257 array 2).
+     '''
     try:
-        logger.info("================ Test: test_513_volumes ================")
+        logger.info(f"================ Test: test_unsupported_volumes[{num_vols}] ================")
+        assert pos.target_utils.get_subsystems_list() == True
+        subsystem_list = pos.target_utils.ss_temp_list
         assert pos.cli.list_array()[0] == True
-        valid_vols = True
-        for array_name in pos.cli.array_dict.keys():
+        for index, array_name in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.info_array(array_name=array_name)[0] == True
             array_size = int(pos.cli.array_info[array_name].get("size"))
             vol_size = f"{int(array_size // (1024 * 1024)/ 260)}mb"  # Volume Size in MB
-            num_vols = 256
-            assert pos.target_utils.create_volume_multiple(array_name, num_vols, size=vol_size) == True
-            if not valid_vols:
+            assert pos.target_utils.create_volume_multiple(array_name,
+                                            256, size=vol_size) == True
+            if (num_vols[index] - 256) > 0 :
+                # Create and mount 257 volumes
                 vol_name = f"{array_name}_PoS_VoL_257"
                 assert pos.cli.create_volume(vol_name, vol_size, array_name)[0] == False
-            
-            valid_vols = False
-        logger.info("=============== TEST ENDs ================")
-
-    except Exception as e:
-        logger.info(f" Test Script failed due to {e}")
-        pos.exit_handler(expected=False)
-
-@pytest.mark.regression
-def test_257_volumes():
-    '''The purpose of test is to try to create 257 and mount volumes on each array '''
-    try:
-        logger.info("================ Test: test_257_volumes ================")
-        assert pos.cli.list_array()[0] == True
-        for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            array_size = int(pos.cli.array_info[array_name].get("size"))
-            vol_size = f"{int(array_size // (1024 * 1024)/ 260)}mb"  # Volume Size in MB
-            assert pos.target_utils.create_volume_multiple(array_name, 256, size=vol_size) == True
-
-            assert pos.target_utils.get_subsystems_list() == True
-            ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
-            nqn = ss_list[0]
+        
             assert pos.cli.list_volume(array_name=array_name)[0] == True
-            assert pos.target_utils.mount_volume_multiple(array_name, pos.cli.vols, nqn) == True
-
-            # Create and mount 257 volumes
-            vol_name = f"{array_name}_Vol_257"
-            assert pos.cli.create_volume(vol_name, vol_size, array_name)[0] == False
-            # TODO add assert: Due to POS CLI bug assert cann't be verify
-            pos.cli.mount_volume(vol_name, array_name, nqn)[0] == False
-
+            assert len(pos.cli.vols) == 256
+            ss_list = [ss for ss in subsystem_list if array_name in ss]
+            assert pos.target_utils.mount_volume_multiple(array_name, pos.cli.vols, ss_list[0]) == True
+            
         logger.info("=============== TEST ENDs ================")
+
     except Exception as e:
         logger.info(f" Test Script failed due to {e}")
         pos.exit_handler(expected=False)
