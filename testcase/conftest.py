@@ -83,7 +83,7 @@ def pytest_sessionstart(session):
         )
     )
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def setup_clenup_array_module():
     logger.info("========== SETUP ARRAY MODULE =========")
     pos = POS("pos_config.json")
@@ -98,10 +98,12 @@ def setup_clenup_array_module():
     pos.exit_handler(expected=True)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="function")
 def setup_cleanup_array_function(setup_clenup_array_module):
     logger.info("========== SETUP ARRAY TEST =========")
     pos = setup_clenup_array_module
+    if pos.target_utils.helper.check_pos_exit() == True:
+        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
     data_dict = pos.data_dict
     data_dict['system']['phase'] = "false"
     data_dict['device']['phase'] = "false"
