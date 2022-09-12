@@ -130,7 +130,7 @@ def test_qos_mem_leak(action):
         start_time = time()
 
         # TODO Read from the JSON
-        loop_time = 60 * 1         # 1 hour
+        loop_time = 60 * 60        # 1 hour
         loop_counter = 0
         # Loop operation
         while ((time() - start_time) < loop_time):
