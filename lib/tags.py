@@ -138,22 +138,22 @@ class EnvTags(SSHclient):
                     )
 
             logger.info(
-                "Runnning command 'hostnamectl | grep 'Static hostname'' in the remote system"
+                "Runnning command 'hostname' Static hostname in the remote system"
             )
-            inventory = self.conn.execute("hostnamectl | grep 'Static hostname'")
-            self.inv["Host Name"] = inventory[0].split("Static hostname:", 1)[1].strip()
+            inventory = self.conn.execute("hostname")
+            self.inv["Host Name"] = inventory[0]
             logger.info(
-                "Runnning command 'hostnamectl | grep 'Operating System'' in the remote system"
+                "Runnning command 'lsb_release -d' in the remote system"
             )
-            inventory = self.conn.execute("hostnamectl | grep 'Operating System'")
+            inventory = self.conn.execute("lsb_release -d")
             self.inv["Operating System"] = (
-                inventory[0].split("Operating System:", 1)[1].strip()
+                inventory[0].split("Description:", 1)[1].strip()
             )
             logger.info(
-                "Runnning command 'hostnamectl | grep 'Kernel'' in the remote system"
+                "Runnning command 'uname -r' in the remote system"
             )
-            inventory = self.conn.execute("hostnamectl | grep 'Kernel'")
-            self.inv["Kernel"] = inventory[0].split("Kernel:", 1)[1].strip()
+            inventory = self.conn.execute("uname -r")
+            self.inv["Kernel"] = inventory[0]
             return True
         except Exception as e:
             logger.error(
