@@ -426,7 +426,7 @@ class Cli:
                 cmd += f" --raid {raid_type}"
             else:
                 cmd += " --no-raid"
-            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+           cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 return True, jout
             else:
