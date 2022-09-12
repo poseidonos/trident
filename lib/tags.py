@@ -4,7 +4,7 @@ import sys
 import logger
 import pytest
 from collections import OrderedDict
-from lxml import etree
+#from lxml import etree
 from subprocess import Popen, PIPE
 
 # from hurry.filesize import size
@@ -140,10 +140,10 @@ class EnvTags(SSHclient):
             logger.info(
                 "Runnning command 'hostnamectl | grep 'Static hostname'' in the remote system"
             )
-            inventory = self.conn.execute("hostnamectl | grep 'Static hostname'")
-            self.inv["Host Name"] = inventory[0].split("Static hostname:", 1)[1].strip()
+            inventory = self.conn.execute("hostname")
+            self.inv["Host Name"] = inventory[0]
             logger.info(
-                "Runnning command 'hostnamectl | grep 'Operating System'' in the remote system"
+                "Runnning command 'hostname' in the remote system"
             )
             inventory = self.conn.execute("hostnamectl | grep 'Operating System'")
             self.inv["Operating System"] = (
