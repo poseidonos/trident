@@ -108,6 +108,7 @@ def test_SanityVolume(numvol, volsize):
    
 @pytest.mark.sanity()
 def test_volumesanity257vols():
+    array_name = "array1"
     try:
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
@@ -119,14 +120,14 @@ def test_volumesanity257vols():
             vname = f"array1_vol{str(i)}"
             assert (
                 pos.cli.create_volume(
-                    volumename=vname, array_name="array1", size="1gb"
+                    volumename=vname, array_name=array_name, size="1gb"
                 )[0]
                 == True
             )
-            assert pos.cli.mount_volume(volumename = vname, array_name = "array1")[0] == True
+            assert pos.cli.mount_volume(volumename = vname, array_name = array_name)[0] == True
         assert (
             pos.cli.create_volume(
-                volumename="invalidvol", array_name="array1", size="1gb"
+                volumename="invalidvol", array_name=array_name, size="1gb"
             )[0]
             == False
         )
