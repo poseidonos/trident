@@ -34,6 +34,8 @@ import uuid
 
 from datetime import datetime
 
+from requests import session
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../lib")))
 import logger as logging
 from tags import EnvTags
@@ -81,21 +83,122 @@ def pytest_sessionstart(session):
         )
     )
 
+@pytest.fixture(scope="module")
+def setup_clenup_array_module():
+    logger.info("========== SETUP ARRAY MODULE =========")
+    pos = POS("pos_config.json")
+    data_dict = pos.data_dict
+    data_dict['array']['phase'] = "false"
+    data_dict['volume']['phase'] = "false"
+    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
 
-@pytest.hookimpl(tryfirst=False, hookwrapper=True)
-def pytest_runtest_protocol(item, nextitem):
-    driver = item.nodeid.split("::")[0]
-    method = item.nodeid.split("::")[1]
-    try:
-        issuekey = mapping_dict[method]
-    except:
-        issuekey = "No mapping found"
+    yield pos
+
+    logger.info("========= CLEANUP ARRAY MODULE ========")
+    pos.exit_handler(expected=True)
+
+
+@pytest.fixture(scope="function")
+def setup_cleanup_array_function(setup_clenup_array_module):
+    logger.info("========== SETUP ARRAY TEST =========")
+    pos = setup_clenup_array_module
+    if pos.target_utils.helper.check_pos_exit() == True:
+        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+    data_dict = pos.data_dict
+    data_dict['system']['phase'] = "false"
+    data_dict['device']['phase'] = "false"
+    data_dict['array']['phase'] = "true"
+    
+    assert pos.cli.list_device()[0] == True
+    logger.info(f"System Disk : {pos.cli.system_disks}")
+
+    yield pos
+
+    logger.info("========== CLEANUP ARRAY TEST =========")
+    if pos.client.ctrlr_list()[1] is not None:
+        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
+
+    assert pos.cli.list_array()[0] == True
+    for array in pos.cli.array_dict.keys():
+        assert pos.cli.info_array(array_name=array)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.delete_array(array_name=array)[0] == True
+
+    logger.info("==========================================")
+
+
+def teardown_module():
+    pass
+
+#@pytest.fixture(scope="session", autouse=True)
+def setup_cleanup():
+    global pos
+    session_start_time = datetime.now()
     logger.info(
-        "======================== START OF {} ========================".format(method)
+        "Test Session Start Time : {}".format(
+            session_start_time.strftime("%m/%d/%Y, %H:%M:%S")
+        )
     )
-    start_time = datetime.now()
-    logger.info("Start Time : {}".format(start_time.strftime("%m/%d/%Y, %H:%M:%S")))
-    target_ip = login[-1]["ip"]
+    # Start POS, Device Scan and Create Transport
+    pos = POS()
+    data_dict = pos.data_dict
+    data_dict['array']['phase'] = "false"
+    data_dict['volume']['phase'] = "false"
+    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
+
+    # Reset the Disk MBR
+    assert pos.cli.reset_devel()[0] == True
+
+    yield pos
+
+    # Stop POS
+    pos.exit_handler(expected=True)
+
+    session_end_time = datetime.now()
+    logger.info(
+        "Test Session End Time : {}".format(
+            session_end_time.strftime("%m/%d/%Y, %H:%M:%S")
+        )
+    )
+    session_time = session_end_time - session_start_time
+    session_minutes = divmod(session_time.seconds, 60)
+    logger.info(
+        "Total Session Time : {} minutes {} seconds".format(
+            session_minutes[0], session_minutes[1]
+        )
+    )
+
+@pytest.fixture(scope="function")
+def array_setup_cleanup():
+    logger.info("========== SETUP BEFORE TEST =========")
+
+    # Disable the POS system start and Device Scan Phase
+    data_dict = pos.data_dict
+    data_dict['system']['phase'] = "false"
+    data_dict['device']['phase'] = "false"
+    data_dict['array']['phase'] = "true"
+    
+    assert pos.cli.list_device()[0] == True
+    logger.info(f"System Disk : {pos.cli.system_disks}")
+    yield pos
+
+    logger.info("========== CLEANUP AFTER TEST =========")
+    if pos.client.ctrlr_list()[1] is not None:
+        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
+
+    assert pos.cli.list_array()[0] == True
+    for array in pos.cli.array_dict.keys():
+        assert pos.cli.info_array(array_name=array)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.delete_array(array_name=array)[0] == True
+
+    logger.info("==========================================")
+
+
+
+def tags_info(target_ip, method, start_time, driver, issuekey):
     logger.info("################### Start Tag - Test Info ###################")
     logger.info(
         "TC Unique ID : {}_{}_{}_{}".format(str(uuid.uuid4()), target_ip, method,
@@ -127,6 +230,24 @@ def pytest_runtest_protocol(item, nextitem):
         value.move_to_end("IP", last=False)
         logger.info("Test Config :" + str(dict(value)))
     logger.info("################### End Tag - System Info #####################")
+
+
+@pytest.hookimpl(tryfirst=False, hookwrapper=True)
+def pytest_runtest_protocol(item, nextitem):
+    logger.info(f"item {item}")
+    driver = item.nodeid.split("::")[0]
+    method = item.nodeid.split("::")[1]
+    try:
+        issuekey = mapping_dict[method]
+    except:
+        issuekey = "No mapping found"
+    logger.info(
+        "======================== START OF {} ========================".format(method)
+    )
+    start_time = datetime.now()
+    logger.info("Start Time : {}".format(start_time.strftime("%m/%d/%Y, %H:%M:%S")))
+    target_ip = login[-1]["ip"]
+    tags_info(target_ip, method, start_time, driver, issuekey)
     yield
     end_time = datetime.now()
     logger.info("End Time : {}".format(end_time.strftime("%m/%d/%Y, %H:%M:%S")))
@@ -148,29 +269,21 @@ def pytest_runtest_logreport(report):
         setup_status = report.outcome
         if setup_status == "failed":
             logger.info(
-                "======================== Test Status : {} ========================".format(
-                    "FAIL"
-                )
+                "======================== Test Status : FAIL ========================"
             )
         elif setup_status == "skipped":
             logger.info(
-                "======================== Test Status : {} ========================".format(
-                    "SKIP"
-                )
+                "======================== Test Status : SKIP ========================"
             )
     if report.when == "call":
         test_status = report.outcome
         if test_status == "passed":
             logger.info(
-                "======================== Test Status : {} ========================".format(
-                    "PASS"
-                )
+                "======================== Test Status : PASS ========================"
             )
         elif test_status == "failed":
             logger.info(
-                "======================== Test Status : {} ========================".format(
-                    "FAIL"
-                )
+                "======================== Test Status : FAIL ========================"
             )
 
 
@@ -180,7 +293,7 @@ def pytest_configure(config):
     config.option.htmlpath = log_path + "/report.html"
     config.option.self_contained_html = True
 
-
+"""
 def pytest_sessionfinish(session):
     session_end_time = datetime.now()
     log_path = logging.get_logpath()
@@ -200,7 +313,7 @@ def pytest_sessionfinish(session):
         "Logs and Html report for executed TCs are present in {}".format(log_path)
     )
     copy_dir(log_path)
-
+"""
 
 target_obj, pos, client_obj, client_setup = None, None, None, None
 

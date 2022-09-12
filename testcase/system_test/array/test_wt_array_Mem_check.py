@@ -1,57 +1,9 @@
 import pytest
 
-from pos import POS
 import logger
-import random
-import time
-
-
 logger = logger.get_logger(__name__)
 
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict['array']['phase'] = "false"
-    data_dict['volume']['phase'] = "false"
-    # bring devices to user mode, setup core, setup udev, setup max map count
-    # assert pos.target_utils.setup_env_pos() == True
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
-
-    assert pos.cli.reset_devel()[0] == True
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
-@pytest.mark.regression
-@pytest.mark.parametrize(
-    "raid_type, nr_data_drives,IO",
-    [
+array_list = [
         ("no-raid", 1, "Block"),
         ("RAID0", 2, "Block"),
         ("RAID10", 4, "Block"),
@@ -60,14 +12,16 @@ def teardown_module():
         ("RAID0", 2, "File"),
         ("RAID10", 4, "File"),
         ("RAID10", 2, "File"),
-    ],
-)
-def test_wt_array_Mem_check(raid_type, nr_data_drives, IO):
+    ]
 
+@pytest.mark.regression
+@pytest.mark.parametrize("raid_type, nr_data_drives, IO", array_list)
+def test_wt_array_Mem_check(setup_cleanup_array_function, raid_type, nr_data_drives, IO):
     logger.info(
         " ==================== Test : test_wt_array_Mem_check ================== "
     )
     try:
+        pos = setup_cleanup_array_function
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert pos.cli.reset_devel()[0] == True
