@@ -370,6 +370,10 @@ class Cli:
             array_name (str) : name of the array
         """
         try:
+            # TODO Remove Once RAID6 build comes
+            if raid_type == "RAID6" and len(data) < 4:
+                logger.error(f"Fail {raid_type} array creation as min 4 disks are required({len(data)})")
+
             data = ",".join(data)
             if array_name != None:
                 self.array_name = array_name
@@ -390,7 +394,7 @@ class Cli:
             else:
                 cmd += " --no-raid"
            cli_error, jout = self.run_cli_command(cmd, command_type="array")
-            if cli_error == True:
+           if cli_error == True:
                 return True, jout
             else:
                 raise Exception("CLI Error")
@@ -616,7 +620,7 @@ class Cli:
                 and raid.lower() != "no-raid"
                 and raid.lower() != "raid0"
             ):
-                cmd += f" --num-spare {num_spare} "
+               cmd += f" --num-spare {num_spare} "
             if raid != "no-raid":
                 cmd += f" --raid {raid}"
             else:
