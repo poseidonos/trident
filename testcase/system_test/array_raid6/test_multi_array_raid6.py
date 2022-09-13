@@ -1,3 +1,4 @@
+import time
 import pytest
 
 from pos import POS
@@ -29,6 +30,8 @@ def setup_function():
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
+    if pos.client.ctrlr_list()[1] is not None:
+        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
     assert pos.cli.list_array()[0] == True
     for array_name in pos.cli.array_dict.keys():
         assert pos.cli.info_array(array_name=array_name)[0] == True
@@ -44,39 +47,39 @@ def teardown_module():
     pos.exit_handler(expected=True)
 
 
-array_list = [("NORAID", 0), ("RAID0", 2), ("RAID5", 3), ("RAID6", 4), ("RAID10", 4)]
-
 @pytest.mark.regression
 @pytest.mark.parametrize("array_mount", [("WT", "WT"), ("WB", "WB"), ("WT", "WB"), ("WB", "WT")])
-@pytest.mark.parametrize("raid_type, num_disks", array_list)
-def test_create_raid6_array_with_all_raids(raid_type, num_disks, array_mount):
+def test_mount_raid6_array_with_all_raids(array_mount):
     """
     The purpose of this test is to create two arrays. One of them should be RAID 6 always.
     Verification: POS CLI - Create Array Mount Array and List Array command.
                   Multi Array Operability. 
     """
     logger.info(
-        f" ==================== Test : test_create_raid6_array_with_others[{raid_type}-{num_disks}-{array_mount}] ================== "
+        f" ==================== Test : test_mount_raid6_array_with_all_raids[{array_mount}] ================== "
     )
     try:
         assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
-        exp_res = True
+        
 
-        arrays_raid_type = ("RAID6", raid_type)
-        arrays_num_disks = (RAID6_MIN_DISKS, num_disks)
-        arrays_auto_create = (False, False)
+        for raid_type, num_disk in ARRAY_ALL_RAID_LIST:
+            arrays_raid_type = ("RAID6", raid_type)
+            arrays_num_disks = (RAID6_MIN_DISKS, num_disk)
+            arrays_auto_create = (False, False)
 
-        if sum(arrays_num_disks) > len(system_disks):
-            exp_res = False
+            if sum(arrays_num_disks) > len(system_disks):
+                logger.warning("Array creation requied more disk")
+                continue
 
-        assert multi_array_data_setup(pos.data_dict, 2, arrays_raid_type, arrays_num_disks,
-                                      (0, 0), array_mount,  arrays_auto_create) == True
+            assert multi_array_data_setup(pos.data_dict, 2, arrays_raid_type, arrays_num_disks,
+                                        (0, 0), array_mount,  arrays_auto_create) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == exp_res
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        if exp_res:
-            assert pos.cli.list_array()[0] == True
+            assert array_unmount_and_delete() == True
+
+        
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -86,24 +89,23 @@ def test_create_raid6_array_with_all_raids(raid_type, num_disks, array_mount):
 
 
 @pytest.mark.regression
-@pytest.mark.parametrize("vol_utilize", [50, 100, 105])
-@pytest.mark.parametrize("num_volumes", [1, 256, 257])
-def test_two_raid6_array_capacity(num_volumes, vol_utilize, array_mount):
+@pytest.mark.parametrize("raid_type, num_disks", ARRAY_ALL_RAID_LIST)
+def test_random_volumes_on_raid6_arrays(raid_type, num_disks):
     """
-    The purpose of this test is to create RAID 6 array with different volumes and utilize its capacity.
-    It includes the positive and negative test.
+    The purpose of this test is to create two array and either should be RAID 6. 
+    Create and mount different volumes and utilize its capacity selectly randomally.
     Verification: POS CLI - Array - Create, Mount, and List: Volume - Create, Mount, List
     """
     logger.info(
-        f" ==================== Test : test_create_raid6_array_volumes[{num_volumes}-{vol_utilize}-{array_mount}] ================== "
+        f" ==================== Test : test_random_volumes_on_raid6_array[{raid_type}-{num_disks}-{array_mount}] ================== "
     )
     try:
-        assert pos.cli.list_device()[0] == True
-        exp_res = True
-        arrays_raid_type = ("RAID6", "RAID6")
-        arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
-        arrays_auto_create = (False, False)
+        arrays_raid_type = ("RAID6", raid_type)
+        arrays_num_disks = (RAID6_MIN_DISKS, num_disks)
+        arrays_auto_create = (False, True)
+        array_mount = ("WT", "WB")
 
+        assert pos.cli.list_device()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):
             pytest.skip("Less number of data disk")
 
@@ -111,15 +113,54 @@ def test_two_raid6_array_capacity(num_volumes, vol_utilize, array_mount):
                                       (0, 0), array_mount, arrays_auto_create) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_array()[0] == True
-        array_list = [array_name for array_name in pos.cli.array_dict.keys()]
+        assert volume_create_and_mount_random(pos) == True
+
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+
+@pytest.mark.regression
+@pytest.mark.parametrize("fio_type", ["File", "Block", "Mix"])
+@pytest.mark.parametrize("num_vols", [2, 256])
+def test_raid6_arrays_fio(raid_type, num_disks, num_vols, fio_type):
+    """
+    The purpose of this test is to create two array and either should be RAID 6. 
+    Create and mount different volumes and utilize its capacity selectly randomally.
+    Verification: POS CLI - Array - Create, Mount, and List: Volume - Create, Mount, List
+    """
+    logger.info(
+        f" ==================== Test : test_raid6_arrays_fio[{raid_type}-{num_disks}-{array_mount}-{fio_type}] ================== "
+    )
+    try:
+        arrays_raid_type = ("RAID6", "RAID6")
+        arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
+        arrays_auto_create = (False, True)
+        array_mount = ("WT", "WB")
+
+        assert pos.cli.list_device()[0] == True
+        if len(pos.cli.system_disks) < sum(arrays_num_disks):
+            pytest.skip("Less number of data disk")
+
+        assert multi_array_data_setup(pos.data_dict, 2, arrays_raid_type, 
+                                      arrays_num_disks, (0, 0), array_mount,
+                                      arrays_auto_create) == True
+        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
         assert pos.cli.list_subsystem()[0] == True
-        subsyste_list = pos.target_utils.ss_temp_list
+        subs_list = pos.target_utils.ss_temp_list
 
-        assert volume_create_and_mount_multiple(pos, array_list, vol_utilize,
-                                                num_volumes, mount_vols=True,
-                                                sbus_list=subsyste_list) == True
+        assert volume_create_and_mount_multiple(pos, num_vols,
+                                                subs_list=subs_list) == True
+
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for nqn in subs_list:
+            assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+
+        assert run_fio_all_volumes(fio_type=fio_type) == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
