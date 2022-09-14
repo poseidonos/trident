@@ -1,51 +1,13 @@
 import pytest
 
-from pos import POS
 from common_raid6_api import *
 
 import logger
 logger = logger.get_logger(__name__)
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict['array']['phase'] = "false"
-    data_dict['volume']['phase'] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-def setup_function():
-    data_dict = pos.data_dict
-    if pos.target_utils.helper.check_pos_exit() == True:
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-
-    data_dict['system']['phase'] = "false"
-    data_dict['device']['phase'] = "false"
-    data_dict['subsystem']['phase'] = "false"
-    data_dict['array']['phase'] = "true"
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.cli.list_array()[0] == True
-    for array_name in pos.cli.array_dict.keys():
-        if pos.cli.array_dict[array_name].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
-        assert pos.cli.delete_array(array_name=array_name)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
 @pytest.mark.regression
 @pytest.mark.parametrize("array_mount", ["WT", "WB"])
-def test_create_raid6_array(array_mount):
+def test_create_raid6_array(setup_cleanup_array_function, array_mount):
     """
     The purpose of this test is to create RAID 6 array with different data disk and spare disk.
     It includes the positive and negative test.
@@ -54,6 +16,7 @@ def test_create_raid6_array(array_mount):
     logger.info(
         f" ==================== Test : test_create_raid6_array[{array_mount}] ================== "
     )
+    pos = setup_cleanup_array_function
     try:
         assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
@@ -83,7 +46,7 @@ def test_create_raid6_array(array_mount):
 
 @pytest.mark.regression
 @pytest.mark.parametrize("array_mount", ["WT", "WB"])
-def test_auto_create_raid6_array(array_mount):
+def test_auto_create_raid6_array(setup_cleanup_array_function, array_mount):
     """
     The purpose of this test is to create RAID 6 array with different data disk and spare disk.
     It includes the positive and negative test.
@@ -92,6 +55,7 @@ def test_auto_create_raid6_array(array_mount):
     logger.info(
         f" ==================== Test : test_create_raid6_array[{array_mount}] ================== "
     )
+    pos = setup_cleanup_array_function
     try:
         assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
@@ -125,7 +89,7 @@ def test_auto_create_raid6_array(array_mount):
 
 @pytest.mark.regression
 @pytest.mark.parametrize("array_mount", ["WT", "WB"])
-def test_array_cap_with_volumes(array_mount):
+def test_array_cap_with_volumes(setup_cleanup_array_function, array_mount):
     """
     The purpose of this test is to create RAID 6 array with different volumes and utilize its capacity.
     Verification: POS CLI - Array - Create, Mount, and List: Volume - Create, Mount, List
@@ -133,6 +97,7 @@ def test_array_cap_with_volumes(array_mount):
     logger.info(
        f" ==================== Test : test_raid6_array_cap_with_volumes[{array_mount}] ================== "
     )
+    pos = setup_cleanup_array_function
     try:
         assert pos.cli.list_device()[0] == True
         if len(pos.cli.system_disks) < RAID6_MIN_DISKS:
@@ -169,7 +134,7 @@ def test_array_cap_with_volumes(array_mount):
 @pytest.mark.parametrize("mount_order", [("WT", "WT"), ("WT", "WB"), ("WB", "WT"), ("WB", "WB"), 
                                          ("WB", "WT", "WB"), ("WT", "WB", "WT")])
 @pytest.mark.parametrize("raid_type, num_disk", [("RAID6", RAID6_MIN_DISKS)])
-def test_array_mount_unmount(raid_type, num_disk, mount_order):
+def test_array_mount_unmount(setup_cleanup_array_function, raid_type, num_disk, mount_order):
     """
     The purpose of this test is to create RAID 6 array with different volumes selected randomaly.
     Verification: Array Mount and Unmount in Interportability
@@ -177,6 +142,7 @@ def test_array_mount_unmount(raid_type, num_disk, mount_order):
     logger.info(
        f" ==================== Test : test_array_mount_unmount[{raid_type}-{num_disk}-{mount_order}] ================== "
     )
+    pos = setup_cleanup_array_function
     try:
         assert pos.cli.list_device()[0] == True
         if len(pos.cli.system_disks) < num_disk:
