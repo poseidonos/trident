@@ -34,7 +34,6 @@ def teardown_function():
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
     assert pos.cli.list_array()[0] == True
     for array_name in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array_name)[0] == True
         if pos.cli.array_dict[array_name].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
         assert pos.cli.delete_array(array_name=array_name)[0] == True
@@ -77,7 +76,7 @@ def test_mount_raid6_array_with_all_raids(array_mount):
 
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-            assert array_unmount_and_delete() == True
+            assert array_unmount_and_delete(pos) == True
 
         
         logger.info(
@@ -97,12 +96,12 @@ def test_random_volumes_on_raid6_arrays(raid_type, num_disks):
     Verification: POS CLI - Array - Create, Mount, and List: Volume - Create, Mount, List
     """
     logger.info(
-        f" ==================== Test : test_random_volumes_on_raid6_array[{raid_type}-{num_disks}-{array_mount}] ================== "
+        f" ==================== Test : test_random_volumes_on_raid6_array[{raid_type}-{num_disks}] ================== "
     )
     try:
         arrays_raid_type = ("RAID6", raid_type)
         arrays_num_disks = (RAID6_MIN_DISKS, num_disks)
-        arrays_auto_create = (False, True)
+        arrays_auto_create = (False, False)
         array_mount = ("WT", "WB")
 
         assert pos.cli.list_device()[0] == True
@@ -126,19 +125,19 @@ def test_random_volumes_on_raid6_arrays(raid_type, num_disks):
 @pytest.mark.regression
 @pytest.mark.parametrize("fio_type", ["File", "Block", "Mix"])
 @pytest.mark.parametrize("num_vols", [2, 256])
-def test_raid6_arrays_fio(raid_type, num_disks, num_vols, fio_type):
+def test_raid6_arrays_fio(num_vols, fio_type):
     """
     The purpose of this test is to create two array and either should be RAID 6. 
     Create and mount different volumes and utilize its capacity selectly randomally.
     Verification: POS CLI - Array - Create, Mount, and List: Volume - Create, Mount, List
     """
     logger.info(
-        f" ==================== Test : test_raid6_arrays_fio[{raid_type}-{num_disks}-{array_mount}-{fio_type}] ================== "
+        f" ==================== Test : test_raid6_arrays_fio[{num_vols}-{fio_type}] ================== "
     )
     try:
         arrays_raid_type = ("RAID6", "RAID6")
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
-        arrays_auto_create = (False, True)
+        arrays_auto_create = (False, False)
         array_mount = ("WT", "WB")
 
         assert pos.cli.list_device()[0] == True
@@ -160,7 +159,7 @@ def test_raid6_arrays_fio(raid_type, num_disks, num_vols, fio_type):
         for nqn in subs_list:
             assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
 
-        assert run_fio_all_volumes(fio_type=fio_type) == True
+        assert run_fio_all_volumes(pos, fio_type=fio_type) == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
