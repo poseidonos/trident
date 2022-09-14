@@ -596,7 +596,7 @@ class TargetUtils:
         except Exception as e:
             logger.error(e)
             return False
-    def bringupSysten(self,data_dict: dict ) -> bool:
+    def bringupSystem(self,data_dict: dict ) -> bool:
         """method to bringup system phase"""
 
         
@@ -779,7 +779,7 @@ class TargetUtils:
                 self.static_dict = data_dict
             logger.info(self.static_dict)
 
-            assert self.bringupSysten(data_dict=self.static_dict) == True
+            assert self.bringupSystem(data_dict=self.static_dict) == True
             assert self.bringupDevice(data_dict=self.static_dict) == True
             assert self.bringupSubsystem(data_dict=self.static_dict) == True
             assert self.bringupArray(data_dict=self.static_dict) == True
