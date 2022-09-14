@@ -410,6 +410,7 @@ class Cli:
             # TODO Remove Once RAID6 build comes
             if raid_type == "RAID6" and len(data) < 4:
                 logger.error(f"Fail {raid_type} array creation as min 4 disks are required({len(data)})")
+                return False, False
 
             data = ",".join(data)
             if array_name != None:
@@ -659,7 +660,8 @@ class Cli:
                 and raid.lower() != "no-raid"
                 and raid.lower() != "raid0"
             ):
-               cmd += f" --num-spare {num_spare} "
+            if int(num_spare) > 0:
+                cmd += f" --num-spare {num_spare} "
             if raid != "no-raid":
                 cmd += f" --raid {raid}"
             else:

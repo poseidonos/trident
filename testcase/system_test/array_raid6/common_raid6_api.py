@@ -26,12 +26,12 @@ def multi_array_data_setup(data_dict: dict, num_array: int, raid_types: tuple,
         pos_array["raid_type"] = raid_types[index]
         pos_array["data_device"] = num_data_disks[index]
         pos_array["spare_device"] = num_spare_disk[index]
-        pos_array["auto_create"] = auto_create[index]
+        pos_array["auto_create"] = "true" if auto_create[index] else "false" 
         if array_mount == "NO":
-            pos_array["mount"] = False
+            pos_array["mount"] = "false"
         else:
-            pos_array["mount"] = True
-            pos_array["write_back"] = True if array_mount == "WT" else False
+            pos_array["mount"] = "true"
+            pos_array["write_back"] = "true" if array_mount == "WT" else "false"
 
     return True
 
@@ -42,19 +42,43 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
                                   (num_data_disk,), (num_spare_disk, ),
                                   (array_mount, ), (auto_create, ))
 
+def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
+    try:
+        assert pos.cli.list_array()[0] == True
+        for array_name in pos.cli.array_dict.keys():
+            if info_array:
+                assert pos.cli.info_array(array_name=array_name)[0] == True
+
+            if unmount and pos.cli.array_dict[array_name].lower() == "mounted":
+                assert pos.cli.unmount_array(array_name=array_name)[0] == True
+            
+            if delete:
+                assert pos.cli.delete_array(array_name=array_name)[0] == True
+    except Exception as e:
+        logger.error(f"Failed to Unmount or Delete array due to {e}")
+        return False
+    return True
+
+
 def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=100, 
-                                     array_list=None, mount_vols=True, sbus_list=[]):
+                                     array_list=None, mount_vols=True, subs_list=[]):
     try:
         if not array_list:
             assert pos.cli.list_array()[0] == True
             array_list = list(pos.cli.array_dict.keys())
-        for array_name in array_list():
+
+        if not subs_list:
+            assert pos.cli.list_subsystem()[0] == True
+            subs_list = pos.target_utils.ss_temp_list
+
+        for array_name in array_list:
             assert pos.cli.info_array(array_name=array_name)[0] == True
 
             array_cap = pos.cli.array_info[array_name]["size"]
-            vol_size = ((array_cap * vol_utilize) / 100) / num_volumes
+            vol_size = (array_cap * (vol_utilize / 100) / num_volumes)
             vol_size = f"{int(vol_size // (1024 * 1024))}mb"     # Size in mb
 
+            exp_res = True
             if num_volumes > MAX_VOL_SUPPORTED or vol_utilize > 100:
                 exp_res = False
 
@@ -64,26 +88,11 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
 
             assert pos.cli.list_volume(array_name=array_name)[0] == True
             if mount_vols:
-                ss_list = [ss for ss in sbus_list if array_name in ss]
+                ss_list = [ss for ss in subs_list if array_name in ss]
                 assert pos.target_utils.mount_volume_multiple(array_name,
                                         pos.cli.vols, ss_list[0]) == True
     except Exception as e:
         logger.error(f"Create and Mount Volume Failed due to {e}")
-        return False
-    return True
-
-def array_unmount_and_delete(pos, array_list=None):
-    try:
-        if not array_list:
-            assert pos.cli.list_array()[0] == True
-            array_list = list(pos.cli.array_dict.keys())
-        for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            if pos.cli.array_dict[array_name].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array_name)[0] == True
-            assert pos.cli.delete_array(array_name=array_name)[0] == True
-    except Exception as e:
-        logger.error(f"Failed to Unmount or Delete array due to {e}")
         return False
     return True
 
@@ -122,7 +131,7 @@ def volume_create_and_mount_random(pos, array_list=None, subsyste_list=None, arr
             num_volumes, cap_utilize = array_cap_volumes[0]
 
         return volume_create_and_mount_multiple(pos, num_volumes, cap_utilize,
-                array_list=array_list, mount_vols=True, sbus_list=subsyste_list)
+                array_list=array_list, mount_vols=True, subs_list=subsyste_list)
     except Exception as e:
         logger.error(f"Volume Unmount or Delete Failed due to {e}")
         return False
@@ -164,6 +173,7 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block",
                         file_io='xfs', nvme_devs=[], wait=30):
     try:
         mount_point = []
+        async_file_io, async_block_io = None, None
         if not nvme_devs:
             assert pos.client.nvme_list() == True
             nvme_devs = pos.client.nvme_list_out

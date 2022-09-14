@@ -31,7 +31,6 @@ def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
     assert pos.cli.list_array()[0] == True
     for array_name in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array_name)[0] == True
         if pos.cli.array_dict[array_name].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
         assert pos.cli.delete_array(array_name=array_name)[0] == True
@@ -65,7 +64,7 @@ def test_create_raid6_array(array_mount):
                 logger.warning("Insufficient system disks to test array create")
                 continue
             
-            exp_res = False if data_disk < RAID6_MIN_DISKS else False
+            exp_res = False if data_disk < RAID6_MIN_DISKS else True
 
             auto_create = False
             assert single_array_data_setup(pos.data_dict, "RAID6", data_disk,
@@ -74,10 +73,7 @@ def test_create_raid6_array(array_mount):
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == exp_res
 
             if exp_res:
-                array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
-                assert pos.cli.info_array(array_name=array_name)[0] == True
-
-                assert array_unmount_and_delete(pos, [array_name]) == True
+                assert array_unmount_and_delete(pos) == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -100,13 +96,13 @@ def test_auto_create_raid6_array(array_mount):
         assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
 
-        array_disks = [(4, 0), (4, 1), (4, 2), (8, 2), (3, 2), (2, 2)]
+        array_disks = [(4, 0), (4, 1), (4, 2), (3, 2), (2, 2)]
         for data_disk, spare_disk in array_disks:
             if (data_disk + spare_disk) > len(system_disks):
                 logger.warning("Insufficient system disks to test array create")
                 continue
             
-            exp_res = False if data_disk < RAID6_MIN_DISKS else False
+            exp_res = False if data_disk < RAID6_MIN_DISKS else True
 
             auto_create = True
             assert single_array_data_setup(pos.data_dict, "RAID6", data_disk,
@@ -118,7 +114,7 @@ def test_auto_create_raid6_array(array_mount):
                 array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
                 assert pos.cli.info_array(array_name=array_name)[0] == True
 
-                assert array_unmount_and_delete(pos, [array_name]) == True
+                assert array_unmount_and_delete(pos) == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -149,17 +145,16 @@ def test_array_cap_with_volumes(array_mount):
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
         assert pos.cli.list_array()[0] == True
-        array_list = [array_name for array_name in pos.cli.array_dict.keys()]
+        array_list = list(pos.cli.array_dict.keys())
 
         assert pos.cli.list_subsystem()[0] == True
         subsyste_list = pos.target_utils.ss_temp_list
 
-        array_cap_volumes = [(1, 50), (1, 100), (1, 105), (256, 100),
-                             (256, 105), (257, 100), (257, 105)]
+        array_cap_volumes = [(1, 50), (1, 100), (1, 105), (50, 105), (256, 100), (257, 100)]
 
         for num_volumes, cap_utilize in array_cap_volumes:
             assert volume_create_and_mount_multiple(pos, num_volumes, cap_utilize,
-                            array_list=array_list, sbus_list=subsyste_list) == True
+                            array_list=array_list, subs_list=subsyste_list) == True
 
             assert volume_unmount_and_delete_multiple(pos, array_list) == True
         logger.info(
@@ -180,7 +175,7 @@ def test_array_mount_unmount(raid_type, num_disk, mount_order):
     Verification: Array Mount and Unmount in Interportability
     """
     logger.info(
-       f" ==================== Test : test_raid6_array_mount_unmount[{raid_type}-{num_disk}-{mount_order}] ================== "
+       f" ==================== Test : test_array_mount_unmount[{raid_type}-{num_disk}-{mount_order}] ================== "
     )
     try:
         assert pos.cli.list_device()[0] == True
@@ -189,14 +184,14 @@ def test_array_mount_unmount(raid_type, num_disk, mount_order):
 
         auto_create = False
         assert single_array_data_setup(pos.data_dict, raid_type, RAID6_MIN_DISKS,
-                                       0, mount_order.pop(0), auto_create) == True
+                                       0, mount_order[0], auto_create) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
         assert pos.cli.list_array()[0] == True
-        array_list = [array_name for array_name in pos.cli.array_dict.keys()]
+        array_list = list(pos.cli.array_dict.keys())
         assert volume_create_and_mount_random(pos, array_list) == True
 
-        for array_mount in mount_order:
+        for array_mount in mount_order[1:]:
             write_back = True if array_mount == "WB" else False
             array_name = array_list[0]
             assert pos.cli.unmount_array(array_name=array_name)[0] == True

@@ -468,8 +468,8 @@ class TargetUtils:
         num_vol: int,
         vol_name: str = "PoS_VoL",
         size: str = "100GB",
-        maxiops: int = 100000,
-        bw: int = 1000,
+        maxiops: int = 0,
+        bw: int = 0,
     ) -> bool:
         """
         method to create_multiple_volumes
@@ -484,26 +484,29 @@ class TargetUtils:
         Returns:
             bool
         """
-
-        if size == None or size == "None":
-            assert self.cli.info_array(array_name)[0] == True
-            temp = self.helper.convert_size(
-                int(self.cli.array_info[array_name]["size"])
-            )
-            if "TB" in temp:
-                size_params = int(float(temp[0]) * 1000)
-                size_per_vol = int(size_params / num_vol)
-                d_size = str(size_per_vol) + "GB"
-        else:
-            d_size = size
-        for i in range(num_vol):
-            volume_name = f"{array_name}_{vol_name}_{str(i)}"
-            assert (
-                self.cli.create_volume(
-                    volume_name, d_size, array_name, iops=maxiops, bw=bw
-                )[0]
-                == True
-            )
+        try:
+            if size == None:
+                assert self.cli.info_array(array_name)[0] == True
+                temp = self.helper.convert_size(
+                    int(self.cli.array_info[array_name]["size"])
+                )
+                if "TB" in temp:
+                    size_params = int(float(temp[0]) * 1000)
+                    size_per_vol = int(size_params / num_vol)
+                    d_size = str(size_per_vol) + "GB"
+            else:
+                d_size = size
+            for i in range(num_vol):
+                volume_name = f"{array_name}_{vol_name}_{str(i)}"
+                assert (
+                    self.cli.create_volume(
+                        volume_name, d_size, array_name, iops=maxiops, bw=bw
+                    )[0]
+                    == True
+                )
+        except Exception as e:
+            logger.error(f"Create volume '{volume_name}' failed due to {e}")
+            return False
         return True
 
     def mount_volume_multiple(
@@ -519,11 +522,12 @@ class TargetUtils:
             bool
         """
 
-        for vol in volume_list:
-            assert (
-                self.cli.mount_volume(volumename=vol, array_name=array_name, nqn=nqn)[0]
-                == True
-            )
+        try:
+            for vol in volume_list:
+                assert self.cli.mount_volume(volumename=vol, array_name=array_name,nqn = nqn)[0] == True
+        except Exception as e:
+            logger.error(f"Mount volume'{vol}' failed due to {e}")
+            return False
         return True
 
     def create_subsystems_multiple(
