@@ -173,21 +173,21 @@ def test_array_mount_unmount(setup_cleanup_array_function, raid_type, num_disk, 
 
 @pytest.mark.regression
 @pytest.mark.parametrize("array_mount", ["WT", "WB"])
-def test_raid6_array_vols_data_integrity(setup_cleanup_array_function, array_mount):
+@pytest.mark.parametrize("num_vols", [8])
+def test_raid6_array_vols_data_integrity(setup_cleanup_array_function, array_mount, num_vols):
     """
     The purpose of this test is to create one raid6 array mounted in WT and WB. 
     Create and mount 8 volumes and utilize its full capacity. Run multiple FIO
     of File and Block IO on each Volume. And Verify the data integrify.
      
-    Verification: Data Integrity
+    Verification: Data Integrity on Multiple Volumes
     """
     logger.info(
-        f" ==================== Test : test_raid6_array_vols_data_integrity ================== "
+        f" ==================== Test : test_raid6_array_vols_data_integrity[{array_mount}-{num_vols}] ================== "
     )
     pos = setup_cleanup_array_function
     try:
         num_data_disk, num_spare_disk = RAID6_MIN_DISKS, 2
-        num_vols = 8
         assert pos.cli.list_device()[0] == True
         if len(pos.cli.system_disks) < (num_data_disk + num_spare_disk):
             pytest.skip("Less number of system disk")
@@ -196,11 +196,7 @@ def test_raid6_array_vols_data_integrity(setup_cleanup_array_function, array_mou
                                     num_spare_disk, array_mount, False) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
-        subs_list = pos.target_utils.ss_temp_list
-
-        assert volume_create_and_mount_multiple(pos, num_vols,
-                                                subs_list=subs_list) == True
+        assert volume_create_and_mount_multiple(pos, num_vols) == True
 
         fio_cmd = "fio --name=wt_verify --ioengine=libaio --rw=write --iodepth=64 --bs=128k"\
                   " --size=2gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
