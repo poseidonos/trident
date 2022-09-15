@@ -169,3 +169,46 @@ def test_array_mount_unmount(setup_cleanup_array_function, raid_type, num_disk, 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
+
+@pytest.mark.regression
+@pytest.mark.parametrize("array_mount", ["WT", "WB"])
+def test_raid6_array_vols_data_integrity(setup_cleanup_array_function, array_mount):
+    """
+    The purpose of this test is to create one raid6 array mounted in WT and WB. 
+    Create and mount 8 volumes and utilize its full capacity. Run multiple FIO
+    of File and Block IO on each Volume. And Verify the data integrify.
+     
+    Verification: Data Integrity
+    """
+    logger.info(
+        f" ==================== Test : test_raid6_array_vols_data_integrity ================== "
+    )
+    pos = setup_cleanup_array_function
+    try:
+        num_data_disk, num_spare_disk = RAID6_MIN_DISKS, 2
+        num_vols = 8
+        assert pos.cli.list_device()[0] == True
+        if len(pos.cli.system_disks) < (num_data_disk + num_spare_disk):
+            pytest.skip("Less number of system disk")
+
+        assert single_array_data_setup(pos.data_dict, "RAID6", num_data_disk,
+                                    num_spare_disk, array_mount, False) == True
+        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+
+        assert pos.cli.list_subsystem()[0] == True
+        subs_list = pos.target_utils.ss_temp_list
+
+        assert volume_create_and_mount_multiple(pos, num_vols,
+                                                subs_list=subs_list) == True
+
+        fio_cmd = "fio --name=wt_verify --ioengine=libaio --rw=write --iodepth=64 --bs=128k"\
+                  " --size=2gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
+        assert run_fio_all_volumes(pos, fio_cmd=fio_cmd, fio_type="mix") == True
+
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)

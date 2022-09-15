@@ -170,7 +170,7 @@ def wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
         return False
 
 def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", 
-                        file_io='xfs', nvme_devs=[], wait=30):
+                        file_mount='xfs', nvme_devs=[], wait=30):
     try:
         mount_point = []
         async_file_io, async_block_io = None, None
@@ -185,7 +185,7 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block",
         file_io_devs, block_io_devs = get_file_block_devs(nvme_devs, fio_type)
 
         if file_io_devs:
-            assert pos.client.create_File_system(file_io_devs, fs_format=file_io)
+            assert pos.client.create_File_system(file_io_devs, fs_format=file_mount)
             out, mount_point = pos.client.mount_FS(file_io_devs)
             assert out == True
             io_mode = False  # Set False this to File IO
