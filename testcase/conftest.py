@@ -31,6 +31,7 @@
 #
 import pytest, sys, json, os, shutil
 import uuid
+import traceback
 
 from datetime import datetime
 
@@ -43,7 +44,7 @@ from tags import EnvTags
 logger = logging.get_logger(__name__)
 from pos import POS
 from utils import Client
-
+global pos
 dir_path = os.path.dirname(os.path.realpath(__file__))
 with open("{}/config_files/static.json".format(dir_path)) as f:
     static_dict = json.load(f)
@@ -128,9 +129,6 @@ def setup_cleanup_array_function(setup_clenup_array_module):
     logger.info("==========================================")
 
 
-def teardown_module():
-    pass
-
 #@pytest.fixture(scope="session", autouse=True)
 def setup_cleanup():
     global pos
@@ -193,11 +191,77 @@ def array_setup_cleanup():
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
         assert pos.cli.delete_array(array_name=array)[0] == True
+    
 
     logger.info("==========================================")
 
+################################################################################################################
+
+def check_pos_and_bringup():
+    try:
+
+        pos.data_dict['system']['phase'] = 'true'
+        pos.data_dict['subsystem']['phase'] = 'true'
+        pos.data_dict['device']['phase'] = 'true'
+        if pos.target_utils.helper.check_pos_exit() == True:
+            assert pos.target_utils.bringupSystem(data_dict = pos.data_dict) == True
+            assert pos.target_utils.bringupDevice(data_dict = pos.data_dict) == True
+            assert pos.target_utils.bringupSubsystem(data_dict = pos.data_dict) == True
+            assert pos.cli.reset_devel()[0] == True
+        else:
+            logger.info("pos is already running")
+        return True
+    except Exception as e:
+        logger.error(e)
+        traceback.print_exc()
+        return False
+
+def unmount_fs() -> bool:
+    """if mounted to FS delete FS then disconnect"""
+    if len(list(pos.client.mount_point.keys())) > 0:
+        assert pos.client.unmount_FS(fs_mount_pt = pos.client.mount_point.values()) == True
+    return True
+
+def client_tear_down() -> bool:
+    """check if nvme controller is present if yes disconnect"""
+             
+    if pos.client.ctrlr_list()[1] is not None:
+        assert pos.target_utils.get_subsystems_list() == True
+        assert unmount_fs() == True
+        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
+    return True
+        
+def array_tear_down_function():
+    array_list = []
+    assert pos.target_utils.helper.check_system_memory() == True
+    assert client_tear_down() == True
+    if pos.target_utils.helper.check_pos_exit() == False:
+       assert pos.cli.list_array()[0] == True
+       array_list = list(pos.cli.array_dict.keys())
+       if len(array_list) == 0:
+        logger.info("No array found in the config")
+       else:
+            for array in array_list:
+                 assert pos.cli.info_array(array_name=array)[0] == True
+                 if pos.cli.array_dict[array].lower() == "mounted":
+                       assert pos.cli.unmount_array(array_name=array)[0] == True
+            assert pos.cli.reset_devel()[0] == True
+    return True
+
+@pytest.fixture(scope="function")
+def array_fixture():
+    logger.info("========== SETUP BEFORE TEST =========")
+    assert check_pos_and_bringup() == True
+    yield pos
+    logger.info("========== CLEANUP AFTER TEST =========")
+    assert array_tear_down_function() == True
 
 
+def teardown_session():
+    pos.exit_handler(expected = False)
+
+
+#################################################################################################################
 def tags_info(target_ip, method, start_time, driver, issuekey):
     logger.info("################### Start Tag - Test Info ###################")
     logger.info(
@@ -230,11 +294,13 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
         value.move_to_end("IP", last=False)
         logger.info("Test Config :" + str(dict(value)))
     logger.info("################### End Tag - System Info #####################")
+    global pos
+    pos = POS()
 
 
 @pytest.hookimpl(tryfirst=False, hookwrapper=True)
 def pytest_runtest_protocol(item, nextitem):
-    logger.info(f"item {item}")
+    
     driver = item.nodeid.split("::")[0]
     method = item.nodeid.split("::")[1]
     try:
