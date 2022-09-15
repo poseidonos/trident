@@ -398,7 +398,7 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def check_rebuild_status(self, array_name: str = None) -> bool:
+    def check_rebuild_status(self, array_name: str = None, rebuild_progress=100) -> bool:
         """
         Method to check rebuild status
         Args:
@@ -416,8 +416,13 @@ class TargetUtils:
                 state = self.cli.array_info[array_name]["state"]
 
                 if situation == "REBUILDING":
+                    if progress > rebuild_progress:
+                        logger.info(
+                        f"{array_name} REBUILDING completed [{rebuild_progress}%]"
+                        )
+                        return True
                     logger.info(
-                        f" {array_name} REBUILDING in Progress... [{progress}%]"
+                        f"{array_name} REBUILDING in Progress... [{progress}%]"
                     )
                 else:
                     logger.info(f" {array_name}  REBUILDING is Stoped/Not Started!")
@@ -432,7 +437,7 @@ class TargetUtils:
         return True
 
     def array_rebuild_wait(
-        self, array_name: str = None, wait_time: int = 5, loop_count: int = 20
+        self, array_name: str = None, wait_time: int = 5, loop_count: int = 20, rebuild_percent=100
     ) -> bool:
         """
         Method to check rebuild status
@@ -454,7 +459,7 @@ class TargetUtils:
             if counter > loop_count:
                 if not self.check_rebuild_status(array_name):
                     logger.info(f"Rebuilding wait time completed... {array_name}")
-                    return False
+                    return False 
             else:
                 logger.info(f"Rebuilding completed for the array {array_name}")
         except Exception as e:
