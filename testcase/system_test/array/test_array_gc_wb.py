@@ -1,4 +1,3 @@
-from cProfile import run
 import pytest
 from pos import POS
 import logger
