@@ -149,11 +149,11 @@ def get_file_block_devs(nvme_devs, fio_type):
     return file_io_devs, block_io_devs
 
 def wait_sync_fio(file_io_devs, block_io_devs, async_file_io, 
-                  async_block_io, wait_time=30):
+                  async_block_io, sleep_time=30):
     try:
         # Wait for async FIO completions
         while True:
-            time.sleep(wait_time)  # Wait for 30 seconds
+            time.sleep(sleep_time)  # Wait for 30 seconds
             msg = []
             if file_io_devs and not async_file_io.is_complete():
                 msg.append("File IO")
@@ -162,7 +162,7 @@ def wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
                 msg.append("Block IO")
 
             if msg:
-                logger.info(f"{','.join(msg)} is running. Wait {wait_time} seconds...")
+                logger.info(f"{','.join(msg)} is running. Wait {sleep_time} seconds...")
                 continue
             return True
     except Exception as e:
@@ -170,7 +170,7 @@ def wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
         return False
 
 def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", 
-                        file_mount='xfs', nvme_devs=[], wait=30):
+                        file_mount='xfs', nvme_devs=[], sleep_time=30):
     try:
         mount_point = []
         async_file_io, async_block_io = None, None
@@ -201,7 +201,7 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block",
             assert out == True
 
         assert wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
-                             async_block_io, wait_time=wait) == True
+                             async_block_io, sleep_time=sleep_time) == True
         if mount_point:
             assert pos.client.unmount_FS(mount_point) == True
             mount_point = False
