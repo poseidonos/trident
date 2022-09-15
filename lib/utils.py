@@ -55,6 +55,7 @@ class Client:
         self.ssh_obj = ssh_obj
         self.helper = helper.Helper(ssh_obj)
         self.client_clean = client_cleanup
+        self.mount_point = {}
         if self.client_clean == True:
             self.client_cleanup()
 
@@ -602,7 +603,7 @@ class Client:
         Returns:
             bool, list of dir
         """
-        out = {}
+        
         logger.info("device_list={}".format(device_list))
         if len(device_list) == 0:
             raise Exception("No devices Passed")
@@ -646,7 +647,7 @@ class Client:
                         else:
                             for mount_pts_devices in verify:
                                 if fs_mount in mount_pts_devices:
-                                    out[device] = fs_mount
+                                    self.mount_point[device] = fs_mount
                     except Exception as e:
                         logger.error(
                             "Mounting {} to {} failed due to {}".format(
@@ -658,9 +659,9 @@ class Client:
             except Exception as e:
                 logger.error("command execution failed with exception {}".format(e))
                 return (False, None)
-            return (True, list(out.values()))
+            return (True, list(self.mount_point.values()))
 
-    def unmount_FS(self, fs_mount_pt: str) -> bool:
+    def unmount_FS(self, fs_mount_pt: list) -> bool:
         """
         method to unmount file system
 
