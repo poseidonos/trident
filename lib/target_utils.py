@@ -413,17 +413,17 @@ class TargetUtils:
                 progress = self.cli.array_info[array_name]["rebuilding_progress"]
                 state = self.cli.array_info[array_name]["state"]
 
-                if situation == "REBUILDING":
-                    if progress > rebuild_progress:
-                        logger.info(
-                        f"{array_name} REBUILDING completed [{rebuild_progress}%]"
-                        )
-                        return True
+                if situation == "REBUILDING" and progress < rebuild_progress:
                     logger.info(
                         f"{array_name} REBUILDING in Progress... [{progress}%]"
                     )
+                elif situation == "REBUILDING":
+                    logger.info(
+                        f"{array_name} REBUILDING completed [{rebuild_progress}%]"
+                    )
+                    return False
                 else:
-                    logger.info(f" {array_name}  REBUILDING is Stoped/Not Started!")
+                    logger.info(f"{array_name} REBUILDING is Stoped/Not Started!")
                     logger.info(f"Situation: {situation}, State: {state}")
                     return False
             else:
@@ -449,7 +449,8 @@ class TargetUtils:
                 array_name = self.array
             counter = 0
             while counter <= loop_count:
-                if not self.check_rebuild_status(array_name):
+                if not self.check_rebuild_status(array_name, 
+                                                 rebuild_progress=rebuild_percent):
                     # The rebuild is not in progress
                     break
                 time.sleep(wait_time)
@@ -457,9 +458,12 @@ class TargetUtils:
             if counter > loop_count:
                 if not self.check_rebuild_status(array_name):
                     logger.info(f"Rebuilding wait time completed... {array_name}")
-                    return False 
+                    return False
             else:
                 logger.info(f"Rebuilding completed for the array {array_name}")
+
+            # Increment the counter
+            counter += 1
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False
