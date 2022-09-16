@@ -211,3 +211,39 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block",
             assert pos.client.unmount_FS(mount_point) == True
         return False
     return True
+
+def array_disks_hot_remove(pos, array_name, disk_remove_interval_list):
+    """
+    disk_remove_interval_list = list of interval of subsequent disk failure
+                                e.g: [(100), (50, 100)]
+                                Fail 1 disk and wait for rebuild to complete.
+                                Fail 2 disks and wait for rebuild to complete
+
+    """
+    try:
+        assert pos.cli.info_array(array_name=array_name)[0] == True
+        data_disk_list = pos.cli.array_info[array_name]["data_list"]
+        remaining_spare_disk = len(pos.cli.array_info[array_name]["spare_list"])
+
+        for disk_rebuild in disk_remove_interval_list:
+            if len(disk_rebuild) > remaining_spare_disk:
+                logger.info(f"Skipped - Required {len(disk_rebuild)} spare drives. "\
+                             "Available {remaining_spare_disk} drives")
+                continue
+
+            data_disk_list.suffle()
+            hot_remove_disks = data_disk_list[: len(disk_rebuild)]
+            for rebuild_complete in disk_rebuild:
+                data_devs = [hot_remove_disks.pop(0)]
+                assert pos.target_utils.device_hot_remove(data_devs) == True
+                assert pos.target_utils.pci_rescan() == True
+
+                # Wait for array rebuilding if rebuild_complete != 0
+                if not rebuild_complete:
+                    assert pos.target_utils.array_rebuild_wait(array_name=array_name, 
+                                            rebuild_percent=rebuild_complete) == True
+        return True
+    except Exception as e:
+        logger.error(f"Array data disk hot remove failed due to {e}")
+        return False
+    
