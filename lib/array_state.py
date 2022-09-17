@@ -671,14 +671,8 @@ class _Array(POS):
                     )
                 )
                 return False
-        a
-
-    def run_func(self, list_array_obj=None):
-        """
-        Method to run specific functions
-        """
-
-        def get_buffer_data():
+        
+    def get_buffer_data(self):
             assert self.cli.list_device()[0] == True
             assert self.cli.list_array()[0] == True
             array_list = list(self.cli.array_dict.keys())
@@ -700,8 +694,7 @@ class _Array(POS):
                 self.buffer_data = free_buf
 
             return True
-
-        def check_mbr_device(device=None):
+    def check_mbr_device(self,device=None):
             """
             Method to check if device can be included in this array
             device: str (ex. unvme-ns-0)
@@ -709,7 +702,7 @@ class _Array(POS):
             assert self.cli.list_device()[0] == True
             target_bdf = self.cli.NVMe_BDF[device]["addr"]
             logger.info("check mbr device: {}({})".format(device, target_bdf))
-            for array_obj in list_array_obj:
+            for array_obj in self.list_array_obj:
                 if array_obj.name == self.name:
                     continue
                 if target_bdf in array_obj.mbr_device:
@@ -720,8 +713,7 @@ class _Array(POS):
                     )
                     return False
             return True
-
-        def select_system_device(dev_num=None):
+    def select_system_device(self, dev_num=None):
             device_list = list()
             assert self.cli.list_device()[0] == True
             sys_devices = self.cli.system_disks
@@ -731,8 +723,7 @@ class _Array(POS):
                 sys_devices.remove(device)
             assert self.cli.list_device()[0] == True
             return device_list
-
-        def func0_wait_for_rebuild():
+    def func0_wait_for_rebuild(self):
             logger.info(
                 "[Func0] wait for rebuild complete (Expected result : {})".format(
                     self.func["expected"]
@@ -757,7 +748,7 @@ class _Array(POS):
                     if count > 30 * 60 * 3:
                         return False
 
-        def func1_hot_swap():
+    def func1_hot_swap(self):
             logger.info(
                 "[Func1] hot swap device (Expected result : {})".format(
                     self.func["expected"]
@@ -820,7 +811,7 @@ class _Array(POS):
 
             return True
 
-        def func2_add_spare_dev():
+    def func2_add_spare_dev(self):
             logger.info(
                 "[Func2] add device as spare device (Expected result : {})".format(
                     self.func["expected"]
@@ -844,7 +835,7 @@ class _Array(POS):
                     logger.info("Skip the add spare because array has full data device")
                     return True
                 target_dev = random.choice(self.cli.system_disks)
-                out = check_mbr_device(device=target_dev)
+                out = self.check_mbr_device(device=target_dev)
                 if out is True:
                     if (
                         self.situation["current"] == "degraded"
@@ -856,13 +847,11 @@ class _Array(POS):
                     self.state["next"] = self.state["current"]
                     self.situation["next"] = self.situation["current"]
                     self.func["expected"] = False
-                assert (
-                    self.cli.addspare_array(
-                        device_name=target_dev, array_name=self.name
-                    )[0]
-                    == self.func["expected"]
-                )
-
+                
+                status =  self.cli.addspare_array( device_name=target_dev, array_name=self.name) 
+                logger.info(status, self.func['expected'])
+                assert status == self.func["expected"]
+                
                 if self.func["expected"] == True:
                     assert self.cli.info_array(array_name=self.name)[0] == True
                     if target_dev in self.cli.array_info[self.name]["spare_list"]:
@@ -878,9 +867,11 @@ class _Array(POS):
                                 logger.info("Successfully check if device is added")
                                 return True
                     return False
-            return True
+            
+                return True
 
-        def func3_create_array():
+
+    def func3_create_array(self):
             logger.info(
                 "[Func3] create array with {} devices with Expected result : {})".format(
                     str(self.total_data_array), self.func["expected"]
@@ -906,7 +897,7 @@ class _Array(POS):
             else:
                 index = int(self.name[-1:])
 
-                sysdev_list = select_system_device(dev_num=self.totalDrivesArray)
+                sysdev_list = self.select_system_device(dev_num=self.totalDrivesArray)
                 array_dict = self.data_dict["array"]["pos_array"]
                 for array in array_dict:
                     if self.name == array["array_name"]:
@@ -916,10 +907,10 @@ class _Array(POS):
                             + array["data_device"]
                         ]
                 device_list = data_dev + spare_dev
-                get_buffer_data()
+                self.get_buffer_data()
                 buffer_dev = self.buffer_data
                 for target_dev in device_list:
-                    out = check_mbr_device(device=target_dev)
+                    out = self.check_mbr_device(device=target_dev)
 
                     if out is False:
                         logger.info(
@@ -941,7 +932,7 @@ class _Array(POS):
                 )
             return True
 
-        def func4_delete_array():
+    def func4_delete_array(self):
             logger.info(
                 "[Func4] delete array (Expected result : {})".format(
                     self.func["expected"]
@@ -968,7 +959,7 @@ class _Array(POS):
                 self.device["rebuild"] = None
             return True
 
-        def func5_mount_system():
+    def func5_mount_system(self):
             logger.info(
                 "[Func5] mount array and set config for normal state (Expected result : {})".format(
                     self.func["expected"]
@@ -981,10 +972,10 @@ class _Array(POS):
             assert self.target_utils.get_subsystems_list() == True
             if self.func["expected"] == True:
                 assert self.cli.list_volume(array_name=self.name)[0] == True
-                base_name = self.data_dict["subsystem"]["base_nqn_name"] + self.name
+                base_name = 'nqn.2022-10.' + self.name
 
                 self.target_utils.create_subsystems_multiple(
-                    ss_count=self.data_dict["subsystem"]["nr_subsystems"],
+                    ss_count=1,
                     base_name=base_name,
                 ) == True
                 self.target_utils.get_subsystems_list()
@@ -1000,7 +991,7 @@ class _Array(POS):
                         self.target_utils.mount_volume_multiple(
                             array_name=self.name,
                             volume_list=self.cli.vols,
-                            nqn_list=self.subsystem,
+                            nqn=self.subsystem[0],
                         )
                         == True
                     )
@@ -1029,7 +1020,7 @@ class _Array(POS):
                     assert self.target_utils.mount_volume_multiple(
                         array_name=self.name,
                         volume_list=self.cli.vols,
-                        nqn_list=self.subsystem,
+                        nqn=self.subsystem[0],
                     )
 
                 self.target_utils.get_subsystems_list()
@@ -1056,7 +1047,7 @@ class _Array(POS):
                     self.func["param"]["pre_write"] = True
             return True
 
-        def func6_unmount_array():
+    def func6_unmount_array(self):
             logger.info(
                 "[Func6] unmount array (Expected result : {})".format(
                     self.func["expected"]
@@ -1079,15 +1070,19 @@ class _Array(POS):
                 return False
             else:
                 return True
-
+    def run_func(self, list_array_obj=None):
+        """
+        Method to run specific functions
+        """
+        self.list_array_obj = list_array_obj
         dict_func = {
-            "wait_for_rebuild": func0_wait_for_rebuild,
-            "hot_swap": func1_hot_swap,
-            "add_spare": func2_add_spare_dev,
-            "create_array": func3_create_array,
-            "delete_array": func4_delete_array,
-            "mount_system": func5_mount_system,
-            "unmount_array": func6_unmount_array,
+            "wait_for_rebuild": self.func0_wait_for_rebuild,
+            "hot_swap": self.func1_hot_swap,
+            "add_spare": self.func2_add_spare_dev,
+            "create_array": self.func3_create_array,
+            "delete_array": self.func4_delete_array,
+            "mount_system": self.func5_mount_system,
+            "unmount_array": self.func6_unmount_array,
         }
         assert dict_func[self.func["name"]]() == True
         return True
