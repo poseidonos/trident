@@ -33,7 +33,7 @@
 import pytest
 from pos import POS
 import logger
-
+from common_libs import *
 logger = logger.get_logger(__name__)
 
 
@@ -115,24 +115,11 @@ def volume():
         assert pos.cli.rename_volume("newvol", pos.cli.vols[0], "array1")[0] == True
         assert pos.cli.delete_volume("newvol", "array1")[0] == True
 @pytest.mark.sanity
-def test_cli_happypath():
+def test_cli_happypath(array_fixture):
 
     try:
-        assert pos.target_utils.get_subsystems_list() == True
-        for ss in pos.target_utils.ss_temp_list:
-            assert (
-                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
-                == True
-            )
-        assert pos.client.nvme_list() == True
-        # assert (
-        #    pos.client.fio_generic_runner(
-        #        pos.client.nvme_list_out,
-        #        fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=10",
-        #    )[0]
-        #    == True
-        # )
-        # assert pos.target_utils.get_pos() == True
+        pos = array_fixture
+        run_io(pos)
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
         device()
         qos()
@@ -153,7 +140,8 @@ def test_cli_happypath():
         assert pos.cli.start_telemetry()[0] == True
         logger.info("================== devel ==================")
         assert pos.cli.updateeventwrr_devel("rebuild", "1")[0] == True
-        pos.exit_handler(expected = True)        
+        #pos.exit_handler(expected = True)        
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
+        assert 0
