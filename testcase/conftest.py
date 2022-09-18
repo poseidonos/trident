@@ -125,6 +125,7 @@ def setup_clenup_array_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
+    assert pos.cli.reset_devel()[0] == True
 
     yield pos
 
