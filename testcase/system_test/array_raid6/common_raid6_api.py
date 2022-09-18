@@ -231,7 +231,7 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list):
                              "Available {remaining_spare_disk} drives")
                 continue
 
-            data_disk_list.suffle()
+            random.shuffle(data_disk_list)
             hot_remove_disks = data_disk_list[: len(disk_rebuild)]
             for rebuild_complete in disk_rebuild:
                 data_devs = [hot_remove_disks.pop(0)]
