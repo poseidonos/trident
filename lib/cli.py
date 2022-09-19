@@ -221,6 +221,7 @@ class Cli:
                     return False, out
 
             """
+            
             # to use the CLI to start the
             cli_error, jout = self.run_cli_command("start", command_type="system")
             if cli_error == True:
@@ -441,6 +442,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
+
     def reset_devel(self) -> (bool, dict()):
         """
         Method to array reset
@@ -553,6 +555,8 @@ class Cli:
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 return True, out
+            else:
+                raise Exception("CLI Error")
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False, out
