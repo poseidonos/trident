@@ -1,17 +1,18 @@
 import pytest
-from array_test_common import *
+import random
+from common_libs import *
 import logger
 logger = logger.get_logger(__name__)
 
-array1 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4),("RAID10",8)]
-array2 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4),("RAID10",8)]
+array1 = [("NO-RAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4),("RAID10",8)]
+array2 = [("NO-RAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4),("RAID10",8)]
 
 
 @pytest.mark.regression
 @pytest.mark.parametrize("io_type", ["block", "file"])
 @pytest.mark.parametrize("array2_raid, array2_num_disk", array2)
 @pytest.mark.parametrize("array1_raid, array1_num_disk", array1)
-def test_wt_multi_array_QOS_FIO(setup_cleanup_array_function,
+def test_wt_multi_array_QOS_FIO(array_fixture,
     array1_raid, array1_num_disk, array2_raid, array2_num_disk, io_type
 ):
     """
@@ -24,70 +25,28 @@ def test_wt_multi_array_QOS_FIO(setup_cleanup_array_function,
         " ==================== Test : test_wt_multi_array_QOS_FIO ================== "
     )
     try:
-        pos = setup_cleanup_array_function
-        array_name1, array_name2 = "array1", "array2"
-        mount_point = []
-
-        arrays_raid_type = (array1_raid, array2_raid)
-        arrays_num_disk = (array1_num_disk, array2_num_disk)
-
-        array_list = []
-        for id, array_name in enumerate((array_name1, array_name2)):
-            array_list.append(
-                {
-                    "array_name": array_name,
-                    "buffer_dev": f"uram{id}",
-                    "raid_type": arrays_raid_type[id],
-                    "nr_data_drives": arrays_num_disk[id],
-                    "write_back": False,
-                }
-            )
-
-        logger.info(f"array_list {array_list}")
-
-        assert wt_test_multi_array_setup(pos, array_list) == True
-
-        nr_volumes = 256
-        for id, array_name in enumerate((array_name1, array_name2)):
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-
-            array_size = int(pos.cli.array_info[array_name].get("size"))
-            vol_size = f"{int((array_size / nr_volumes) / (1024 * 1024))}mb"
-
-            assert (
-                pos.target_utils.create_volume_multiple(
-                    array_name, nr_volumes, "pos_vol", size=vol_size, maxiops=10, bw=10
-                )
-                == True
-            )
-
-            assert pos.cli.list_volume(array_name)
-
-            assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
-            ss_temp_list = pos.target_utils.ss_temp_list
-            ss_list = [ss for ss in ss_temp_list if f"subsystem{id + 1}" in ss]
-            assert (
-                pos.target_utils.mount_volume_multiple(
-                    array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
-                )
-                == True
-            )
-
-        for ss in pos.target_utils.ss_temp_list:
-            assert (
-                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
-                == True
-            )
-
+        pos = array_fixture
+        pos.data_dict['array']['pos_array'][0]['raid_type'] = array1_raid
+        pos.data_dict['array']['pos_array'][1]['raid_type'] = array2_raid
+        pos.data_dict['array']['pos_array'][0]['write_back'] = random.choice([True, False])
+        pos.data_dict['array']['pos_array'][1]['write_back'] = random.choice([True, False])
+        pos.data_dict['array']['pos_array'][0]['data_device'] = array1_num_disk
+        pos.data_dict['array']['pos_array'][1]['data_device'] = array2_num_disk
+        pos.data_dict['array']['pos_array'][0]['spare_device'] =0
+        pos.data_dict['array']['pos_array'][1]['spare_device'] =0
+        pos.data_dict['volume']['pos_volumes'][0]['num_vol'] = 256
+        pos.data_dict['volume']['pos_volumes'][1]['num_vol'] = 256
+        assert pos.target_utils.bringupArray(data_dict = pos.data_dict) == True
+        assert pos.target_utils.bringupVolume(data_dict = pos.data_dict) == True
+        run_io(pos)
         assert pos.client.nvme_list() == True
-        nvme_devs = pos.client.nvme_list_out
+       
 
         fio_cmd = f"fio --name=write --ioengine=libaio --rw=write --iodepth=64 \
-                    --bs=128k --time_based --runtime=5 --direct=1 --size={vol_size}"
+                    --bs=128k --time_based --runtime=5 --direct=1 --size=256"
 
         nr_dev = 8
-        for i in range(nr_volumes // nr_dev):
+        for i in range(256 // nr_dev):
 
             nvme_dev_list = pos.client.nvme_list_out[i * nr_dev : (i + 1) * nr_dev]
 
