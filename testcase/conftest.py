@@ -208,6 +208,7 @@ def check_pos_and_bringup():
             assert pos.target_utils.bringupDevice(data_dict = pos.data_dict) == True
             assert pos.target_utils.bringupSubsystem(data_dict = pos.data_dict) == True
             assert pos.cli.reset_devel()[0] == True
+            assert pos.target_utils.get_subsystems_list() == True
         else:
             logger.info("pos is already running")
         return True
@@ -219,14 +220,16 @@ def check_pos_and_bringup():
 def unmount_fs() -> bool:
     """if mounted to FS delete FS then disconnect"""
     if len(list(pos.client.mount_point.keys())) > 0:
-        assert pos.client.unmount_FS(fs_mount_pt = pos.client.mount_point.values()) == True
+        for dir in list(pos.client.mount_point.values()):
+            if pos.client.is_dir_present(dir_path = dir) == True:
+                 assert pos.client.unmount_FS(fs_mount_pt =[dir] ) == True
     return True
 
 def client_tear_down() -> bool:
     """check if nvme controller is present if yes disconnect"""
              
     if pos.client.ctrlr_list()[1] is not None:
-        assert pos.target_utils.get_subsystems_list() == True
+        
         assert unmount_fs() == True
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
     return True
@@ -253,11 +256,13 @@ def array_fixture():
     logger.info("========== SETUP BEFORE TEST =========")
     assert check_pos_and_bringup() == True
     yield pos
-    logger.info("========== CLEANUP AFTER TEST =========")
+    logger.info("========== CLEANUP AFTER TEST ==========")
     assert array_tear_down_function() == True
+    assert pos.target_utils.pci_rescan() == True
 
 
 def teardown_session():
+    logger.info("============= CLEANUP SESSION AFER TEST")
     pos.exit_handler(expected = False)
 
 
