@@ -267,6 +267,7 @@ class Helper:
         out = self.ssh_obj.execute(command)
         ps_out = "".join(out)
         if "bin/poseidonos" not in ps_out:
+            logger.info("POS IS NOT RUNNING")
             return True
         else:
             return False
