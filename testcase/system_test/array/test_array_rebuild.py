@@ -19,7 +19,11 @@ def rebuild_array_state(pos):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
-
+def drive_detach(pos):
+    assert pos.cli.info_array(array_name=array_name)[0] == True
+    remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
+    assert pos.target_utils.device_hot_remove(device_list=remove_drives)
+    assert pos.cli.info_array(array_name)[0] == True
 @pytest.mark.regression
 def test_wb_array_write_nvme_flush_read(array_fixture):
     logger.info(
@@ -64,9 +68,7 @@ def test_array_rebuild_normal_state(array_fixture):
     try:
         pos = array_fixture
         assert rebuild_array_state(pos) == True
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
-        assert pos.target_utils.device_hot_remove(device_list=remove_drives)
+        drive_detach(pos)
         assert pos.cli.info_array(array_name)[0] == True
         array_status = pos.cli.array_info[array_name]
         logger.info(str(array_status))
@@ -100,9 +102,7 @@ def test_array_unmnt_mnt_rebuild_state(array_fixture):
     try:
         pos = array_fixture
         assert rebuild_array_state(pos) == True
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
-        assert pos.target_utils.device_hot_remove(device_list=remove_drives)
+        drive_detach(pos)
         time.sleep(60)
         assert pos.cli.info_array(array_name)[0] == True
         array_status = pos.cli.array_info[array_name]
