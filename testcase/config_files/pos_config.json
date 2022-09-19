@@ -15,7 +15,7 @@
                 "uram_name": "uram1",
                 "bufer_size": "8388608",
                 "strip_size": "512",
-                "numa_node": "1"
+                "numa_node": "0"
             }
         ]
     },
@@ -35,9 +35,9 @@
             },
             {
                 "array_name": "array2",
-                "data_device": 2,
-                "spare_device": 0,
-                "raid_type": "RAID0",
+                "data_device": 3,
+                "spare_device": 1,
+                "raid_type": "RAID5",
                 "uram": "uram1",
                 "auto_create": "true",
                 "mount": "true",
@@ -49,7 +49,7 @@
         "phase": "true",
         "pos_volumes": [
             {
-                "num_vol": 1,
+                "num_vol": 2,
                 "vol_name_pre": "pos_vol",
                 "array_name": "array1",
                 "size": "1gb",
