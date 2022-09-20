@@ -381,7 +381,7 @@ class Cli:
                 write_buffer, data, self.array_name
             )
 
-            if spare and raid_type != "no-raid":
+            if len(spare) > 0 and raid_type.lower() != "no-raid" and raid_type.lower() !=  "raid0":
                 spare = spare[0] if len(spare) == 0 else ",".join(spare)
                 cmd += f" --spare {spare}"
             if raid_type != "no-raid":
@@ -603,11 +603,12 @@ class Cli:
         try:
             if array_name != None:
                 self.array_name = array_name
+            
             cmd = "autocreate --array-name {} --buffer {} --num-data-devs {}".format(
                 self.array_name, buffer_name, num_data
             )
 
-            if int(num_spare) > 0:
+            if int(num_spare) > 0 and raid.lower() != "no-raid" and raid.lower() !=  "raid0":
                 cmd += f" --num-spare {num_spare} "
             if raid != "no-raid":
                 cmd += f" --raid {raid}"
