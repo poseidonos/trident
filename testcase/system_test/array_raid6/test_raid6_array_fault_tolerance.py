@@ -66,16 +66,15 @@ def test_raid6_array_disk_fail(setup_cleanup_array_function, array_mount):
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
-
 @pytest.mark.parametrize("write_mix_read", [80, 20, 50])
-def test_raid6_array_disk_fail_intensive_io(setup_cleanup_array_function, write_mix_read):
+def test_raid6_array_disk_fail_random_io(setup_cleanup_array_function, write_mix_read):
     """
-    The purpose of this test is to create a RAID6 array Mounted as WT or WB. 
-    Create 16 volumes and run Block IO. Fail data disks in different rebuild interval.
+    The purpose of this test is to create a RAID6 array Mounted as WT or WB. Create 16 volumes and
+    run Block IO Mix of Random Write and Read IO. Fail data disks in different rebuild interval.
     Verification: POS CLI, Fault Tolarance, End to End Data Flow
     """
     logger.info(
-        f" ==================== Test : test_raid6_array_disk_fail[{write_mix_read}] ================== "
+        f" ==================== Test : test_raid6_array_disk_fail_random_io[{write_mix_read}] ================== "
     )
     pos = setup_cleanup_array_function
     try:

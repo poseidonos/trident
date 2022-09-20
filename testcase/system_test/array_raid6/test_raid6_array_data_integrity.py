@@ -5,7 +5,7 @@ from common_raid6_api import *
 import logger
 logger = logger.get_logger(__name__)
 
-array_list = [("RAID0", RAID0_MIN_DISKS), ("RAID5", RAID5_MIN_DISKS), ("RAID10", RAID5_MIN_DISKS)]
+array_list = [("RAID0", RAID0_MIN_DISKS), ("RAID5", RAID5_MIN_DISKS), ("RAID10", RAID10_MIN_DISKS)]
 
 @pytest.mark.parametrize("num_vols", [8])
 @pytest.mark.parametrize("raid_type, num_disk", array_list)
@@ -58,7 +58,7 @@ def test_raid6_multi_arrays_data_integrity(setup_cleanup_array_function, raid_ty
 io_profiler = [(32, ("write", "rand_write", "read", "rand_read"))]
 
 @pytest.mark.parametrize("io_profiler", io_profiler)
-def test_raid6_arrays_block_io_load(setup_cleanup_array_function, io_profiler):
+def test_raid6_arrays_block_io_profile(setup_cleanup_array_function, io_profiler):
     """
     The purpose of this test is to create two arrays and atleast 1 should be RAID 6. 
     Create and mount 8 volumes to each array and utilize its full capacity. 
