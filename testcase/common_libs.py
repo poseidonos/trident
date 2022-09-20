@@ -12,7 +12,7 @@ def nvme_connect(pos):
     assert pos.client.nvme_list() == True
     return True, pos.client.nvme_list_out
 
-def run_io(pos, fio_command = "fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=30"):
+def run_io(pos, fio_command = "fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=30", ):
     """method to do nvme connect, list and run block IO"""
     
     out = nvme_connect(pos)
