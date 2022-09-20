@@ -44,8 +44,15 @@ from tags import EnvTags
 logger = logging.get_logger(__name__)
 from pos import POS
 from utils import Client
+from _pytest.runner import runtestprotocol
+
 global pos
 dir_path = os.path.dirname(os.path.realpath(__file__))
+
+trident_config_file = f"{dir_path}/config_files/trident_config.json"
+with open(trident_config_file) as f:
+    trident_config_data = json.load(f)
+
 with open("{}/config_files/static.json".format(dir_path)) as f:
     static_dict = json.load(f)
 login = []
@@ -302,6 +309,21 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
     global pos
     pos = POS()
 
+def pos_logs_core_dump(item, nextitem, issuekey):
+    reports = runtestprotocol(item, nextitem=nextitem, log=False)
+    for report in reports:
+        if (report.when == 'call' and report.outcome == 'failed'):
+            if trident_config_data["dump_pos_core"]["enable"] == "true":
+                assert pos.target_utils.dump_core() == True
+                assert pos.target_utils.copy_core(issuekey) == True
+
+            if trident_config_data["copy_pos_log"]["test_fail"] == "true":
+                assert pos.target_utils.copy_pos_log(issuekey) == True
+
+        elif (report.when == 'call' and report.outcome == 'passed' and
+            trident_config_data["copy_pos_log"]["test_pass"] == "true"):
+                assert pos.target_utils.copy_pos_log(issuekey) == True
+    return True
 
 @pytest.hookimpl(tryfirst=False, hookwrapper=True)
 def pytest_runtest_protocol(item, nextitem):
@@ -317,9 +339,14 @@ def pytest_runtest_protocol(item, nextitem):
     )
     start_time = datetime.now()
     logger.info("Start Time : {}".format(start_time.strftime("%m/%d/%Y, %H:%M:%S")))
+
     target_ip = login[-1]["ip"]
-    tags_info(target_ip, method, start_time, driver, issuekey)
+
+    if trident_config_data["elk_log_stage"]["enable"] == "true":
+        tags_info(target_ip, method, start_time, driver, issuekey)
+
     yield
+    
     end_time = datetime.now()
     logger.info("End Time : {}".format(end_time.strftime("%m/%d/%Y, %H:%M:%S")))
     execution_time = end_time - start_time
@@ -329,34 +356,28 @@ def pytest_runtest_protocol(item, nextitem):
             execution_minutes[0], execution_minutes[1]
         )
     )
-    logger.info(
-        "======================== END OF {} ========================".format(method)
-    )
-    logger.info("\n")
 
+    if not pos_logs_core_dump(item, nextitem, issuekey):
+        logger.error("Failed to generate and save the core dump")
+
+    logger.info(
+        "======================== END OF {} ========================\n".format(method)
+    )
 
 def pytest_runtest_logreport(report):
+    log_status = "======================== Test Status : {} ========================"
     if report.when == "setup":
         setup_status = report.outcome
         if setup_status == "failed":
-            logger.info(
-                "======================== Test Status : FAIL ========================"
-            )
+            logger.info(log_status.format("FAIL"))
         elif setup_status == "skipped":
-            logger.info(
-                "======================== Test Status : SKIP ========================"
-            )
+            logger.info(log_status.format("SKIP"))
     if report.when == "call":
         test_status = report.outcome
         if test_status == "passed":
-            logger.info(
-                "======================== Test Status : PASS ========================"
-            )
+            logger.info(log_status.format("PASS"))
         elif test_status == "failed":
-            logger.info(
-                "======================== Test Status : FAIL ========================"
-            )
-
+            logger.info(log_status.format("FAIL"))
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
