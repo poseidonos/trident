@@ -98,6 +98,8 @@ class Cli:
                     )
                 )
                 out = "".join(listout)
+                if "volume mount" in cmd :
+                        out = listout[1] if len(listout) > 1 else "".join(listout)
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
                         "POS is not running! Please start POS and try again!"
@@ -112,29 +114,20 @@ class Cli:
                 elif "Receiving error" in out:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
-                
-                else:
-
-                    if "volume mount" in cmd :
-                        out = listout[1] if len(listout) > 1 else "".join(listout)
-                                             
-                
-                parse_out = self.parse_out(out, cmd)
-                self.add_cli_history(parse_out)
-
-                if parse_out["status_code"] == 0:
-                    return True, parse_out
-                elif parse_out["status_code"] == 1030:
-                    logger.info(
-                        "Poseidonos is in Busy state, status code is {}. \
-                        Command retry count is {}".format(
-                            parse_out["status_code"], retry_cnt
-                        )
-                    )
+                elif "PoseidonOS may be processing a command. Please try after a while." in out:
                     retry_cnt += 1
                     time.sleep(5)
+                    logger.warn("PoseidonOS may be processing a command. Please try after a while")
                     continue
                 else:
+                    parse_out = self.parse_out(out, cmd)
+                    self.add_cli_history(parse_out)
+                    break
+         
+            if parse_out["status_code"] == 0:
+               return True, parse_out
+               
+            else:
                     return False, parse_out
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))

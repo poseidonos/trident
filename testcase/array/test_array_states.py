@@ -35,6 +35,7 @@ import time
 import random
 import os
 import json
+from common_libs import *
 
 # sys.path.insert(0, '../')
 # sys.path.insert(0, '/root/poseidon/ibot')
@@ -49,31 +50,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 with open("{}/config.json".format(dir_path)) as f:
     config_dict = json.load(f)
 
-
-@pytest.mark.parametrize("num_array", [1, 2])
-def test_array_states(num_array):
-    try:
-
-        pos = POS()
-        list_array_obj = []
-        # step ::0 : variable initialization
-        data_dict = pos.data_dict
-        loop = 1
-        # seed = 10
-        seed = random.randint(1, 10)
-        random.seed(seed)
-        logger.info(
-            "#################################################################################################"
-        )
-        logger.info(
-            "--------------------------------------- RANDOM SEED : {} ---------------------------------------".format(
-                seed
-            )
-        )
-        logger.info(
-            "#################################################################################################"
-        )
-        # step ::1 : setup envirenment for POS
+def pos_setup(pos,num_array, list_array_obj, data_dict):
         pos.target_utils.setup_core_dump()
         pos.target_utils.setup_max_map_count()
         pos.target_utils.udev_install()
@@ -96,6 +73,32 @@ def test_array_states(num_array):
             list_array_obj[item].subsystem = pos.target_utils.ss_temp_list
             list_array_obj[item].func["param"]["pre_write"] = True
 
+@pytest.mark.parametrize("num_array", [1, 2])
+def test_array_states(num_array):
+    try:
+        fio_command = "fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0 "
+        pos = POS()
+        list_array_obj = []
+        # step ::0 : variable initialization
+        data_dict = pos.data_dict
+        loop = 1
+        # seed = 10
+        seed = random.randint(1, 10)
+        random.seed(seed)
+        logger.info(
+            "#################################################################################################"
+        )
+        logger.info(
+            "--------------------------------------- RANDOM SEED : {} ---------------------------------------".format(
+                seed
+            )
+        )
+        logger.info(
+            "#################################################################################################"
+        )
+        pos_setup(pos,num_array, list_array_obj, data_dict)
+        # step ::1 : setup envirenment for POS
+        
         # step ::2 : time setup
         start_time = time.time()
         run_time = int(config_dict["test_ArrayStates"]["runtime"])
@@ -103,24 +106,8 @@ def test_array_states(num_array):
         logger.info("RunTime is {} minutes".format(run_time))
 
         # step ::3 : run fio
-        for subsystem in pos.target_utils.ss_temp_list:
-            assert (
-                pos.client.nvme_connect(
-                    subsystem, pos.target_utils.helper.ip_addr[0], "1158"
-                )
-                == True
-            )
-        assert pos.client.nvme_list() == True
-        assert (
-            pos.client.fio_generic_runner(
-                pos.client.nvme_list_out,
-                fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0 ",
-            )[0]
-            == True
-        )
-        for device in pos.client.nvme_list_out:
-            assert pos.client.nvme_flush([device]) == True
-
+        run_io(pos, fio_command=fio_command)
+        
         while True:
             logger.info(
                 "#################################################################################################"
