@@ -30,6 +30,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from datetime import datetime
 import time
 import re
 import helper
@@ -54,6 +55,7 @@ class TargetUtils:
     def __init__(self, ssh_obj, data_dict: dict, pos_path: str):
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
+        self.pos_path = pos_path
         self.cli = Cli(ssh_obj, self.static_dict, pos_path)
         # self.array = array_name
         self.helper = helper.Helper(ssh_obj)
@@ -1247,4 +1249,58 @@ class TargetUtils:
 
         except Exception as e:
             logger.error(e)
+            return False
+
+    def dump_core(self):
+        """
+        Method to collect core dump by giving different options depending on 
+        whether poseidonos is running or already creashed.
+        """
+        try:
+            if self.helper.check_pos_exit() == False:
+                dump_type = "triggercrash"
+            else:
+                dump_type = "crashed"
+
+            command = "{}/tool/dump/trigger_core_dump.sh {}".format(
+                self.pos_path, dump_type
+            )
+            out = self.ssh_obj.execute(command)
+            logger.info("core dump file created: {}".format(out))
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+    def copy_core(self, unique_key, dir="/tmp"):
+        """
+        Method to rename the core dump file using unique key and issue key 
+        """
+        try:
+            core_files_dir = "/etc/pos/core/"
+
+            # Zip all core files
+            cmd = f"zip -r {dir}/core_{unique_key}.zip {core_files_dir}"
+            out = self.ssh_obj.execute(cmd)
+            logger.info(f"Copied core dump file {out}.")
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+    def copy_pos_log(self, unique_key, dir="/tmp"):
+        """
+        Method to rename the core dump file using unique key and issue key 
+        """
+        try:            
+            pos_log_dir = "/var/log/pos/"
+            
+            # Zip all log files
+            cmd = f"zip -r {dir}/logs_{unique_key}.zip {pos_log_dir}"
+
+            out = self.ssh_obj.execute(cmd)
+            logger.info(f"POS log file copied {out}")
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
             return False

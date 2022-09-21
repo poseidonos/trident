@@ -1615,27 +1615,6 @@ class Cli:
             logger.error("command execution failed because of  {}".format(e))
             return False, None
 
-    def core_dump(self):
-        """
-        Method to collect core dump by giving different options depending on whether poseidonos is running
-        """
-        try:
-
-            if self.helper.check_pos_exit() == False:
-                dump_type = "triggercrash"
-            else:
-                dump_type = "crashed"
-
-            command = "{}/tool/dump/trigger_core_dump.sh {}".format(
-                self.pos_path, dump_type
-            )
-            out = self.ssh_obj.execute(command)
-            logger.info("core dump file creation: {}".format(out))
-            return out
-        except Exception as e:
-            logger.error("Command Execution failed because of {}".format(e))
-            return False
-
     def updateeventwrr_devel(self, name: str, weight: str) -> (bool, dict):
 
         try:
