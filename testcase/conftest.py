@@ -310,19 +310,21 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
     pos = POS()
 
 def pos_logs_core_dump(item, nextitem, issuekey):
+    time_stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    unique_key = f"{issuekey}_{time_stamp}"
     reports = runtestprotocol(item, nextitem=nextitem, log=False)
     for report in reports:
         if (report.when == 'call' and report.outcome == 'failed'):
             if trident_config_data["dump_pos_core"]["enable"] == "true":
                 assert pos.target_utils.dump_core() == True
-                assert pos.target_utils.copy_core(issuekey) == True
+                assert pos.target_utils.copy_core(unique_key) == True
 
             if trident_config_data["copy_pos_log"]["test_fail"] == "true":
-                assert pos.target_utils.copy_pos_log(issuekey) == True
+                assert pos.target_utils.copy_pos_log(unique_key) == True
 
         elif (report.when == 'call' and report.outcome == 'passed' and
             trident_config_data["copy_pos_log"]["test_pass"] == "true"):
-                assert pos.target_utils.copy_pos_log(issuekey) == True
+                assert pos.target_utils.copy_pos_log(unique_key) == True
     return True
 
 @pytest.hookimpl(tryfirst=False, hookwrapper=True)
@@ -357,7 +359,7 @@ def pytest_runtest_protocol(item, nextitem):
         )
     )
 
-    if not pos_logs_core_dump(item, nextitem, issuekey):
+    if not pos_logs_core_dump(item, nextitem, method):
         logger.error("Failed to generate and save the core dump")
 
     logger.info(
