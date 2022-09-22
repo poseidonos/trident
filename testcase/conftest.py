@@ -91,7 +91,7 @@ def pytest_sessionstart(session):
         )
     )
 
-
+   
 @pytest.fixture(scope="module")
 def setup_clenup_array_module():
     logger.info("========== SETUP ARRAY MODULE =========")
@@ -254,6 +254,7 @@ def array_tear_down_function():
     assert client_tear_down() == True
     if pos.target_utils.helper.check_pos_exit() == False:
         array_cleanup()
+        assert pos.target_utils.pci_rescan() == True
         
     return True
 def array_cleanup():
@@ -271,12 +272,31 @@ def array_cleanup():
 
 @pytest.fixture(scope="function")
 def array_fixture():
+    session_start_time = datetime.now()
+    logger.info(
+        "Test Session Start Time : {}".format(
+            session_start_time.strftime("%m/%d/%Y, %H:%M:%S")
+        )
+    )
     logger.info("========== SETUP BEFORE TEST =========")
     assert check_pos_and_bringup() == True
     yield pos
     logger.info("========== CLEANUP AFTER TEST ==========")
     assert array_tear_down_function() == True
-    assert pos.target_utils.pci_rescan() == True
+    
+    session_end_time = datetime.now()
+    logger.info(
+        "Test Session End Time : {}".format(
+            session_end_time.strftime("%m/%d/%Y, %H:%M:%S")
+        )
+    )
+    session_time = session_end_time - session_start_time
+    session_minutes = divmod(session_time.seconds, 60)
+    logger.info(
+        "Total Session Time : {} minutes {} seconds".format(
+            session_minutes[0], session_minutes[1]
+        )
+    )
 
 
 def teardown_session():
