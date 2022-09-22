@@ -1,4 +1,8 @@
-branchName='v0.10.0'
+if [ $# != 1 ]; then
+	echo 'USAGE :tag'
+	exit
+fi
+
 export GIT_SSL_NO_VERIFY=1
 echo `date +%Y-%m-%d` `date +%H:%M:%S`
 mkdir -p /root/poseidon
@@ -7,7 +11,7 @@ echo Remove ibofos directory
 rm -rf ibofos
 git clone https://git.memswdev.samsungds.net:7990/scm/ibof/ibofos.git
 cd ibofos
-git checkout $branchName
+git checkout $1
 cd script
 ./pkgdep.sh | tee pkgdep.log
 cd ../lib/spdk/scripts
