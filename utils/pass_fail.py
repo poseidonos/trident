@@ -11,7 +11,7 @@ htm = f"{latest_file}/report.html"
 with open(htm, "r") as report:
     output = report.readlines()
     for line in output:
-        print(line)
+        
         if '<span class="passed">' in line:
             passed = re.findall('<span class="passed">(\d+)', line)
             failed = re.findall('<span class="failed">(\d+)', line)
