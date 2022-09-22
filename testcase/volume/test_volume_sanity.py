@@ -49,7 +49,7 @@ def random_string(length):
 
 
 @pytest.mark.sanity
-@pytest.mark.parametrize("numvol", [256])
+@pytest.mark.parametrize("numvol", [1,256])
 @pytest.mark.parametrize(
     "volsize", ["1mb", "1gb"]
 )  # None means max size of the array/num of vols per array
@@ -61,8 +61,10 @@ def test_SanityVolume(array_fixture, numvol, volsize):
         )
         pos = array_fixture
         pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = numvol
-        pos.data_dict["array"]["num_array"] = 1
+        pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = numvol
+        pos.data_dict["array"]["num_array"] = 2
         pos.data_dict["volume"]["pos_volumes"][0]["size"] = volsize
+        pos.data_dict["volume"]["pos_volumes"][1]["size"] = volsize
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         # negative test Multiple invalid commands
