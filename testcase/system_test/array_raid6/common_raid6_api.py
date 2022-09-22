@@ -247,3 +247,56 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list):
         logger.error(f"Array data disk hot remove failed due to {e}")
         return False
     
+def vol_connect_and_run_random_io(pos, subs_list, size):
+    try:
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for nqn in subs_list:
+            assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+
+        assert pos.client.nvme_list() == True
+        nvme_devs = pos.client.nvme_list_out
+
+        logger.info(f"******** Start IO *****************")
+
+        if not fio_cmd:
+            fio_cmd = f"fio --name=test_randwrite --ioengine=libaio --rw=randwrite --iodepth=64 --bs=128k --size={size}"
+        assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
+
+        logger.info(f"******** IO Completed ********************* ")
+        return True
+    except Exception as e:
+        logger.error(f"Random Write failed due to {e}")
+        return False
+
+def pos_system_restore_stop(pos, array_info=True, array_unmount=True, array_delete=True,
+                            vol_unmount=True, vol_delete=True, client_disconnect=False):
+    try:
+        if client_disconnect:
+            assert pos.target_utils.helper.check_system_memory() == True
+            if pos.client.ctrlr_list()[1] is not None:
+                assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
+
+        assert pos.cli.list_array()[0] == True
+        for array_name in pos.cli.array_dict.keys():
+            if array_info:
+                assert pos.cli.info_array(array_name=array_name)[0] == True
+            
+            assert pos.cli.list_volume()[0] == True
+            for vol_name in pos.cli.vols:
+                if ((vol_unmount or vol_delete) and 
+                        pos.cli.vol_dict[vol_name]["status"].lower() == "mounted"):
+                    assert pos.cli.unmount_volume(vol_name, array_name=array_name)[0] == True
+
+                if vol_delete:
+                    assert pos.cli.delete_volume(vol_name, array_name=array_name)[0] == True
+
+            if ((array_delete or array_unmount) and 
+                        pos.cli.array_dict[array_name].lower() == "mounted"):
+                assert pos.cli.unmount_array(array_name=array_name)[0] == True
+
+            if array_delete:
+                assert pos.cli.delete_array(array_name=array_name)[0] == True
+        return True
+    except Exception as e:
+        logger.error(f"Failed to restore and stop pos system due to {e}")
+        return False
