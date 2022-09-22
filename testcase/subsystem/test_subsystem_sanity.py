@@ -46,7 +46,7 @@ def test_sanitySubsystem(array_fixture):
         pos.data_dict["array"]["num_array"] = 1
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
-        assert pos.target_utils.create_subsystems_multiple(ss_count = 510, base_name = "nqn.2022-10-array1.pos:subsystem") == True       
+        
         assert pos.target_utils.get_subsystems_list() == True
 
     except Exception as e:

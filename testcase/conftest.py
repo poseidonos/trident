@@ -221,6 +221,7 @@ def check_pos_and_bringup():
             assert pos.target_utils.get_subsystems_list() == True
         else:
             logger.info("pos is already running")
+            array_cleanup()
         return True
     except Exception as e:
         logger.error(e)
@@ -252,6 +253,10 @@ def array_tear_down_function():
     assert pos.target_utils.helper.check_system_memory() == True
     assert client_tear_down() == True
     if pos.target_utils.helper.check_pos_exit() == False:
+        array_cleanup()
+        
+    return True
+def array_cleanup():
         assert pos.cli.list_array()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         if len(array_list) == 0:
@@ -262,8 +267,7 @@ def array_tear_down_function():
                 if pos.cli.array_dict[array].lower() == "mounted":
                     assert pos.cli.unmount_array(array_name=array)[0] == True
             assert pos.cli.reset_devel()[0] == True
-    return True
-
+        return True
 
 @pytest.fixture(scope="function")
 def array_fixture():
@@ -406,7 +410,7 @@ def pytest_configure(config):
     config.option.self_contained_html = True
 
 
-"""
+
 def pytest_sessionfinish(session):
     session_end_time = datetime.now()
     log_path = logging.get_logpath()
@@ -426,102 +430,3 @@ def pytest_sessionfinish(session):
         "Logs and Html report for executed TCs are present in {}".format(log_path)
     )
     copy_dir(log_path)
-"""
-
-target_obj, pos, client_obj, client_setup = None, None, None, None
-
-
-def init_client():
-    global client_obj, client_setup
-    client_obj = Client(
-        config_dict["login"]["initiator"]["ip"],
-        config_dict["login"]["initiator"]["username"],
-        config_dict["login"]["initiator"]["password"],
-    )
-    return client_obj
-
-
-@pytest.fixture(scope="module")
-def start_pos():
-    try:
-        global pos
-        pos = POS(
-            config_dict["login"]["target"]["ip"],
-            config_dict["login"]["target"]["username"],
-            config_dict["login"]["target"]["password"],
-            config_dict["login"]["paths"]["pos_path"],
-        )
-        assert pos.cli.start_system()[0] == True
-    except Exception as e:
-        logger.error(e)
-        assert 0
-    yield pos
-    pos.cli.stop_system(grace_shutdown=False)
-
-
-@pytest.fixture(scope="module")
-def scan_dev(start_pos):
-    try:
-        global nqn_name
-        assert pos.cli.create_device()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        nqn_name = pos.target_utils.generate_nqn_name()
-        assert pos.cli.create_subsystem(nqn_name)[0] == True
-
-    except Exception as e:
-        logger.error(e)
-        assert 0
-    yield start_pos
-
-
-@pytest.fixture(scope="module")
-def array_management(scan_dev):
-    try:
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.create_array()[0] == True
-    except Exception as e:
-        logger.error(e)
-        assert 0
-    yield scan_dev
-
-
-@pytest.fixture(scope="module")
-def mount_array(array_management):
-    try:
-        assert pos.cli.mount_array()[0] == True
-    except Exception as e:
-        logger.error(e)
-        assert 0
-    yield array_management
-
-
-@pytest.fixture(scope="module")
-def vol_fixture(mount_array):
-    try:
-        assert pos.target_utils.create_mount_multiple() == True
-    except Exception as e:
-        logger.error(e)
-        assert 0
-    yield mount_array
-
-
-@pytest.fixture(scope="module")
-def nvmf_transport(vol_fixture):
-    try:
-        pos.cli.create_transport_subsystem()[0]
-        pos.cli.add_listner_subsystem(
-            nqn_name, config_dict["login"]["tar_mlnx_ip"], "1158"
-        )[0]
-    except Exception as e:
-        logger.error(e)
-        assert 0
-    yield vol_fixture
-
-
-@pytest.fixture(scope="function")
-def user_io(nvmf_transport):
-    client = init_client()
-    client.nvme_connect(nqn_name, config_dict["login"]["tar_mlnx_ip"], "1158")
-    combo = {"client": client, "target": pos}
-    yield combo
-    client.nvme_disconnect()

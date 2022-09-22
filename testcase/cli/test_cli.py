@@ -74,7 +74,7 @@ def qos(pos):
 def array(pos):
     logger.info(" ================= ARRAY ===================")
     assert pos.cli.list_array()[0] == True
-    volume()
+    volume(pos)
     assert (
         pos.cli.addspare_array(
             device_name=pos.cli.system_disks[0], array_name="array1"
