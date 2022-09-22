@@ -91,13 +91,14 @@ def pytest_sessionstart(session):
         )
     )
 
+
 @pytest.fixture(scope="module")
 def setup_clenup_array_module():
     logger.info("========== SETUP ARRAY MODULE =========")
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
-    data_dict['array']['phase'] = "false"
-    data_dict['volume']['phase'] = "false"
+    data_dict["array"]["phase"] = "false"
+    data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
 
     yield pos
@@ -113,10 +114,10 @@ def setup_cleanup_array_function(setup_clenup_array_module):
     if pos.target_utils.helper.check_pos_exit() == True:
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
     data_dict = pos.data_dict
-    data_dict['system']['phase'] = "false"
-    data_dict['device']['phase'] = "false"
-    data_dict['array']['phase'] = "true"
-    
+    data_dict["system"]["phase"] = "false"
+    data_dict["device"]["phase"] = "false"
+    data_dict["array"]["phase"] = "true"
+
     assert pos.cli.list_device()[0] == True
     logger.info(f"System Disk : {pos.cli.system_disks}")
 
@@ -136,7 +137,7 @@ def setup_cleanup_array_function(setup_clenup_array_module):
     logger.info("==========================================")
 
 
-#@pytest.fixture(scope="session", autouse=True)
+# @pytest.fixture(scope="session", autouse=True)
 def setup_cleanup():
     global pos
     session_start_time = datetime.now()
@@ -148,8 +149,8 @@ def setup_cleanup():
     # Start POS, Device Scan and Create Transport
     pos = POS()
     data_dict = pos.data_dict
-    data_dict['array']['phase'] = "false"
-    data_dict['volume']['phase'] = "false"
+    data_dict["array"]["phase"] = "false"
+    data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
 
     # Reset the Disk MBR
@@ -174,16 +175,17 @@ def setup_cleanup():
         )
     )
 
+
 @pytest.fixture(scope="function")
 def array_setup_cleanup():
     logger.info("========== SETUP BEFORE TEST =========")
 
     # Disable the POS system start and Device Scan Phase
     data_dict = pos.data_dict
-    data_dict['system']['phase'] = "false"
-    data_dict['device']['phase'] = "false"
-    data_dict['array']['phase'] = "true"
-    
+    data_dict["system"]["phase"] = "false"
+    data_dict["device"]["phase"] = "false"
+    data_dict["array"]["phase"] = "true"
+
     assert pos.cli.list_device()[0] == True
     logger.info(f"System Disk : {pos.cli.system_disks}")
     yield pos
@@ -198,22 +200,23 @@ def array_setup_cleanup():
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
         assert pos.cli.delete_array(array_name=array)[0] == True
-    
 
     logger.info("==========================================")
 
+
 ################################################################################################################
+
 
 def check_pos_and_bringup():
     try:
 
-        pos.data_dict['system']['phase'] = 'true'
-        pos.data_dict['subsystem']['phase'] = 'true'
-        pos.data_dict['device']['phase'] = 'true'
+        pos.data_dict["system"]["phase"] = "true"
+        pos.data_dict["subsystem"]["phase"] = "true"
+        pos.data_dict["device"]["phase"] = "true"
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.bringupSystem(data_dict = pos.data_dict) == True
-            assert pos.target_utils.bringupDevice(data_dict = pos.data_dict) == True
-            assert pos.target_utils.bringupSubsystem(data_dict = pos.data_dict) == True
+            assert pos.target_utils.bringupSystem(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringupDevice(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringupSubsystem(data_dict=pos.data_dict) == True
             assert pos.cli.reset_devel()[0] == True
             assert pos.target_utils.get_subsystems_list() == True
         else:
@@ -224,39 +227,43 @@ def check_pos_and_bringup():
         traceback.print_exc()
         return False
 
+
 def unmount_fs() -> bool:
     """if mounted to FS delete FS then disconnect"""
     if len(list(pos.client.mount_point.keys())) > 0:
         for dir in list(pos.client.mount_point.values()):
-            if pos.client.is_dir_present(dir_path = dir) == True:
-                 assert pos.client.unmount_FS(fs_mount_pt =[dir] ) == True
+            if pos.client.is_dir_present(dir_path=dir) == True:
+                assert pos.client.unmount_FS(fs_mount_pt=[dir]) == True
     return True
+
 
 def client_tear_down() -> bool:
     """check if nvme controller is present if yes disconnect"""
-             
+
     if pos.client.ctrlr_list()[1] is not None:
-        
+
         assert unmount_fs() == True
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
     return True
-        
+
+
 def array_tear_down_function():
     array_list = []
     assert pos.target_utils.helper.check_system_memory() == True
     assert client_tear_down() == True
     if pos.target_utils.helper.check_pos_exit() == False:
-       assert pos.cli.list_array()[0] == True
-       array_list = list(pos.cli.array_dict.keys())
-       if len(array_list) == 0:
-        logger.info("No array found in the config")
-       else:
+        assert pos.cli.list_array()[0] == True
+        array_list = list(pos.cli.array_dict.keys())
+        if len(array_list) == 0:
+            logger.info("No array found in the config")
+        else:
             for array in array_list:
-                 assert pos.cli.info_array(array_name=array)[0] == True
-                 if pos.cli.array_dict[array].lower() == "mounted":
-                       assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.info_array(array_name=array)[0] == True
+                if pos.cli.array_dict[array].lower() == "mounted":
+                    assert pos.cli.unmount_array(array_name=array)[0] == True
             assert pos.cli.reset_devel()[0] == True
     return True
+
 
 @pytest.fixture(scope="function")
 def array_fixture():
@@ -270,15 +277,19 @@ def array_fixture():
 
 def teardown_session():
     logger.info("============= CLEANUP SESSION AFER TEST")
-    pos.exit_handler(expected = False)
+    pos.exit_handler(expected=False)
 
 
 #################################################################################################################
 def tags_info(target_ip, method, start_time, driver, issuekey):
     logger.info("################### Start Tag - Test Info ###################")
     logger.info(
-        "TC Unique ID : {}_{}_{}_{}".format(str(uuid.uuid4()), target_ip, method,
-                                           (start_time.strftime("%m_%d_%Y_%H_%M_%S")))
+        "TC Unique ID : {}_{}_{}_{}".format(
+            str(uuid.uuid4()),
+            target_ip,
+            method,
+            (start_time.strftime("%m_%d_%Y_%H_%M_%S")),
+        )
     )
 
     for key in static_dict["Project Info"]:
@@ -309,12 +320,13 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
     global pos
     pos = POS()
 
+
 def pos_logs_core_dump(item, nextitem, issuekey):
-    time_stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    time_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     unique_key = f"{issuekey}_{time_stamp}"
     reports = runtestprotocol(item, nextitem=nextitem, log=False)
     for report in reports:
-        if (report.when == 'call' and report.outcome == 'failed'):
+        if report.when == "call" and report.outcome == "failed":
             if trident_config_data["dump_pos_core"]["enable"] == "true":
                 assert pos.target_utils.dump_core() == True
                 assert pos.target_utils.copy_core(unique_key) == True
@@ -322,14 +334,18 @@ def pos_logs_core_dump(item, nextitem, issuekey):
             if trident_config_data["copy_pos_log"]["test_fail"] == "true":
                 assert pos.target_utils.copy_pos_log(unique_key) == True
 
-        elif (report.when == 'call' and report.outcome == 'passed' and
-            trident_config_data["copy_pos_log"]["test_pass"] == "true"):
-                assert pos.target_utils.copy_pos_log(unique_key) == True
+        elif (
+            report.when == "call"
+            and report.outcome == "passed"
+            and trident_config_data["copy_pos_log"]["test_pass"] == "true"
+        ):
+            assert pos.target_utils.copy_pos_log(unique_key) == True
     return True
+
 
 @pytest.hookimpl(tryfirst=False, hookwrapper=True)
 def pytest_runtest_protocol(item, nextitem):
-    
+
     driver = item.nodeid.split("::")[0]
     method = item.nodeid.split("::")[1]
     try:
@@ -348,7 +364,7 @@ def pytest_runtest_protocol(item, nextitem):
         tags_info(target_ip, method, start_time, driver, issuekey)
 
     yield
-    
+
     end_time = datetime.now()
     logger.info("End Time : {}".format(end_time.strftime("%m/%d/%Y, %H:%M:%S")))
     execution_time = end_time - start_time
@@ -366,6 +382,7 @@ def pytest_runtest_protocol(item, nextitem):
         "======================== END OF {} ========================\n".format(method)
     )
 
+
 def pytest_runtest_logreport(report):
     log_status = "======================== Test Status : {} ========================"
     if report.when == "setup":
@@ -381,11 +398,13 @@ def pytest_runtest_logreport(report):
         elif test_status == "failed":
             logger.info(log_status.format("FAIL"))
 
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
     log_path = logging.get_logpath()
     config.option.htmlpath = log_path + "/report.html"
     config.option.self_contained_html = True
+
 
 """
 def pytest_sessionfinish(session):

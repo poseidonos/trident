@@ -38,7 +38,10 @@ import random
 import json
 import traceback
 import helper
+
 logger = logger.get_logger(__name__)
+
+
 class Client:
     """
     The Client objects contains methods for host application
@@ -48,9 +51,7 @@ class Client:
         client_cleanup : " flag to clean up client" (Default: True)
     """
 
-    def __init__(
-        self, ssh_obj, client_cleanup: bool = True
-    ):
+    def __init__(self, ssh_obj, client_cleanup: bool = True):
 
         self.ssh_obj = ssh_obj
         self.helper = helper.Helper(ssh_obj)
@@ -603,7 +604,7 @@ class Client:
         Returns:
             bool, list of dir
         """
-        
+
         logger.info("device_list={}".format(device_list))
         if len(device_list) == 0:
             raise Exception("No devices Passed")

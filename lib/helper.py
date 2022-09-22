@@ -44,14 +44,15 @@ import itertools
 logger = logger.get_logger(__name__)
 
 QDValues = [1, 4, 16, 32, 128, 256]
-IOSizes = ['4K', '8K', '32K', '256K', '1M', '2M', '16M', '32M']
-BSSplit = ['4K/90:8K/10', '4K/70:8K/30', '4K/50:8K/50', '4K/30:8K/70']
-ReadWrite = ['readwrite', 'randrw']
+IOSizes = ["4K", "8K", "32K", "256K", "1M", "2M", "16M", "32M"]
+BSSplit = ["4K/90:8K/10", "4K/70:8K/30", "4K/50:8K/50", "4K/30:8K/70"]
+ReadWrite = ["readwrite", "randrw"]
 WRPerc = [100, 75, 50, 25]
 Direct = [0, 1]
 Unalign = [0, 1]
 SEQ = 0
 fio = None
+
 
 class Helper:
 
@@ -363,8 +364,8 @@ class Helper:
             logger.info("could not generate pattern!!!")
             raise Exception("could not generate pattern!!!")
         return pattern
-    
-    def generate_simple_testcases(self,fs_mode):
+
+    def generate_simple_testcases(self, fs_mode):
         """
         Method to make fio commandlines
         """
@@ -373,148 +374,229 @@ class Helper:
         bsqdrange = [[2**p for p in range(14, 20)], [2**p for p in range(8, 11)]]
         for rc, rd in itertools.product(*fioranges):
             for bs, qd in itertools.product(*bsqdrange):
-                pattern = '0x'+''.join(random.choice('0123456789abcdef') for i in range(16))
-                _dict = {'rw':rd, 'verify_pattern': pattern, 'iodepth':qd, 'rwmixwrite':rc, 'do_verify':1, 'bs':bs}
+                pattern = "0x" + "".join(
+                    random.choice("0123456789abcdef") for i in range(16)
+                )
+                _dict = {
+                    "rw": rd,
+                    "verify_pattern": pattern,
+                    "iodepth": qd,
+                    "rwmixwrite": rc,
+                    "do_verify": 1,
+                    "bs": bs,
+                }
                 if int(rc) == 100:
-                            _dict.update({'do_verify':0})
-                            my_tests.append((_dict))
-                            _rdict = dict(_dict)
-                            _rdict.update({'rwmixwrite':0, 'do_verify':1})
-                            my_tests.append((_rdict))
+                    _dict.update({"do_verify": 0})
+                    my_tests.append((_dict))
+                    _rdict = dict(_dict)
+                    _rdict.update({"rwmixwrite": 0, "do_verify": 1})
+                    my_tests.append((_rdict))
                 else:
-                            my_tests.append((_dict))
-        return (my_tests)
+                    my_tests.append((_dict))
+        return my_tests
 
-    def get_nonmix_tests(self,fs_mode):
+    def get_nonmix_tests(self, fs_mode):
         _tests = []
         fioranges = [Unalign, Direct, ReadWrite, WRPerc, IOSizes, QDValues]
-        for unalg, d, rd, rc, ios, qd, in itertools.product(*fioranges):
-                if unalg and d:
-                        continue
-                bssplit = random.choice(BSSplit)
-                pattern = '0x'+''.join(random.choice('0123456789abcdef') for i in range(16))
-                _dict = {'rw':rd, 'verify_pattern': pattern, 'io_size':ios, 'iodepth':qd, 'rwmixwrite':rc, 'do_verify':1}
-                if unalg :
-                        _dict.update({'bsrange':'4K-8K', 'bs_unaligned':'', 'direct':0})
-                if fs_mode and int(rc) != 100: 
-                    _dict.update({'experimental_verify':1})
-                else:
-                        _dict.update({'bssplit':bssplit, 'direct':d})
-                if int(rc) == 100:
-                        _dict.update({'do_verify':0})
-                        _tests.append((_dict))
-                        _rdict = dict(_dict)
-                        _rdict.update({'rwmixwrite':0, 'do_verify':1})
-                        _tests.append((_rdict))
-                else:
-                        _tests.append((_dict))
-        return (_tests)
+        for (
+            unalg,
+            d,
+            rd,
+            rc,
+            ios,
+            qd,
+        ) in itertools.product(*fioranges):
+            if unalg and d:
+                continue
+            bssplit = random.choice(BSSplit)
+            pattern = "0x" + "".join(
+                random.choice("0123456789abcdef") for i in range(16)
+            )
+            _dict = {
+                "rw": rd,
+                "verify_pattern": pattern,
+                "io_size": ios,
+                "iodepth": qd,
+                "rwmixwrite": rc,
+                "do_verify": 1,
+            }
+            if unalg:
+                _dict.update({"bsrange": "4K-8K", "bs_unaligned": "", "direct": 0})
+            if fs_mode and int(rc) != 100:
+                _dict.update({"experimental_verify": 1})
+            else:
+                _dict.update({"bssplit": bssplit, "direct": d})
+            if int(rc) == 100:
+                _dict.update({"do_verify": 0})
+                _tests.append((_dict))
+                _rdict = dict(_dict)
+                _rdict.update({"rwmixwrite": 0, "do_verify": 1})
+                _tests.append((_rdict))
+            else:
+                _tests.append((_dict))
+        return _tests
 
+    def get_mixedio_tests(self, fs_mode):
 
-    def get_mixedio_tests(self,fs_mode):
-      
         _tests = []
-        qd = '256'
-        _IOSizes= ['4K:32M', '8K:16M', '32M:4K', '16M:8K']
+        qd = "256"
+        _IOSizes = ["4K:32M", "8K:16M", "32M:4K", "16M:8K"]
         fioranges = [Unalign, Direct, ReadWrite, ReadWrite, _IOSizes]
         for unalg, d, o_rd, i_rd, ioset in itertools.product(*fioranges):
-                if unalg and d:
-                        continue
-                s_io = ioset.split(':')[0]
-                b_io = ioset.split(':')[1]     
-                bssplit = random.choice(BSSplit)
-                pattern = '0x'+''.join(random.choice('0123456789abcdef') for i in range(16))
-                _dict = {'rw':o_rd, 'verify_pattern': pattern, 'io_size':s_io, 'iodepth':qd, 'rwmixwrite':50, 'do_verify':1}
-                if unalg :
-                        _dict.update({'bsrange':'4K-8K', 'bs_unaligned':'', 'direct':0})
-                if fs_mode:
-                    _dict.update({'experimental_verify':1})
-                else:
-                    _dict.update({'bssplit':bssplit, 'direct':d})
-                _tests.append((_dict))
+            if unalg and d:
+                continue
+            s_io = ioset.split(":")[0]
+            b_io = ioset.split(":")[1]
+            bssplit = random.choice(BSSplit)
+            pattern = "0x" + "".join(
+                random.choice("0123456789abcdef") for i in range(16)
+            )
+            _dict = {
+                "rw": o_rd,
+                "verify_pattern": pattern,
+                "io_size": s_io,
+                "iodepth": qd,
+                "rwmixwrite": 50,
+                "do_verify": 1,
+            }
+            if unalg:
+                _dict.update({"bsrange": "4K-8K", "bs_unaligned": "", "direct": 0})
+            if fs_mode:
+                _dict.update({"experimental_verify": 1})
+            else:
+                _dict.update({"bssplit": bssplit, "direct": d})
+            _tests.append((_dict))
 
-                bssplit = random.choice(BSSplit)
-                pattern = '0x'+''.join(random.choice('0123456789abcdef') for i in range(16))
-                _ndict = {'rw':i_rd, 'verify_pattern': pattern, 'io_size':b_io, 'iodepth':qd, 'rwmixwrite':50, 'do_verify':1}
-                if unalg :
-                        _ndict.update({'bsrange':'4K-8K', 'bs_unaligned':'', 'direct':0})
-                if fs_mode:
-                       _ndict.update({'experimental_verify':1})
-                else:
-                        _ndict.update({'bssplit':bssplit, 'direct':d})
-                _tests.append((_ndict))
-        return (_tests)
+            bssplit = random.choice(BSSplit)
+            pattern = "0x" + "".join(
+                random.choice("0123456789abcdef") for i in range(16)
+            )
+            _ndict = {
+                "rw": i_rd,
+                "verify_pattern": pattern,
+                "io_size": b_io,
+                "iodepth": qd,
+                "rwmixwrite": 50,
+                "do_verify": 1,
+            }
+            if unalg:
+                _ndict.update({"bsrange": "4K-8K", "bs_unaligned": "", "direct": 0})
+            if fs_mode:
+                _ndict.update({"experimental_verify": 1})
+            else:
+                _ndict.update({"bssplit": bssplit, "direct": d})
+            _tests.append((_ndict))
+        return _tests
 
-
-    def generate_fio_testcases(self,fs_mode):
+    def generate_fio_testcases(self, fs_mode):
         my_tests = []
         if not fs_mode:
-            my_tests.append(({'rw':'trim', 'bs':'4k', 'io_size':'32M', 'iodepth':32, 'trim_verify_zero':1}))
+            my_tests.append(
+                (
+                    {
+                        "rw": "trim",
+                        "bs": "4k",
+                        "io_size": "32M",
+                        "iodepth": 32,
+                        "trim_verify_zero": 1,
+                    }
+                )
+            )
         my_tests.extend(self.get_nonmix_tests(fs_mode))
         if not fs_mode:
-            my_tests.append(({'rw':'randtrim', 'bs':'4k', 'io_size':'4K', 'iodepth':64, 'trim_verify_zero':1}))
-            my_tests.append(({'rw':'randtrim', 'bs':'4k', 'io_size':'32M', 'iodepth':32, 'trim_verify_zero':1}))
+            my_tests.append(
+                (
+                    {
+                        "rw": "randtrim",
+                        "bs": "4k",
+                        "io_size": "4K",
+                        "iodepth": 64,
+                        "trim_verify_zero": 1,
+                    }
+                )
+            )
+            my_tests.append(
+                (
+                    {
+                        "rw": "randtrim",
+                        "bs": "4k",
+                        "io_size": "32M",
+                        "iodepth": 32,
+                        "trim_verify_zero": 1,
+                    }
+                )
+            )
         my_tests.extend(self.get_mixedio_tests(fs_mode))
-        if not fs_mode:    
-           my_tests.append(({'rw':'randtrim', 'bs':'4k', 'io_size':'4k', 'iodepth':64, 'trim_verify_zero':1}))
+        if not fs_mode:
+            my_tests.append(
+                (
+                    {
+                        "rw": "randtrim",
+                        "bs": "4k",
+                        "io_size": "4k",
+                        "iodepth": 64,
+                        "trim_verify_zero": 1,
+                    }
+                )
+            )
         my_tests.extend(self.generate_simple_testcases(fs_mode))
-        return(my_tests)
-    
-    def generate_fio_commandline(self, argdict,fs_mode):
+        return my_tests
+
+    def generate_fio_commandline(self, argdict, fs_mode):
         """Generate FIO command line string from argdict."""
-        json_file = 'fio_raw_gen.json' if not fs_mode else 'fio_fs_gen.json'
-        json_loc = f'../testcase/config_files/{json_file}'
+        json_file = "fio_raw_gen.json" if not fs_mode else "fio_fs_gen.json"
+        json_loc = f"../testcase/config_files/{json_file}"
         assert self.json_reader(json_loc) == True
-        argdict = {**self.static_dict,**argdict}
-        if ('rw' in argdict) and ('readwrite' in argdict):
+        argdict = {**self.static_dict, **argdict}
+        if ("rw" in argdict) and ("readwrite" in argdict):
             logger.debug("FIO 'rw' argument overwriting 'readwrite'")
         # convert key:value pairs to sorted argument=value list
         parms = []
         for key, value in argdict.items():
             if value is not None:
-                item = '--' + key
-                if value != '':
-                    item += (f'={value}')
+                item = "--" + key
+                if value != "":
+                    item += f"={value}"
                 parms.append(item)
         parms.sort()
         # build and return FIO cmd line
-        return ('fio' + ' ' + ' '.join(parms))
-
-
+        return "fio" + " " + " ".join(parms)
 
     def _get_sized_drives(elf, devices: dict) -> dict:
-        '''
+        """
         Create a device dictionary based on size
         return device list as value for size key
         {"Size": ["unvme-ns-0", "unvme-ns-1"]
-        '''
+        """
         device_size_dict = {}
         for dev_name, dev in devices.items():
             if dev["type"].lower() != "ssd" or dev["class"].lower() == "array":
                 continue
 
-            size = int(dev["size"] // (1024 * 1024 * 1024)) # Convert in GiB
+            size = int(dev["size"] // (1024 * 1024 * 1024))  # Convert in GiB
             size = f"{size}GiB"
             try:
-               device_size_dict[size].append(dev_name)
+                device_size_dict[size].append(dev_name)
             except:
                 device_size_dict[size] = [dev_name]
 
         return device_size_dict
 
-    def _get_sized_disks(self, device_size_dict: dict, 
-                         device_select: dict):
+    def _get_sized_disks(self, device_size_dict: dict, device_select: dict):
         selected_devices = []
         for dev_size, num_device in device_select.items():
-            if dev_size.lower() in ('any', 'mix'):
+            if dev_size.lower() in ("any", "mix"):
                 continue
 
             device_list = device_size_dict.get(dev_size, [])
-            
+
             if len(device_list) < num_device:
-                logger.error("Only {} devices of {} size are available. "\
-                            "But {} drives are required.".format(
-                            len(device_list), dev_size, num_device))
+                logger.error(
+                    "Only {} devices of {} size are available. "
+                    "But {} drives are required.".format(
+                        len(device_list), dev_size, num_device
+                    )
+                )
                 return False, selected_devices
 
             for i in range(num_device):
@@ -523,49 +605,54 @@ class Helper:
 
         return True, selected_devices
 
-    def _get_remaining_disks(self, device_size_dict: dict, 
-                             device_select: dict):
+    def _get_remaining_disks(self, device_size_dict: dict, device_select: dict):
         selected_devices = []
-        for dev_type in ('mix', 'any'):
-            device_types = [dev_size for dev_size, dev_list in device_size_dict.items() if dev_list]
+        for dev_type in ("mix", "any"):
+            device_types = [
+                dev_size for dev_size, dev_list in device_size_dict.items() if dev_list
+            ]
             device_count = sum(len(dev_list) for dev_list in device_size_dict.values())
             num_device = device_select.get(dev_type, 0)
-            if (num_device == 0):
+            if num_device == 0:
                 continue
 
-            if dev_type == 'mix' and len(device_types) < num_device:
-                logger.error("Only {} device types are available. But {} are "\
-                             "required.".format(len(device_types), num_device))
+            if dev_type == "mix" and len(device_types) < num_device:
+                logger.error(
+                    "Only {} device types are available. But {} are "
+                    "required.".format(len(device_types), num_device)
+                )
                 return False, device_select
-            elif dev_type == 'any' and device_count < num_device:
-                logger.error("Only {} devices are available. But {} are "\
-                             "required.".format(device_count, num_device))
+            elif dev_type == "any" and device_count < num_device:
+                logger.error(
+                    "Only {} devices are available. But {} are "
+                    "required.".format(device_count, num_device)
+                )
                 return False, device_select
 
             counter = 0
             while counter < num_device:
                 for dev_type in device_size_dict.keys():
                     if counter == num_device:
-                            break
+                        break
                     if device_size_dict[dev_type]:
                         dev_name = device_size_dict[dev_type].pop(0)
                         selected_devices.append(dev_name)
                         counter += 1
 
-        return True, device_select 
+        return True, device_select
 
-    def select_hetro_devices(self, devices: dict, data_dev_select: dict,
-                            spare_dev_select: dict=None) -> tuple:
-        '''
-        Helper function to select Hetero devices of different size based on 
+    def select_hetro_devices(
+        self, devices: dict, data_dev_select: dict, spare_dev_select: dict = None
+    ) -> tuple:
+        """
+        Helper function to select Hetero devices of different size based on
         select params for data disk and spare disk.
         Select Param -> Number of disk. e.g:
         '20GiB' : 4 => 4 disk of 20 GiB size
         'mix' : 4 => 4 disk of all mix size
         'any' : 2 => 2 disk of any size
-        '''
-        selected_devices = { "data_dev_list": [],
-                             "spare_dev_list": []}
+        """
+        selected_devices = {"data_dev_list": [], "spare_dev_list": []}
 
         device_size_dict = self._get_sized_drives(devices)
 
@@ -596,7 +683,9 @@ class Helper:
 
         if spare_dev_select != None:
             # Select the spare device of any and mix/differnt size
-            res, device_list = self._get_remaining_disks(device_size_dict, spare_dev_select)
+            res, device_list = self._get_remaining_disks(
+                device_size_dict, spare_dev_select
+            )
             if not res:
                 return False, selected_devices
             selected_devices["spare_dev_list"].extend(device_list)

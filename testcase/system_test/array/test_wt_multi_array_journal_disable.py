@@ -1,15 +1,17 @@
-from turtle import update
 import pytest
 import traceback
 
 import logger
+
 logger = logger.get_logger(__name__)
 array = [("NORAID", 1), ("RAID0", 2)]
 
 
 @pytest.mark.regression
 @pytest.mark.parametrize("array_raid, array_num_disk", array)
-def test_wt_multi_array_disabled_journal(setup_cleanup_array_function, array_raid, array_num_disk):
+def test_wt_multi_array_disabled_journal(
+    setup_cleanup_array_function, array_raid, array_num_disk
+):
     """
     Test Multi-Array in combination with WT/WB mount when journal is disable
     1. Run Write Block IO for an hour.

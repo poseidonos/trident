@@ -1,15 +1,19 @@
 import pytest
 import logger
+
 logger = logger.get_logger(__name__)
+
 
 def num_check(pos):
     numa_dev_list = [{"ssd": [], "nvram": []}, {"ssd": [], "nvram": []}]
     assert pos.cli.list_device()[0] == True
     for dev in pos.cli.device_map:
-            dev_type = pos.cli.device_map[dev]["type"].lower()
-            dev_numa = int(pos.cli.device_map[dev]["numa"])
-            numa_dev_list[dev_numa][dev_type].append(dev)
+        dev_type = pos.cli.device_map[dev]["type"].lower()
+        dev_numa = int(pos.cli.device_map[dev]["numa"])
+        numa_dev_list[dev_numa][dev_type].append(dev)
     return numa_dev_list
+
+
 @pytest.mark.regression
 def test_auto_array_with_all_numa(array_fixture):
     """
@@ -21,7 +25,7 @@ def test_auto_array_with_all_numa(array_fixture):
     try:
         pos = array_fixture
         numa_dev_list = num_check(pos)
-        
+
         # Autoarray create from using disk and uram from same num
         for numa_id, num_dev in enumerate(numa_dev_list):
             array_name = f"array{numa_id}"
@@ -66,7 +70,7 @@ def test_auto_array_with_insufficient_numa_dev(array_fixture):
     try:
         pos = array_fixture
         numa_dev_list = num_check(pos)
-        
+
         # Autoarray create from using disk and uram from same num
         for numa_id, num_dev in enumerate(numa_dev_list):
             array_name = f"array{numa_id}"

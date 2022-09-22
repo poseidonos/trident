@@ -58,7 +58,7 @@ class POS_Config:
             self.file_data = json.loads(config_data)
             self.file_data_org = self.file_data
 
-            #logger.debug("Config file data {}.".format(type(self.file_data)))
+            # logger.debug("Config file data {}.".format(type(self.file_data)))
             return True
         except Exception as e:
             logger.error(f"Load config failed. Error: '{e}'")

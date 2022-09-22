@@ -7,55 +7,55 @@
             "server":
             [
                 {
-                    "ip":"127.0.0.1",
+                    "ip":"10.0.0.9",
                     "username":"root",
-                    "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "password":"siso@123",
+                    "Data_Ip": "10.0.0.9"
                 }
             ]
         },
         "initiator":
         {
-            "number": 6,
+            "number": 1,
             "client":
             [
                 {
-                    "ip":"127.0.0.1",
+                    "ip":"10.0.0.9",
                     "username":"root",
-                    "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "password":"siso@123",
+                    "Data_Ip": "10.0.0.9"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"10.0.0.9",
                     "username":"root",
-                    "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "password":"siso@123",
+                    "Data_Ip": "10.0.0.9"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"10.0.0.9",
                     "username":"root",
-                    "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "password":"siso@123",
+                    "Data_Ip": "10.0.0.9"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"10.0.0.9",
                     "username":"root",
-                    "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "password":"siso@123",
+                    "Data_Ip": "10.0.0.9"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"10.0.0.9",
                     "username":"root",
-                    "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "password":"siso@123",
+                    "Data_Ip": "10.0.0.9"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"10.0.0.9",
                     "username":"root",
-                    "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "password":"siso@123",
+                    "Data_Ip": "10.0.0.9"
                 }
 
 	    ]
         },
 	"paths": 
 	{
-		"pos_path": "path of compiled POS source code " 
+		"pos_path": "/root/rc5/ibofos" 
 	}
     }
 }

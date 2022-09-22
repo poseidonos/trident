@@ -4,11 +4,13 @@ from array_test_common import *
 import time
 
 import logger
+
 logger = logger.get_logger(__name__)
 
 
 fio_cmd = f"fio --name=sequential_write --ioengine=libaio --rw=write \
                             --iodepth=64 --direct=1 --bs=128k --size=100%"
+
 
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives", [("RAID0", 2)])
@@ -20,7 +22,7 @@ def test_wt_array_io_spor(array_setup_cleanup, raid_type, nr_data_drives):
     try:
         pos = array_setup_cleanup
         assert wt_array_setup(pos, raid_type, nr_data_drives, 0) == True
-        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
 
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
@@ -85,11 +87,12 @@ def test_wt_array_io_spor(array_setup_cleanup, raid_type, nr_data_drives):
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 @pytest.mark.regression
 def test_spor_wt_wb(array_setup_cleanup):
     try:
         pos = array_setup_cleanup
-        pos.data_dict['volume']['phase'] = "true"
+        pos.data_dict["volume"]["phase"] = "true"
         assert pos.target_utils.pos_bring_up() == True
         for ss in pos.target_utils.ss_temp_list:
             assert (
@@ -97,7 +100,12 @@ def test_spor_wt_wb(array_setup_cleanup):
                 == True
             )
         assert pos.client.nvme_list() == True
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data=fio_cmd )[0] == True
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out, fio_user_data=fio_cmd
+            )[0]
+            == True
+        )
         assert pos.target_utils.Spor(write_through=True) == True
     except Exception as e:
         pos.exit_handler()
@@ -108,7 +116,7 @@ def test_spor_wt_wb(array_setup_cleanup):
 def test_npor_wt_wb(array_setup_cleanup):
     try:
         pos = array_setup_cleanup
-        pos.data_dict['volume']['phase'] = "true"
+        pos.data_dict["volume"]["phase"] = "true"
         assert pos.target_utils.pos_bring_up() == True
         for ss in pos.target_utils.ss_temp_list:
             assert (
@@ -116,7 +124,12 @@ def test_npor_wt_wb(array_setup_cleanup):
                 == True
             )
         assert pos.client.nvme_list() == True
-        assert pos.client.fio_generic_runner(pos.client.nvme_list_out, fio_user_data=fio_cmd )[0] == True
+        assert (
+            pos.client.fio_generic_runner(
+                pos.client.nvme_list_out, fio_user_data=fio_cmd
+            )[0]
+            == True
+        )
         assert pos.target_utils.Npor(write_through=True) == True
     except Exception as e:
         pos.exit_handler()

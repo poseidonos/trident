@@ -4,21 +4,30 @@ import logger as logging
 
 logger = logging.get_logger(__name__)
 
-def wt_array_setup(pos, raid_type: str, num_data_disk: int,
-                   num_spare_disk: int, auto_create = False,
-                   array_index=0):
+
+def wt_array_setup(
+    pos,
+    raid_type: str,
+    num_data_disk: int,
+    num_spare_disk: int,
+    auto_create=False,
+    array_index=0,
+):
     try:
         data_dict = pos.data_dict
         assert pos.cli.list_device()[array_index] == True
         required_disks = num_data_disk + num_spare_disk
         if len(pos.cli.system_disks) < required_disks:
-            pytest.skip("Insufficient disks count {}. Required {}".format(
-                         len(pos.cli.system_disks), required_disks))
+            pytest.skip(
+                "Insufficient disks count {}. Required {}".format(
+                    len(pos.cli.system_disks), required_disks
+                )
+            )
         if raid_type.upper() == "NORAID":
             raid_type = "no-raid"
 
-        data_dict['array']['num_array'] = 1
-        pos_array = data_dict['array']['pos_array'][0]
+        data_dict["array"]["num_array"] = 1
+        pos_array = data_dict["array"]["pos_array"][0]
         array_name = pos_array["array_name"]
         pos_array["data_device"] = num_data_disk
         pos_array["spare_device"] = num_spare_disk
@@ -35,12 +44,12 @@ def wt_array_setup(pos, raid_type: str, num_data_disk: int,
     return True
 
 
-def wt_array_volume_setup(pos, raid_type: str, 
-                          num_data_disk: int, num_spare_disk: int, array_index=0):
+def wt_array_volume_setup(
+    pos, raid_type: str, num_data_disk: int, num_spare_disk: int, array_index=0
+):
     try:
-        assert wt_array_setup(pos, raid_type, num_data_disk,
-                              num_spare_disk) == True
-        array_name = pos.data_dict['array']['pos_array'][array_index]["array_name"]
+        assert wt_array_setup(pos, raid_type, num_data_disk, num_spare_disk) == True
+        array_name = pos.data_dict["array"]["pos_array"][array_index]["array_name"]
         assert (
             pos.cli.create_volume("pos_vol1", array_name=array_name, size="1000gb")[0]
             == True
@@ -51,7 +60,8 @@ def wt_array_volume_setup(pos, raid_type: str,
         assert (
             pos.target_utils.mount_volume_multiple(
                 array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
-            ) == True
+            )
+            == True
         )
 
         for ss in pos.target_utils.ss_temp_list:

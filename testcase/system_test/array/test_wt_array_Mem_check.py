@@ -1,22 +1,26 @@
 import pytest
 
 import logger
+
 logger = logger.get_logger(__name__)
 
 array_list = [
-        ("no-raid", 1, "Block"),
-        ("RAID0", 2, "Block"),
-        ("RAID10", 4, "Block"),
-        ("RAID10", 2, "Block"),
-        ("no-raid", 1, "File"),
-        ("RAID0", 2, "File"),
-        ("RAID10", 4, "File"),
-        ("RAID10", 2, "File"),
-    ]
+    ("no-raid", 1, "Block"),
+    ("RAID0", 2, "Block"),
+    ("RAID10", 4, "Block"),
+    ("RAID10", 2, "Block"),
+    ("no-raid", 1, "File"),
+    ("RAID0", 2, "File"),
+    ("RAID10", 4, "File"),
+    ("RAID10", 2, "File"),
+]
+
 
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives, IO", array_list)
-def test_wt_array_Mem_check(setup_cleanup_array_function, raid_type, nr_data_drives, IO):
+def test_wt_array_Mem_check(
+    setup_cleanup_array_function, raid_type, nr_data_drives, IO
+):
     logger.info(
         " ==================== Test : test_wt_array_Mem_check ================== "
     )

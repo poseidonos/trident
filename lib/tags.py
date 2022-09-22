@@ -142,16 +142,12 @@ class EnvTags(SSHclient):
             )
             inventory = self.conn.execute("hostname")
             self.inv["Host Name"] = inventory[0]
-            logger.info(
-                "Runnning command 'lsb_release -d' in the remote system"
-            )
+            logger.info("Runnning command 'lsb_release -d' in the remote system")
             inventory = self.conn.execute("lsb_release -d")
             self.inv["Operating System"] = (
                 inventory[0].split("Description:", 1)[1].strip()
             )
-            logger.info(
-                "Runnning command 'uname -r' in the remote system"
-            )
+            logger.info("Runnning command 'uname -r' in the remote system")
             inventory = self.conn.execute("uname -r")
             self.inv["Kernel"] = inventory[0]
             return True

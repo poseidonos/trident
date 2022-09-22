@@ -1,12 +1,15 @@
+from array import array
 import pytest
-
-import traceback
-
-import logger
 import random
+import logger
+from pos import POS
+from common_libs import *
+import json
+import os
 import time
-from array_test_common import *
+
 logger = logger.get_logger(__name__)
+
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
@@ -20,13 +23,15 @@ logger = logger.get_logger(__name__)
         ("RAID10", 4, False),
     ],
 )
-def test_wt_array_rebuild_after_FIO(setup_cleanup_array_function, raid_type, nr_data_drives, file_io):
+def test_wt_array_rebuild_after_FIO(
+    setup_cleanup_array_function, raid_type, nr_data_drives, file_io
+):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
     try:
         pos = setup_cleanup_array_function
-        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
@@ -80,15 +85,16 @@ def test_wt_array_rebuild_after_FIO(setup_cleanup_array_function, raid_type, nr_
         ("RAID10", 4, False),
     ],
 )
-def test_wt_array_rebuild_during_FIO(setup_cleanup_array_function, 
-                                     raid_type, nr_data_drives, file_io):
+def test_wt_array_rebuild_during_FIO(
+    setup_cleanup_array_function, raid_type, nr_data_drives, file_io
+):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
     try:
         pos = setup_cleanup_array_function
         assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
-        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
         if file_io:

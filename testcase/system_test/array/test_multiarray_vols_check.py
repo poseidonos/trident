@@ -8,6 +8,7 @@ import pprint
 
 from common_multiarray import *
 import logger
+
 logger = logger.get_logger(__name__)
 
 
@@ -28,7 +29,12 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
             array_cap_before = pos.cli.array_info[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_before))
 
-        assert pos.target_utils.create_volume_multiple(array_name=array_name,num_vol=5,vol_name="vol") == True
+        assert (
+            pos.target_utils.create_volume_multiple(
+                array_name=array_name, num_vol=5, vol_name="vol"
+            )
+            == True
+        )
 
         for array_name in array_list:
             assert pos.cli.info_array(array_name=array_name)[0] == True
@@ -58,7 +64,12 @@ def test_multi_array_delete_vols(setup_cleanup_array_function):
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:
-            assert pos.target_utils.create_volume_multiple(array_name=array_name,num_vol=5,vol_name="vol") == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array_name, num_vol=5, vol_name="vol"
+                )
+                == True
+            )
             assert pos.cli.info_array(array_name=array_name)[0] == True
             array_cap_creation = pos.cli.array_info[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_creation))
@@ -88,7 +99,12 @@ def test_multi_array_invalid_vols(setup_cleanup_array_function):
 
         for array_name in array_list:
             assert pos.cli.list_volume(array_name=array_name)[0] == True
-            assert pos.cli.create_volume(array_name=array_name,volumename="###",size='100gb')[0] == False
+            assert (
+                pos.cli.create_volume(
+                    array_name=array_name, volumename="###", size="100gb"
+                )[0]
+                == False
+            )
         assert pos.cli.list_volume(array_name=array_name)[0] == True
         logger.info("As expected array size vary before and after volume creation ")
         logger.info(
