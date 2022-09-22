@@ -78,8 +78,8 @@ def test_gcMaxvol(array_fixture, raid_type, nr_data_drives):
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         run_io(pos)
-        assert pos.cli.wbt_do_gc()[0] == False
-        assert pos.cli.wbt_get_gc_status()[0] == True
+        pos.cli.wbt_do_gc()
+        pos.cli.wbt_get_gc_status()
         
 
         logger.info(
