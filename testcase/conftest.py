@@ -450,3 +450,4 @@ def pytest_sessionfinish(session):
         "Logs and Html report for executed TCs are present in {}".format(log_path)
     )
     copy_dir(log_path)
+    pos._clearall_objects()

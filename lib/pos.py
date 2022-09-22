@@ -68,6 +68,7 @@ class POS:
 
         self.client_cnt = 0
         self.client_handle = []
+        self.obj_list = []
 
         caller_file = inspect.stack()[1].filename
         caller_dir = pathlib.Path(caller_file).parent.resolve()
@@ -85,6 +86,7 @@ class POS:
             self.config_dict["login"]["target"]["server"][0]["username"],
             self.config_dict["login"]["target"]["server"][0]["password"],
         )
+        self.obj_list.append(self.target_ssh_obj)
         self.cli = Cli(
             self.target_ssh_obj,
             data_dict=self.data_dict,
@@ -110,12 +112,17 @@ class POS:
                     "password"
                 ]
                 client_obj = SSHclient(ip, username, password)
+                self.obj_list.append(client_obj)
                 self.client_handle.append(Client(client_obj))
         else:
             assert 0
         if self.client_cnt == 1:
             self.client = self.client_handle[0]
-
+    def _clearall_objects(self):
+        if len(self.obj_list) > 0:
+            for obj in self.obj_list:
+                obj.close()
+        return True
     def _json_reader(self, json_file: str, abs_path=False) -> dict:
         """reads json file from /testcase/config_files
 
