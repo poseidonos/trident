@@ -16,10 +16,11 @@ def setup_module():
     global pos, data_dict
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
-    data_dict['array']['num_array'] = "false"
-    data_dict['volume']['phase'] = "false"
+    data_dict["array"]["num_array"] = "false"
+    data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
+
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
@@ -48,7 +49,7 @@ def teardown_module():
 def por_array_io():
     try:
         global array_name
-        array_name="POSARRAY1"
+        array_name = "POSARRAY1"
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert pos.cli.reset_devel()[0] == True
@@ -67,7 +68,12 @@ def por_array_io():
             == True
         )
         assert pos.cli.mount_array(array_name=array_name, write_back=True)[0] == True
-        assert pos.cli.create_volume(array_name=array_name, size="2000gb", volumename="vol")[0]== True
+        assert (
+            pos.cli.create_volume(
+                array_name=array_name, size="2000gb", volumename="vol"
+            )[0]
+            == True
+        )
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
@@ -99,8 +105,9 @@ def por_array_io():
 
 
 @pytest.mark.regression
-@pytest.mark.parametrize("raid_type, nr_data_drives",
-                         [("RAID0", 2) , ("RAID5", 3), ("RAID10", 2)])
+@pytest.mark.parametrize(
+    "raid_type, nr_data_drives", [("RAID0", 2), ("RAID5", 3), ("RAID10", 2)]
+)
 def test_wt_array_single_vol_npor(raid_type, nr_data_drives):
     try:
         assert por_array_io(raid_type, nr_data_drives) == True
@@ -113,9 +120,11 @@ def test_wt_array_single_vol_npor(raid_type, nr_data_drives):
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 @pytest.mark.regression
-@pytest.mark.parametrize("raid_type, nr_data_drives",
-                         [("RAID5", 3), ("RAID10", 2), ("RAID0", 2)])
+@pytest.mark.parametrize(
+    "raid_type, nr_data_drives", [("RAID5", 3), ("RAID10", 2), ("RAID0", 2)]
+)
 def test_wt_array_single_vol_spor(raid_type, nr_data_drives):
     try:
         assert por_array_io() == True

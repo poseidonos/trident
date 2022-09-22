@@ -3,7 +3,9 @@ import pytest
 from pos import POS
 
 import logger
+
 logger = logger.get_logger(__name__)
+
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
@@ -11,20 +13,22 @@ def setup_module():
     global pos, data_dict
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
-    data_dict['array']['phase'] = "false"
-    data_dict['volume']['phase'] = "false"
+    data_dict["array"]["phase"] = "false"
+    data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
+
 
 def setup_function():
     data_dict = pos.data_dict
     if pos.target_utils.helper.check_pos_exit() == True:
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-    data_dict['system']['phase'] = "false"
-    data_dict['device']['phase'] = "false"
-    data_dict['subsystem']['phase'] = "false"
-    data_dict['array']['phase'] = "true"
+    data_dict["system"]["phase"] = "false"
+    data_dict["device"]["phase"] = "false"
+    data_dict["subsystem"]["phase"] = "false"
+    data_dict["array"]["phase"] = "true"
+
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")

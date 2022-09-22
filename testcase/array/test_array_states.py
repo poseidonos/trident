@@ -50,28 +50,30 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 with open("{}/config.json".format(dir_path)) as f:
     config_dict = json.load(f)
 
-def pos_setup(pos,num_array, list_array_obj, data_dict):
-        pos.target_utils.setup_core_dump()
-        pos.target_utils.setup_max_map_count()
-        pos.target_utils.udev_install()
-        assert pos.target_utils.check_udev_rule() == True
-        data_dict["array"]["num_array"] = 2 if num_array == 2 else 1
-        assert pos.target_utils.pos_bring_up(data_dict) == True
 
-        assert pos.cli.list_array()[0] == True
-        assert pos.target_utils.get_subsystems_list() == True
+def pos_setup(pos, num_array, list_array_obj, data_dict):
+    pos.target_utils.setup_core_dump()
+    pos.target_utils.setup_max_map_count()
+    pos.target_utils.udev_install()
+    assert pos.target_utils.check_udev_rule() == True
+    data_dict["array"]["num_array"] = 2 if num_array == 2 else 1
+    assert pos.target_utils.pos_bring_up(data_dict) == True
 
-        array_list = list(pos.cli.array_dict.keys())
-        for item in range(len(array_list)):
-            list_array_obj.append(
-                array(
-                    array_name=array_list[item],
-                    data_dict=data_dict,
-                    cli_history=pos.cli.cli_history,
-                )
+    assert pos.cli.list_array()[0] == True
+    assert pos.target_utils.get_subsystems_list() == True
+
+    array_list = list(pos.cli.array_dict.keys())
+    for item in range(len(array_list)):
+        list_array_obj.append(
+            array(
+                array_name=array_list[item],
+                data_dict=data_dict,
+                cli_history=pos.cli.cli_history,
             )
-            list_array_obj[item].subsystem = pos.target_utils.ss_temp_list
-            list_array_obj[item].func["param"]["pre_write"] = True
+        )
+        list_array_obj[item].subsystem = pos.target_utils.ss_temp_list
+        list_array_obj[item].func["param"]["pre_write"] = True
+
 
 @pytest.mark.parametrize("num_array", [1, 2])
 def test_array_states(num_array):
@@ -96,9 +98,9 @@ def test_array_states(num_array):
         logger.info(
             "#################################################################################################"
         )
-        pos_setup(pos,num_array, list_array_obj, data_dict)
+        pos_setup(pos, num_array, list_array_obj, data_dict)
         # step ::1 : setup envirenment for POS
-        
+
         # step ::2 : time setup
         start_time = time.time()
         run_time = int(config_dict["test_ArrayStates"]["runtime"])
@@ -107,7 +109,7 @@ def test_array_states(num_array):
 
         # step ::3 : run fio
         run_io(pos, fio_command=fio_command)
-        
+
         while True:
             logger.info(
                 "#################################################################################################"

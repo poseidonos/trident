@@ -35,7 +35,7 @@ def teardown_function():
     for vol_name in pos.cli.vols:
         assert pos.cli.reset_volume_policy_qos(vol_name, array_name)[0] == True
         assert pos.cli.delete_volume(vol_name, array_name)[0] == True
-            
+
     logger.info("==========================================")
 
 
@@ -43,31 +43,33 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
+
 # List of maxiops and maxbw
 
 qos_tests = {}
 # negative and decimals values for bandwidth
-qos_tests["t0"] = {"iops_bw": [(0, -1.0), (0, 5.5), (0, 15.5)],   "result":False}  
-# bandwidth values-1=9 and any iops  
-qos_tests["t1"] = {"iops_bw": [(0, 9), (10, 9), (100, 9)],      "result":False}
-# bandwidth=2^64-1 and iops 0, 10 
-qos_tests["t2"] = {"iops_bw": [(0, 2^64-1), (10, 2^64-1)],      "result":True }
-# bandwidth value=10 and any iops values       
-qos_tests["t3"] = {"iops_bw": [(0, 10), (10, 10), (100, 10)],   "result":True }
+qos_tests["t0"] = {"iops_bw": [(0, -1.0), (0, 5.5), (0, 15.5)], "result": False}
+# bandwidth values-1=9 and any iops
+qos_tests["t1"] = {"iops_bw": [(0, 9), (10, 9), (100, 9)], "result": False}
+# bandwidth=2^64-1 and iops 0, 10
+qos_tests["t2"] = {"iops_bw": [(0, 2 ^ 64 - 1), (10, 2 ^ 64 - 1)], "result": True}
+# bandwidth value=10 and any iops values
+qos_tests["t3"] = {"iops_bw": [(0, 10), (10, 10), (100, 10)], "result": True}
 # 0 iops and any maxbw values
-qos_tests["t4"] = {"iops_bw": [(0, 15), (0, 100), (0, 1024)],   "result":True}  
+qos_tests["t4"] = {"iops_bw": [(0, 15), (0, 100), (0, 1024)], "result": True}
 # negative and decimals values for iops
-qos_tests["t5"] = {"iops_bw": [(-1.0, 0), (5.5, 0), (15.5, 10)],  "result":False}
-# maxiops values-1=9 and maxbw values 
-qos_tests["t6"] = {"iops_bw": [(9, 0), (9, 10), (9, 1024)],     "result":False}
-# maxiops values=2^64-1  and maxbw 10     
-qos_tests["t7"] = {"iops_bw": [(2^64-1, 0), (2^64-1, 10)],      "result":True }  
- # maxiops values=10  and maxbw values     
-qos_tests["t8"] = {"iops_bw": [(10, 0), (10, 10), (10, 1024)],  "result":True }
+qos_tests["t5"] = {"iops_bw": [(-1.0, 0), (5.5, 0), (15.5, 10)], "result": False}
+# maxiops values-1=9 and maxbw values
+qos_tests["t6"] = {"iops_bw": [(9, 0), (9, 10), (9, 1024)], "result": False}
+# maxiops values=2^64-1  and maxbw 10
+qos_tests["t7"] = {"iops_bw": [(2 ^ 64 - 1, 0), (2 ^ 64 - 1, 10)], "result": True}
+# maxiops values=10  and maxbw values
+qos_tests["t8"] = {"iops_bw": [(10, 0), (10, 10), (10, 1024)], "result": True}
 # maxiops and maxbw values using
-qos_tests["t9"] = {"iops_bw": [(15, 15), (1024, 1024), (100, 100)], "result":True}   
+qos_tests["t9"] = {"iops_bw": [(15, 15), (1024, 1024), (100, 100)], "result": True}
 
 qos_test_list = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"]
+
 
 @pytest.mark.regression
 @pytest.mark.parametrize("qos_test", qos_test_list)
@@ -79,15 +81,21 @@ def test_qos_maxiops_maxbw_value(qos_test):
         qos_values = qos_tests[qos_test]["iops_bw"]
         exp_result = qos_tests[qos_test]["result"]
 
-        assert pos.cli.create_volume(vol_name, '10GB', array_name)[0] == True
+        assert pos.cli.create_volume(vol_name, "10GB", array_name)[0] == True
 
-        for max_iops,max_bw in qos_values:
-            assert pos.cli.create_volume_policy_qos(
-                vol_name, array_name, max_iops, max_bw)[0] == exp_result 
-            
+        for max_iops, max_bw in qos_values:
+            assert (
+                pos.cli.create_volume_policy_qos(
+                    vol_name, array_name, max_iops, max_bw
+                )[0]
+                == exp_result
+            )
+
             if exp_result:
-                assert pos.cli.info_volume(
-                    array_name=array_name, vol_name=vol_name)[0] == True
+                assert (
+                    pos.cli.info_volume(array_name=array_name, vol_name=vol_name)[0]
+                    == True
+                )
 
                 vol_info = pos.cli.volume_info[array_name][vol_name]
                 assert vol_info["max_iops"] == max_iops
@@ -106,7 +114,7 @@ qos_iops_bw_res = [
     (0, 100, True),
     (100, 9, False),
     (9, 100, False),
-    (100, 2^64-1, True),
+    (100, 2 ^ 64 - 1, True),
     (100, 18446744073709551615, False),
     (18446744073709551615, 100, False),
     (100, 17592186044415, True),
@@ -116,21 +124,26 @@ qos_iops_bw_res = [
     (100, 10, True),
 ]
 
+
 @pytest.mark.regression
 @pytest.mark.parametrize("max_iops, max_bw, exp_result", qos_iops_bw_res)
 def test_vol_create_with_qos_value(max_iops, max_bw, exp_result):
     logger.info(
-        f" ================== Test : test_vol_create_with_qos_value"\
+        f" ================== Test : test_vol_create_with_qos_value"
         f"[{max_iops}-{max_bw}-{exp_result}] ===================== "
     )
     try:
-        assert pos.cli.create_volume(
-            vol_name, '10GB', array_name, iops=max_iops, bw=max_bw
-        )[0] == exp_result
+        assert (
+            pos.cli.create_volume(
+                vol_name, "10GB", array_name, iops=max_iops, bw=max_bw
+            )[0]
+            == exp_result
+        )
 
         if exp_result:
-            assert pos.cli.info_volume(
-                array_name=array_name, vol_name=vol_name)[0] == True
+            assert (
+                pos.cli.info_volume(array_name=array_name, vol_name=vol_name)[0] == True
+            )
 
             vol_info = pos.cli.volume_info[array_name][vol_name]
             assert vol_info["max_iops"] == max_iops

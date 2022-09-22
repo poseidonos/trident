@@ -13,14 +13,15 @@ logger = logger.get_logger(__name__)
 @pytest.fixture(scope="session", autouse=True)
 def setup_module():
 
-    global pos, data_dict , array_name
+    global pos, data_dict, array_name
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
-    data_dict['array']['num_array'] = 1
-    data_dict['volume']['phase'] = "false"
+    data_dict["array"]["num_array"] = 1
+    data_dict["volume"]["phase"] = "false"
     array_name = data_dict["array"]["pos_array"][0]["array_name"]
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
+
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
@@ -41,13 +42,22 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
+
 @pytest.mark.regression
 def test_get_default_gc_threshold_value():
-    logger.info(" ==================== Test : test_get_default_gc_threshold_value ================== ")
+    logger.info(
+        " ==================== Test : test_get_default_gc_threshold_value ================== "
+    )
     try:
-        status =  pos.cli.wbt_get_gc_threshold(array_name=array_name)
+        status = pos.cli.wbt_get_gc_threshold(array_name=array_name)
         assert status[0] == True
-        if (status[1]["output"]["Response"]["result"]["data"]["gc_threshold"]["normal"] == 20) and (status[1]["output"]["Response"]["result"]["data"]["gc_threshold"]["urgent"] == 5):
+        if (
+            status[1]["output"]["Response"]["result"]["data"]["gc_threshold"]["normal"]
+            == 20
+        ) and (
+            status[1]["output"]["Response"]["result"]["data"]["gc_threshold"]["urgent"]
+            == 5
+        ):
             logger.info("As expected default gc value is met")
         else:
             assert 0
@@ -57,6 +67,7 @@ def test_get_default_gc_threshold_value():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
 
 @pytest.mark.regression
 def test_gc_delete_array():
@@ -85,6 +96,7 @@ def test_gc_delete_array():
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 @pytest.mark.regression
 def test_gc_status():
     logger.info(" ==================== Test : test_gc_status ================== ")
@@ -97,4 +109,3 @@ def test_gc_status():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
-

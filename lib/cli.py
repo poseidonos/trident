@@ -90,7 +90,7 @@ class Cli:
 
             while time.time() < run_end_time:
                 listout = self.ssh_obj.execute(cmd, get_pty=True)
-                
+
                 elapsed_time_secs = time.time() - start_time
                 logger.info(
                     "Command execution completed in : {} secs".format(
@@ -98,8 +98,8 @@ class Cli:
                     )
                 )
                 out = "".join(listout)
-                if "volume mount" in cmd :
-                        out = listout[1] if len(listout) > 1 else "".join(listout)
+                if "volume mount" in cmd:
+                    out = listout[1] if len(listout) > 1 else "".join(listout)
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
                         "POS is not running! Please start POS and try again!"
@@ -114,21 +114,26 @@ class Cli:
                 elif "Receiving error" in out:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
-                elif "PoseidonOS may be processing a command. Please try after a while." in out:
+                elif (
+                    "PoseidonOS may be processing a command. Please try after a while."
+                    in out
+                ):
                     retry_cnt += 1
                     time.sleep(5)
-                    logger.warn("PoseidonOS may be processing a command. Please try after a while")
+                    logger.warn(
+                        "PoseidonOS may be processing a command. Please try after a while"
+                    )
                     continue
                 else:
                     parse_out = self.parse_out(out, cmd)
                     self.add_cli_history(parse_out)
                     break
-         
+
             if parse_out["status_code"] == 0:
-               return True, parse_out
-               
+                return True, parse_out
+
             else:
-                    return False, parse_out
+                return False, parse_out
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None
@@ -146,7 +151,7 @@ class Cli:
         return True
 
     def parse_out(self, jsonout, command):
-        
+
         out = json.loads(jsonout)
         command = command
         if "param" in out.keys():
@@ -190,7 +195,7 @@ class Cli:
                 logger.info(out)
             else:
                 pass
-    
+
     #####################################################system################################
     def start_system(self) -> (bool, dict()):
         """
@@ -214,12 +219,12 @@ class Cli:
                     return False, out
 
             """
-            
+
             # to use the CLI to start the
             cli_error, jout = self.run_cli_command("start", command_type="system")
             if cli_error == True:
-              return True, jout
-              
+                return True, jout
+
         except Exception as e:
             logger.error(f"failed due to {jout}")
             return False, jout
@@ -291,7 +296,7 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="system")
             if cli_error == True:
                 return True, jout
-                
+
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
@@ -305,10 +310,10 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="system")
             if cli_error == True:
                 return True, jout
-            
+
             else:
-                    raise Exception(jout["description"])
-           
+                raise Exception(jout["description"])
+
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
@@ -374,7 +379,11 @@ class Cli:
                 write_buffer, data, self.array_name
             )
 
-            if len(spare) > 0 and raid_type.lower() != "no-raid" and raid_type.lower() !=  "raid0":
+            if (
+                len(spare) > 0
+                and raid_type.lower() != "no-raid"
+                and raid_type.lower() != "raid0"
+            ):
                 spare = spare[0] if len(spare) == 0 else ",".join(spare)
                 cmd += f" --spare {spare}"
             if raid_type != "no-raid":
@@ -383,7 +392,7 @@ class Cli:
                 cmd += " --no-raid"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-               return True, jout
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -434,7 +443,6 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
-
 
     def reset_devel(self) -> (bool, dict()):
         """
@@ -568,7 +576,7 @@ class Cli:
             cmd = "rmspare -s {} -a {}".format(device_name, array_name)
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                return True,out
+                return True, out
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -596,12 +604,16 @@ class Cli:
         try:
             if array_name != None:
                 self.array_name = array_name
-            
+
             cmd = "autocreate --array-name {} --buffer {} --num-data-devs {}".format(
                 self.array_name, buffer_name, num_data
             )
 
-            if int(num_spare) > 0 and raid.lower() != "no-raid" and raid.lower() !=  "raid0":
+            if (
+                int(num_spare) > 0
+                and raid.lower() != "no-raid"
+                and raid.lower() != "raid0"
+            ):
                 cmd += f" --num-spare {num_spare} "
             if raid != "no-raid":
                 cmd += f" --raid {raid}"
@@ -684,52 +696,52 @@ class Cli:
             self.dev_type = {"NVRAM": [], "SSD": []}
 
             if cli_error == True:
-                
+
                 if out["description"].lower() == "no any device exists":
-                        logger.info("No devices listed")
-                        return True, out, devices, self.device_map, self.dev_type
+                    logger.info("No devices listed")
+                    return True, out, devices, self.device_map, self.dev_type
                 if "data" in out:
-                        dev = out["data"]["devicelist"]
-                        for device in dev:
-                            devices.append(device["name"])
-                            dev_map = {
-                                "name": device["name"],
-                                "addr": device["addr"],
-                                "mn": device["mn"],
-                                "sn": device["sn"],
-                                "size": device["size"],
-                                "type": device["type"],
-                                "class": device["class"],
-                                "numa": device["numa"],
-                            }
-                            if dev_map["type"] in self.dev_type.keys():
-                                self.dev_type[dev_map["type"]].append(dev_map["name"])
-                                self.device_map.update({device["name"]: dev_map})
+                    dev = out["data"]["devicelist"]
+                    for device in dev:
+                        devices.append(device["name"])
+                        dev_map = {
+                            "name": device["name"],
+                            "addr": device["addr"],
+                            "mn": device["mn"],
+                            "sn": device["sn"],
+                            "size": device["size"],
+                            "type": device["type"],
+                            "class": device["class"],
+                            "numa": device["numa"],
+                        }
+                        if dev_map["type"] in self.dev_type.keys():
+                            self.dev_type[dev_map["type"]].append(dev_map["name"])
+                            self.device_map.update({device["name"]: dev_map})
 
                 self.NVMe_BDF = self.device_map
 
                 self.system_disks = [
-                            item
-                            for item in self.device_map
-                            if self.device_map[item]["class"].lower() == "system"
-                            and self.device_map[item]["type"].lower() == "ssd"
-                        ]
+                    item
+                    for item in self.device_map
+                    if self.device_map[item]["class"].lower() == "system"
+                    and self.device_map[item]["type"].lower() == "ssd"
+                ]
 
                 self.array_disks = [
-                            item
-                            for item in self.device_map
-                            if self.device_map[item]["class"].lower() == "array"
-                            and self.device_map[item]["type"].lower() == "ssd"
-                        ]
+                    item
+                    for item in self.device_map
+                    if self.device_map[item]["class"].lower() == "array"
+                    and self.device_map[item]["type"].lower() == "ssd"
+                ]
 
                 return (True, out)
             else:
                 raise Exception(
-                        "list dev command failed with status code {}".format(
-                            out["status_code"]
-                        )
+                    "list dev command failed with status code {}".format(
+                        out["status_code"]
                     )
-           
+                )
+
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False, None, None, None, None
@@ -781,7 +793,7 @@ class Cli:
             cmd = "set-level --level {}".format(level)
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
             if cli_error == True:
-               return True, jout
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:

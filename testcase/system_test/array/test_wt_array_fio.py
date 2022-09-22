@@ -7,31 +7,37 @@ from array_test_common import *
 
 logger = logging.get_logger(__name__)
 
+
 @pytest.mark.regression
 @pytest.mark.parametrize(
     "raid_type, nr_data_drives",
     [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
 )
-def test_wt_array_block_file_FIO(setup_cleanup_array_function, raid_type, nr_data_drives):
+def test_wt_array_block_file_FIO(
+    setup_cleanup_array_function, raid_type, nr_data_drives
+):
     logger.info(
         " ==================== Test : test_wt_array_block_file_FIO ================== "
     )
     try:
         mount_point = None
         pos = setup_cleanup_array_function
-        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
 
         assert wt_array_setup(pos, raid_type, nr_data_drives, 0) == True
 
         num_vols = 256
         array_size = int(pos.cli.array_info[array_name].get("size"))
-        vol_size = f"{int(array_size // (1024 * 1024) / num_vols)}mb"  # Volume Size in MB
+        vol_size = (
+            f"{int(array_size // (1024 * 1024) / num_vols)}mb"  # Volume Size in MB
+        )
         io_size = f"{int((array_size * 0.9) // (1024 * 1024) / num_vols)}mb"  # FIO IO size in MB
 
         assert (
             pos.target_utils.create_volume_multiple(
                 array_name, num_vols, "pos_vol", size=vol_size
-            ) == True
+            )
+            == True
         )
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
@@ -111,14 +117,16 @@ def test_wt_array_block_file_FIO(setup_cleanup_array_function, raid_type, nr_dat
     [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
 )
 @pytest.mark.parametrize("io_type", ["block", "xfs", "ext4"])
-def test_wt_array_one_hour_FIO(setup_cleanup_array_function, raid_type, nr_data_drives, io_type):
+def test_wt_array_one_hour_FIO(
+    setup_cleanup_array_function, raid_type, nr_data_drives, io_type
+):
     logger.info(
         " ==================== Test : test_wt_array_xfs_file_FIO ================== "
     )
     try:
         mount_point = None
         pos = setup_cleanup_array_function
-        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
 
         assert wt_array_setup(pos, raid_type, nr_data_drives, 0) == True
 
@@ -203,7 +211,7 @@ def test_wt_array_block_IO(setup_cleanup_array_function, raid_type, nr_data_driv
     )
     try:
         pos = setup_cleanup_array_function
-        array_name = pos.data_dict['array']['pos_array'][0]["array_name"]
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
 
         assert wt_array_setup(pos, raid_type, nr_data_drives, 0) == True
 

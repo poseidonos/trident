@@ -2,18 +2,33 @@ import pytest
 import random
 from common_libs import *
 import logger
+
 logger = logger.get_logger(__name__)
 
-array1 = [("NO-RAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4),("RAID10",8)]
-array2 = [("NO-RAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4),("RAID10",8)]
+array1 = [
+    ("NO-RAID", 1),
+    ("RAID0", 2),
+    ("RAID5", 3),
+    ("RAID10", 2),
+    ("RAID10", 4),
+    ("RAID10", 8),
+]
+array2 = [
+    ("NO-RAID", 1),
+    ("RAID0", 2),
+    ("RAID5", 3),
+    ("RAID10", 2),
+    ("RAID10", 4),
+    ("RAID10", 8),
+]
 
 
 @pytest.mark.regression
 @pytest.mark.parametrize("io_type", ["block", "file"])
 @pytest.mark.parametrize("array2_raid, array2_num_disk", array2)
 @pytest.mark.parametrize("array1_raid, array1_num_disk", array1)
-def test_wt_multi_array_QOS_FIO(array_fixture,
-    array1_raid, array1_num_disk, array2_raid, array2_num_disk, io_type
+def test_wt_multi_array_QOS_FIO(
+    array_fixture, array1_raid, array1_num_disk, array2_raid, array2_num_disk, io_type
 ):
     """
     Test Multi-Array of same RAID types mounted in WT mode
@@ -26,21 +41,24 @@ def test_wt_multi_array_QOS_FIO(array_fixture,
     )
     try:
         pos = array_fixture
-        pos.data_dict['array']['pos_array'][0]['raid_type'] = array1_raid
-        pos.data_dict['array']['pos_array'][1]['raid_type'] = array2_raid
-        pos.data_dict['array']['pos_array'][0]['write_back'] = random.choice([True, False])
-        pos.data_dict['array']['pos_array'][1]['write_back'] = random.choice([True, False])
-        pos.data_dict['array']['pos_array'][0]['data_device'] = array1_num_disk
-        pos.data_dict['array']['pos_array'][1]['data_device'] = array2_num_disk
-        pos.data_dict['array']['pos_array'][0]['spare_device'] =0
-        pos.data_dict['array']['pos_array'][1]['spare_device'] =0
-        pos.data_dict['volume']['pos_volumes'][0]['num_vol'] = 256
-        pos.data_dict['volume']['pos_volumes'][1]['num_vol'] = 256
-        assert pos.target_utils.bringupArray(data_dict = pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict = pos.data_dict) == True
+        pos.data_dict["array"]["pos_array"][0]["raid_type"] = array1_raid
+        pos.data_dict["array"]["pos_array"][1]["raid_type"] = array2_raid
+        pos.data_dict["array"]["pos_array"][0]["write_back"] = random.choice(
+            [True, False]
+        )
+        pos.data_dict["array"]["pos_array"][1]["write_back"] = random.choice(
+            [True, False]
+        )
+        pos.data_dict["array"]["pos_array"][0]["data_device"] = array1_num_disk
+        pos.data_dict["array"]["pos_array"][1]["data_device"] = array2_num_disk
+        pos.data_dict["array"]["pos_array"][0]["spare_device"] = 0
+        pos.data_dict["array"]["pos_array"][1]["spare_device"] = 0
+        pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 256
+        pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = 256
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         run_io(pos)
         assert pos.client.nvme_list() == True
-       
 
         fio_cmd = f"fio --name=write --ioengine=libaio --rw=write --iodepth=64 \
                     --bs=128k --time_based --runtime=5 --direct=1 --size=256"

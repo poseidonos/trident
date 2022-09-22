@@ -2,7 +2,9 @@ import pytest
 from common_libs import *
 
 import logger
+
 logger = logger.get_logger(__name__)
+
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
@@ -14,30 +16,32 @@ logger = logger.get_logger(__name__)
         ("no-raid", 1, "Spor"),
         ("RAID0", 2, "Spor"),
         ("RAID10", 4, "Spor"),
-        ("RAID10",8,"Spor"),
-        ("RAID10",8,"Npor"),
+        ("RAID10", 8, "Spor"),
+        ("RAID10", 8, "Npor"),
     ],
 )
-def test_wb_wt_array_long_fileIO_Npor_Spor(array_fixture, raid_type, nr_data_drives, por):
+def test_wb_wt_array_long_fileIO_Npor_Spor(
+    array_fixture, raid_type, nr_data_drives, por
+):
 
     logger.info(
         " ==================== Test : test_wb_wt_array_long_fileIO_Npor_Spor ================== "
     )
     try:
         pos = array_fixture
-        pos.data_dict['array']['pos_array'][0]['raid_type'] = raid_type
-        pos.data_dict['array']['pos_array'][1]['raid_type'] = raid_type
-        pos.data_dict['array']['pos_array'][0]['data_device'] = nr_data_drives
-        pos.data_dict['array']['pos_array'][1]['data_device'] = nr_data_drives
-        pos.data_dict['volume']['pos_volumes'][0]['num_vol'] = 1
-        pos.data_dict['volume']['pos_volumes'][1]['num_vol'] = 1
-        pos.data_dict['volume']["pos_volumes"][0]["size"] = "200gb"
-        
+        pos.data_dict["array"]["pos_array"][0]["raid_type"] = raid_type
+        pos.data_dict["array"]["pos_array"][1]["raid_type"] = raid_type
+        pos.data_dict["array"]["pos_array"][0]["data_device"] = nr_data_drives
+        pos.data_dict["array"]["pos_array"][1]["data_device"] = nr_data_drives
+        pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 1
+        pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = 1
+        pos.data_dict["volume"]["pos_volumes"][0]["size"] = "200gb"
+
         logger.info("configuring POS as per TC req")
-        assert pos.target_utils.bringupArray(data_dict = pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict = pos.data_dict) == True
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         run_io(pos)
-        
+
         dev = [pos.client.nvme_list_out[0]]
 
         assert pos.client.create_File_system(dev, fs_format="xfs")
@@ -58,7 +62,6 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(array_fixture, raid_type, nr_data_dri
         else:
             assert pos.target_utils.Spor(uram_backup=True) == True
 
-        
         logger.info(
             " ============================= Test ENDs ======================================"
         )

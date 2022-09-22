@@ -309,9 +309,13 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    def get_hetero_device(self, data_device_config: dict, 
-                          spare_device_config: dict=None,
-                          scan_device=False, list_device=True) -> bool:
+    def get_hetero_device(
+        self,
+        data_device_config: dict,
+        spare_device_config: dict = None,
+        scan_device=False,
+        list_device=True,
+    ) -> bool:
         """
         Method to create array using hetero devices
         data_device_config: {dev_size: num_dev; '20GiB': 1}
@@ -330,9 +334,11 @@ class TargetUtils:
 
         scan_device = self.cli.NVMe_BDF
 
-        res, devices = self.helper.select_hetro_devices(devices=scan_device,
-                                            data_dev_select=data_device_config,
-                                            spare_dev_select=spare_device_config)
+        res, devices = self.helper.select_hetro_devices(
+            devices=scan_device,
+            data_dev_select=data_device_config,
+            spare_dev_select=spare_device_config,
+        )
 
         if res == False:
             logger.error("Failed to select required hetero data device")
@@ -355,7 +361,6 @@ class TargetUtils:
         self.data_drives = devices["data_dev_list"]
         self.spare_drives = devices["spare_dev_list"]
         return True
-
 
     def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
         """
@@ -506,9 +511,12 @@ class TargetUtils:
         Returns:
             bool
         """
-        
+
         for vol in volume_list:
-            assert self.cli.mount_volume(volumename=vol, array_name=array_name,nqn = nqn)[0] == True
+            assert (
+                self.cli.mount_volume(volumename=vol, array_name=array_name, nqn=nqn)[0]
+                == True
+            )
         return True
 
     def create_subsystems_multiple(
@@ -598,178 +606,198 @@ class TargetUtils:
         except Exception as e:
             logger.error(e)
             return False
-    def bringupSystem(self,data_dict: dict ) -> bool:
+
+    def bringupSystem(self, data_dict: dict) -> bool:
         """method to bringup system phase"""
 
         self.setup_max_map_count()
         self.udev_install()
         self.static_dict = data_dict
-                   ###system config
+        ###system config
         if self.static_dict["system"]["phase"] == "true":
-                assert self.cli.start_system()[0] == True
-                assert self.cli.create_transport_subsystem()[0] == True
+            assert self.cli.start_system()[0] == True
+            assert self.cli.create_transport_subsystem()[0] == True
         return True
 
-    def bringupDevice(self, data_dict:dict) -> bool:
+    def bringupDevice(self, data_dict: dict) -> bool:
         """method to bringup device"""
         self.static_dict = data_dict
         if self.static_dict["device"]["phase"] == "true":
-                device_list = self.static_dict["device"]["uram"]
-                for uram in device_list:
-                    assert (
-                        self.cli.create_device(
-                            uram_name=uram["uram_name"],
-                            bufer_size=uram["bufer_size"],
-                            strip_size=uram["strip_size"],
-                            numa=uram["numa_node"],
-                        )[0]
-                        == True
-                    )
+            device_list = self.static_dict["device"]["uram"]
+            for uram in device_list:
+                assert (
+                    self.cli.create_device(
+                        uram_name=uram["uram_name"],
+                        bufer_size=uram["bufer_size"],
+                        strip_size=uram["strip_size"],
+                        numa=uram["numa_node"],
+                    )[0]
+                    == True
+                )
 
-                assert self.cli.scan_device()[0] == True
-                assert self.cli.list_device()[0] == True
+            assert self.cli.scan_device()[0] == True
+            assert self.cli.list_device()[0] == True
         return True
 
-    def bringupSubsystem(self, data_dict:dict) -> bool:
+    def bringupSubsystem(self, data_dict: dict) -> bool:
         """method to bringup subsystem"""
         self.static_dict = data_dict
         if self.static_dict["subsystem"]["phase"] == "true":
-                ss = self.static_dict["subsystem"]
-                for ssinfo in ss["pos_subsystems"]:
-                    assert (self.create_subsystems_multiple(ssinfo["nr_subsystems"], base_name=ssinfo["base_nqn_name"], ns_count=ssinfo["ns_count"],serial_number=ssinfo["serial_number"],
+            ss = self.static_dict["subsystem"]
+            for ssinfo in ss["pos_subsystems"]:
+                assert (
+                    self.create_subsystems_multiple(
+                        ssinfo["nr_subsystems"],
+                        base_name=ssinfo["base_nqn_name"],
+                        ns_count=ssinfo["ns_count"],
+                        serial_number=ssinfo["serial_number"],
                         model_name=ssinfo["model_name"],
                     )
                     == True
                 )
 
-                assert self.get_subsystems_list() == True
+            assert self.get_subsystems_list() == True
 
-                for subsystem in self.ss_temp_list:
+            for subsystem in self.ss_temp_list:
+                assert (
+                    self.cli.add_listner_subsystem(
+                        subsystem, self.helper.ip_addr[0], "1158"
+                    )[0]
+                    == True
+                )
+        return True
+
+    def bringupArray(self, data_dict: dict) -> bool:
+        """method to bringup array"""
+        self.static_dict = data_dict
+        if self.static_dict["array"]["phase"] == "true":
+            assert self.cli.reset_devel()[0] == True
+            assert self.cli.list_device()[0] == True
+            system_disks = self.cli.system_disks
+
+            pos_array_list = self.static_dict["array"]["pos_array"]
+            nr_pos_array = self.static_dict["array"]["num_array"]
+            if nr_pos_array != len(pos_array_list):
+                logger.warning("JSON file data is inconsistent. POS bringup may fail.")
+
+            for array_index in range(nr_pos_array):
+                array = pos_array_list[array_index]
+                array_name = array["array_name"]
+                nr_data_drives = array["data_device"]
+                nr_spare_drives = array["spare_device"]
+
+                if len(system_disks) < (nr_data_drives + nr_spare_drives):
+                    raise Exception(
+                        "Array '{}' insufficient disk count {}. Required minimum {}".format(
+                            array_name,
+                            len(system_disks),
+                            nr_data_drives + nr_spare_drives,
+                        )
+                    )
+
+                if array["auto_create"] == "false":
+                    data_disk_list = [
+                        system_disks.pop(0) for i in range(nr_data_drives)
+                    ]
+                    spare_disk_list = [
+                        system_disks.pop(0) for i in range(nr_spare_drives)
+                    ]
                     assert (
-                        self.cli.add_listner_subsystem(
-                            subsystem, self.helper.ip_addr[0], "1158"
+                        self.cli.create_array(
+                            write_buffer=array["uram"],
+                            data=data_disk_list,
+                            spare=spare_disk_list,
+                            raid_type=array["raid_type"],
+                            array_name=array_name,
+                        )[0]
+                        == True
+                    )
+                else:
+                    assert (
+                        self.cli.autocreate_array(
+                            array["uram"],
+                            nr_data_drives,
+                            array["raid_type"],
+                            array_name=array_name,
+                            num_spare=nr_spare_drives,
+                        )[0]
+                        == True
+                    )
+
+                    assert self.cli.info_array(array_name=array_name)[0] == True
+                    d_dev = set(self.cli.array_info[array_name]["data_list"])
+                    s_dev = set(self.cli.array_info[array_name]["spare_list"])
+                    system_disks = list(set(system_disks) - d_dev.union(s_dev))
+
+                if array["mount"] == "true":
+                    write_back = True
+                    if array["write_back"] == "false":
+                        write_back = False
+                    assert (
+                        self.cli.mount_array(
+                            array_name=array_name, write_back=write_back
                         )[0]
                         == True
                     )
         return True
-    def bringupArray(self, data_dict :dict) -> bool:
-        """method to bringup array"""
+
+    def bringupVolume(self, data_dict: dict) -> bool:
         self.static_dict = data_dict
-        if self.static_dict["array"]["phase"] == "true":
-                assert self.cli.reset_devel()[0] == True
-                assert self.cli.list_device()[0] == True
-                system_disks = self.cli.system_disks
-
-                pos_array_list = self.static_dict["array"]["pos_array"]
-                nr_pos_array = self.static_dict["array"]["num_array"]
-                if nr_pos_array != len(pos_array_list):
-                    logger.warning(
-                        "JSON file data is inconsistent. POS bringup may fail."
+        if self.static_dict["volume"]["phase"] == "true":
+            assert self.cli.list_array()[0] == True
+            if len(list(self.cli.array_dict.keys())) == 2:
+                volumes = self.static_dict["volume"]["pos_volumes"]
+            else:
+                volumes = [self.static_dict["volume"]["pos_volumes"][0]]
+            for vol in volumes:
+                array_name = vol["array_name"]
+                assert self.cli.list_volume(array_name)
+                old_vols = self.cli.vols
+                assert (
+                    self.create_volume_multiple(
+                        array_name,
+                        vol["num_vol"],
+                        vol_name=vol["vol_name_pre"],
+                        size=vol["size"],
                     )
+                    == True
+                )
 
-                for array_index in range(nr_pos_array):
-                    array = pos_array_list[array_index]
-                    array_name = array["array_name"]
-                    nr_data_drives = array["data_device"]
-                    nr_spare_drives = array["spare_device"]
+                if vol["mount"]["phase"]:
+                    assert self.cli.list_volume(array_name)[0] == True
+                    assert self.get_subsystems_list() == True
+                    subsystem_range = vol["mount"]["subsystem_range"]
 
-                    if len(system_disks) < (nr_data_drives + nr_spare_drives):
-                        raise Exception(
-                            "Array '{}' insufficient disk count {}. Required minimum {}".format(
-                                array_name,
-                                len(system_disks),
-                                nr_data_drives + nr_spare_drives,
-                            )
-                        )
-
-                    if array["auto_create"] == "false":
-                        data_disk_list = [
-                            system_disks.pop(0) for i in range(nr_data_drives)
-                        ]
-                        spare_disk_list = [
-                            system_disks.pop(0) for i in range(nr_spare_drives)
-                            ]
+                    numss, numvol = map(int, subsystem_range.split("-"))
+                    nqn_list = [nqn for nqn in self.ss_temp_list if array_name in nqn]
+                    logger.info(f"Number of volumes per Subsystem is {str(numvol)}")
+                    if len(nqn_list) == 1:
                         assert (
-                            self.cli.create_array(
-                                write_buffer=array["uram"],
-                                data=data_disk_list,
-                                spare=spare_disk_list,
-                                raid_type=array["raid_type"],
+                            self.mount_volume_multiple(
                                 array_name=array_name,
-                            )[0]
+                                volume_list=self.cli.vols,
+                                nqn=nqn_list[0],
+                            )
                             == True
                         )
                     else:
-                        assert (
-                            self.cli.autocreate_array(
-                                array["uram"],
-                                nr_data_drives,
-                                array["raid_type"],
-                                array_name=array_name,
-                                num_spare=nr_spare_drives,
-                            )[0]
-                            == True
-                        )
-
-                        assert self.cli.info_array(array_name=array_name)[0] == True
-                        d_dev = set(self.cli.array_info[array_name]["data_list"])
-                        s_dev = set(self.cli.array_info[array_name]["spare_list"])
-                        system_disks = list(set(system_disks) - d_dev.union(s_dev))
-
-                    if array["mount"] == "true":
-                        write_back = True
-                        if array["write_back"] == "false":
-                            write_back = False
-                        assert (
-                            self.cli.mount_array(
-                                array_name=array_name, write_back=write_back
-                            )[0]
-                            == True
-                        )
+                        mountcount = 0
+                        nqn_index = 0
+                        while mountcount < len(self.cli.vols):
+                            nqnname = nqn_list[nqn_index]
+                            volname = self.cli.vols[mountcount]
+                            assert (
+                                self.cli.mount_volume(
+                                    volumename=volname,
+                                    array_name=array_name,
+                                    nqn=nqnname,
+                                )[0]
+                                == True
+                            )
+                            mountcount += 1
+                            if mountcount % numvol == 0:
+                                nqn_index += 1
         return True
-    def bringupVolume(self, data_dict:dict) -> bool:
-        self.static_dict = data_dict
-        if self.static_dict["volume"]["phase"] == "true":
-                assert self.cli.list_array()[0] == True
-                if len(list(self.cli.array_dict.keys())) == 2:
-                    volumes = self.static_dict["volume"]["pos_volumes"]
-                else:
-                    volumes = [self.static_dict["volume"]["pos_volumes"][0]]
-                for vol in volumes:
-                    array_name = vol["array_name"]
-                    assert self.cli.list_volume(array_name)
-                    old_vols = self.cli.vols
-                    assert (
-                        self.create_volume_multiple(
-                            array_name,
-                            vol["num_vol"],
-                            vol_name=vol["vol_name_pre"],
-                            size=vol["size"],
-                        )
-                        == True
-                    )
-
-                    if vol["mount"]["phase"]:
-                        assert self.cli.list_volume(array_name)[0] == True
-                        assert self.get_subsystems_list() == True
-                        subsystem_range = vol["mount"]["subsystem_range"]
-                        
-                        numss, numvol = map(int, subsystem_range.split("-"))
-                        nqn_list = [nqn for nqn in self.ss_temp_list if array_name in nqn]
-                        logger.info(f"Number of volumes per Subsystem is {str(numvol)}")
-                        if len(nqn_list) == 1:
-                            assert self.mount_volume_multiple(array_name=array_name,volume_list= self.cli.vols, nqn=nqn_list[0]) == True
-                        else:
-                            mountcount = 0
-                            nqn_index = 0
-                            while mountcount < len(self.cli.vols):
-                                nqnname = nqn_list[nqn_index]
-                                volname = self.cli.vols[mountcount]
-                                assert self.cli.mount_volume(volumename=volname,array_name=array_name, nqn=nqnname)[0] == True
-                                mountcount += 1
-                                if mountcount % numvol == 0:
-                                    nqn_index += 1
-        return True    
 
     def pos_bring_up(self, data_dict: dict = None) -> bool:
         """
@@ -787,7 +815,7 @@ class TargetUtils:
             assert self.bringupSubsystem(data_dict=self.static_dict) == True
             assert self.bringupArray(data_dict=self.static_dict) == True
             assert self.bringupVolume(data_dict=self.static_dict) == True
-     
+
             return True
         except Exception as e:
             logger.error("POS bring up failed due to {}".format(e))
@@ -1074,29 +1102,30 @@ class TargetUtils:
         except Exception as e:
             logger.error(f"NPOR failed due to {e}")
             return False
+
     def bringupPOR(self, array_list) -> bool:
 
         assert self.cli.start_system()[0] == True
         uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
         for uram in uram_list:
-                assert (
-                    self.cli.create_device(
-                        uram_name=uram, bufer_size="8388608", strip_size="512"
-                    )[0]
-                    == True
-                )
+            assert (
+                self.cli.create_device(
+                    uram_name=uram, bufer_size="8388608", strip_size="512"
+                )[0]
+                == True
+            )
         assert self.cli.scan_device()[0] == True
         assert self.cli.list_array()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
-                logger.info("No POSArray ")
-                return False
+            logger.info("No POSArray ")
+            return False
         else:
-                for array in array_list:
-                    assert self.cli.mount_array(array_name=array)[0] == True
-                    assert self.cli.list_volume(array_name=array)[0] == True
-                    if len(self.cli.vols) == 0:
-                        logger.info("No volumes found")
+            for array in array_list:
+                assert self.cli.mount_array(array_name=array)[0] == True
+                assert self.cli.list_volume(array_name=array)[0] == True
+                if len(self.cli.vols) == 0:
+                    logger.info("No volumes found")
         return True
 
     def Npor(self) -> bool:
@@ -1112,7 +1141,15 @@ class TargetUtils:
 
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in self.ss_temp_list:
-                assert self.cli.create_subsystem(ss,ns_count = "512", serial_number = "POS000000000001", model_name="POS_VOLUME")[0] == True
+                assert (
+                    self.cli.create_subsystem(
+                        ss,
+                        ns_count="512",
+                        serial_number="POS000000000001",
+                        model_name="POS_VOLUME",
+                    )[0]
+                    == True
+                )
                 assert (
                     self.cli.add_listner_subsystem(
                         nqn_name=ss, mellanox_interface=ip_addr, port="1158"
@@ -1130,17 +1167,31 @@ class TargetUtils:
                     else:
                         ss_list = [ss for ss in self.ss_temp_list if array in ss]
                         if len(ss_list) == 1:
-                           assert self.mount_volume_multiple(array_name=array,volume_list= self.cli.vols, nqn=ss_list[0]) == True
+                            assert (
+                                self.mount_volume_multiple(
+                                    array_name=array,
+                                    volume_list=self.cli.vols,
+                                    nqn=ss_list[0],
+                                )
+                                == True
+                            )
                         else:
                             mountcount = 0
                             nqn_index = 0
                             while mountcount < len(self.cli.vols):
-                                             nqnname = ss_list[nqn_index]
-                                             volname = self.cli.vols[mountcount]
-                                             assert self.cli.mount_volume(volumename=volname,array_name=array, nqn=nqnname)[0] == True
-                                             mountcount += 1
-                                             if mountcount % 2 == 0:
-                                                        nqn_index += 1
+                                nqnname = ss_list[nqn_index]
+                                volname = self.cli.vols[mountcount]
+                                assert (
+                                    self.cli.mount_volume(
+                                        volumename=volname,
+                                        array_name=array,
+                                        nqn=nqnname,
+                                    )[0]
+                                    == True
+                                )
+                                mountcount += 1
+                                if mountcount % 2 == 0:
+                                    nqn_index += 1
             else:
                 logger.info("No array found")
             return True
@@ -1148,7 +1199,7 @@ class TargetUtils:
             logger.error(f"NPOR and recovery failed due to {e}")
             return False
 
-    def Spor(self, uram_backup=True,write_through = False) -> bool:
+    def Spor(self, uram_backup=True, write_through=False) -> bool:
         """
         Method to spor
         uram_backup : If true, run script to take uram backup
@@ -1195,7 +1246,15 @@ class TargetUtils:
             # Create subsystem and Add listner
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in subsystem_list:
-                assert self.cli.create_subsystem(ss, ns_count= "1024", serial_number = "POS000000000001", model_name="POS_VOLUME")[0] == True
+                assert (
+                    self.cli.create_subsystem(
+                        ss,
+                        ns_count="1024",
+                        serial_number="POS000000000001",
+                        model_name="POS_VOLUME",
+                    )[0]
+                    == True
+                )
                 assert (
                     self.cli.add_listner_subsystem(
                         nqn_name=ss, mellanox_interface=ip_addr, port="1158"
@@ -1205,7 +1264,10 @@ class TargetUtils:
 
             # Restore Array and Volumes
             for array in array_list:
-                assert self.cli.mount_array(array_name=array,write_back=write_through)[0] == True
+                assert (
+                    self.cli.mount_array(array_name=array, write_back=write_through)[0]
+                    == True
+                )
                 assert self.cli.list_volume(array_name=array)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
@@ -1253,7 +1315,7 @@ class TargetUtils:
 
     def dump_core(self):
         """
-        Method to collect core dump by giving different options depending on 
+        Method to collect core dump by giving different options depending on
         whether poseidonos is running or already creashed.
         """
         try:
@@ -1274,7 +1336,7 @@ class TargetUtils:
 
     def copy_core(self, unique_key, dir="/tmp"):
         """
-        Method to rename the core dump file using unique key and issue key 
+        Method to rename the core dump file using unique key and issue key
         """
         try:
             core_files_dir = "/etc/pos/core/"
@@ -1290,11 +1352,11 @@ class TargetUtils:
 
     def copy_pos_log(self, unique_key, dir="/tmp"):
         """
-        Method to rename the core dump file using unique key and issue key 
+        Method to rename the core dump file using unique key and issue key
         """
-        try:            
+        try:
             pos_log_dir = "/var/log/pos/"
-            
+
             # Zip all log files
             cmd = f"zip -r {dir}/logs_{unique_key}.zip {pos_log_dir}"
 

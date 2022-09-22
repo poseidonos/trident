@@ -15,12 +15,11 @@ def setup_module():
     global pos, data_dict, array_name
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
-    data_dict['array']['num_array'] = 1
-    data_dict['volume']['phase'] = "false"
+    data_dict["array"]["num_array"] = 1
+    data_dict["volume"]["phase"] = "false"
     array_name = data_dict["array"]["pos_array"][0]["array_name"]
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
-
 
 
 def teardown_function():
@@ -42,14 +41,32 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
+
 @pytest.mark.regression
 @pytest.mark.parametrize(
-    "normal,urgent,expected_result1,expected_result2",[(10.5,3.5,True,True),(100000,100000,False,False),(0,0,False,False),(3,10,False,False),("ABC","DEF",False,False),(-3,-3,False,False)]
+    "normal,urgent,expected_result1,expected_result2",
+    [
+        (10.5, 3.5, True, True),
+        (100000, 100000, False, False),
+        (0, 0, False, False),
+        (3, 10, False, False),
+        ("ABC", "DEF", False, False),
+        (-3, -3, False, False),
+    ],
+)
+def test_set_gc_threshold_with_diff_values(
+    normal, urgent, expected_result1, expected_result2
+):
+    logger.info(
+        " ==================== Test : test_set_gc_threshold_with_diff_values ================== "
     )
-def test_set_gc_threshold_with_diff_values(normal,urgent,expected_result1,expected_result2):
-    logger.info(" ==================== Test : test_set_gc_threshold_with_diff_values ================== ")
     try:
-        assert pos.cli.wbt_set_gc_threshold(array_name=array_name, normal=normal , urgent = urgent)[0] == expected_result1
+        assert (
+            pos.cli.wbt_set_gc_threshold(
+                array_name=array_name, normal=normal, urgent=urgent
+            )[0]
+            == expected_result1
+        )
         assert pos.cli.wbt_get_gc_status(array_name=array_name)[0] == expected_result2
         logger.info("As expected set gc failed because urgent is more than normal")
         logger.info(
@@ -59,10 +76,18 @@ def test_set_gc_threshold_with_diff_values(normal,urgent,expected_result1,expect
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 def test_get_gc_without_io():
-    logger.info(" ==================== Test : test_get_gc_without_io ================== ")
+    logger.info(
+        " ==================== Test : test_get_gc_without_io ================== "
+    )
     try:
-        assert pos.cli.create_volume(array_name=array_name, size="200gb", volumename="vol")[0]== True
+        assert (
+            pos.cli.create_volume(
+                array_name=array_name, size="200gb", volumename="vol"
+            )[0]
+            == True
+        )
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
@@ -81,8 +106,11 @@ def test_get_gc_without_io():
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 def test_gc_without_volume():
-    logger.info(" ==================== Test : test_gc_without_volume ================== ")
+    logger.info(
+        " ==================== Test : test_gc_without_volume ================== "
+    )
     try:
         assert pos.cli.wbt_do_gc(array_name=array_name)[0] == False
         logger.info("As expected get gc failed because io is not run")
@@ -92,8 +120,3 @@ def test_gc_without_volume():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
-
-
-
-
-

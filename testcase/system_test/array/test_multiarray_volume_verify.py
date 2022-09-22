@@ -8,6 +8,7 @@ import pprint
 
 from common_multiarray import *
 import logger
+
 logger = logger.get_logger(__name__)
 
 
@@ -24,7 +25,13 @@ def test_multi_create_second_array_with_same_uram(setup_cleanup_array_function):
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
         spare_disk_list = []
-        assert (pos.cli.create_array(write_buffer="uram0",data=data_disk_list,spare=spare_disk_list,raid_type='RAID5',array_name='array2',
+        assert (
+            pos.cli.create_array(
+                write_buffer="uram0",
+                data=data_disk_list,
+                spare=spare_disk_list,
+                raid_type="RAID5",
+                array_name="array2",
             )[0]
             == False
         )
@@ -51,7 +58,13 @@ def test_array_num_drives(setup_cleanup_array_function):
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(10)]
         spare_disk_list = []
-        assert (pos.cli.create_array(write_buffer="uram0",data=data_disk_list,spare=spare_disk_list,raid_type='RAID5',array_name=array_name,
+        assert (
+            pos.cli.create_array(
+                write_buffer="uram0",
+                data=data_disk_list,
+                spare=spare_disk_list,
+                raid_type="RAID5",
+                array_name=array_name,
             )[0]
             == True
         )
@@ -66,6 +79,7 @@ def test_array_num_drives(setup_cleanup_array_function):
         pos.exit_handler(expected=False)
         assert 0
 
+
 @pytest.mark.regression
 def test_unmnt_array_while_io(setup_cleanup_array_function):
     logger.info(
@@ -75,7 +89,12 @@ def test_unmnt_array_while_io(setup_cleanup_array_function):
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert volume_create_and_mount_multiple_with_io(pos ,2,fio_cmd=None,run_async=True) == True
+        assert (
+            volume_create_and_mount_multiple_with_io(
+                pos, 2, fio_cmd=None, run_async=True
+            )
+            == True
+        )
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
@@ -84,20 +103,22 @@ def test_unmnt_array_while_io(setup_cleanup_array_function):
         pos.exit_handler(expected=False)
         assert 0
 
+
 @pytest.mark.regression
 def test_mnt_vol_again(setup_cleanup_array_function):
-    logger.info(
-        " ==================== Test : test_mnt_vol_again ================== "
-    )
+    logger.info(" ==================== Test : test_mnt_vol_again ================== ")
     try:
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert volume_create_and_mount_multiple(pos ,2) == True
+        assert volume_create_and_mount_multiple(pos, 2) == True
         for array_name in pos.cli.array_dict.keys():
             assert pos.cli.list_volume(array_name=array_name)[0] == True
             for vol_name in pos.cli.vols:
-                assert pos.cli.mount_volume(array_name=array_name,volumename=vol_name)[0] == False
+                assert (
+                    pos.cli.mount_volume(array_name=array_name, volumename=vol_name)[0]
+                    == False
+                )
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -105,6 +126,7 @@ def test_mnt_vol_again(setup_cleanup_array_function):
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
         assert 0
+
 
 @pytest.mark.regression
 def test_unmnt_mnt_for_io(setup_cleanup_array_function):
@@ -117,7 +139,12 @@ def test_unmnt_mnt_for_io(setup_cleanup_array_function):
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():
-            assert pos.target_utils.create_volume_multiple(array_name=array_name,num_vol=1,vol_name="vol") == True
+            assert (
+                pos.target_utils.create_volume_multiple(
+                    array_name=array_name, num_vol=1, vol_name="vol"
+                )
+                == True
+            )
         assert pos.cli.list_subsystem()[0] == True
         subs_list = pos.target_utils.ss_temp_list
         ip_addr = pos.target_utils.helper.ip_addr[0]
@@ -129,14 +156,17 @@ def test_unmnt_mnt_for_io(setup_cleanup_array_function):
         for array_name in pos.cli.array_dict.keys():
             assert pos.cli.list_volume(array_name=array_name)[0] == True
             for vol_name in pos.cli.vols:
-                assert pos.cli.mount_volume(array_name=array_name,volumename=vol_name)[0] == True
+                assert (
+                    pos.cli.mount_volume(array_name=array_name, volumename=vol_name)[0]
+                    == True
+                )
 
         for nqn in subs_list:
             assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
         assert pos.client.nvme_list() == True
         device_list = pos.client.nvme_list_out
-        fio_cmd="fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=4k --time_based --runtime=300"
-        fio_user_data=fio_cmd
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=4k --time_based --runtime=300"
+        fio_user_data = fio_cmd
 
         res, async_out = pos.client.fio_generic_runner(
             device_list, fio_user_data=fio_cmd, run_async=False
@@ -146,4 +176,3 @@ def test_unmnt_mnt_for_io(setup_cleanup_array_function):
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
         assert 0
-

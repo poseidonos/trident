@@ -2,14 +2,18 @@ import pytest
 
 import time
 import logger
+
 logger = logger.get_logger(__name__)
+
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
     "raid_type, nr_data_drives",
     [("RAID0", 2), ("RAID5", 3), ("RAID10", 4), ("RAID10", 2), ("no-raid", 1)],
 )
-def test_wt_multi_array_file_IO(setup_cleanup_array_function, raid_type, nr_data_drives):
+def test_wt_multi_array_file_IO(
+    setup_cleanup_array_function, raid_type, nr_data_drives
+):
     """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
     logger.info(
         " ==================== Test : test_wt_multi_array_file_IO ================== "
@@ -125,8 +129,12 @@ def test_wt_multi_array_file_IO(setup_cleanup_array_function, raid_type, nr_data
 
 
 @pytest.mark.regression
-@pytest.mark.parametrize("raid_type, nr_data_drives", [("no-raid", 1), ("RAID5", 3), ("RAID10", 4)])
-def test_wt_multi_array_Block_IO(setup_cleanup_array_function, raid_type, nr_data_drives):
+@pytest.mark.parametrize(
+    "raid_type, nr_data_drives", [("no-raid", 1), ("RAID5", 3), ("RAID10", 4)]
+)
+def test_wt_multi_array_Block_IO(
+    setup_cleanup_array_function, raid_type, nr_data_drives
+):
     """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
     logger.info(
         " ==================== Test : test_wt_multi_array_Block_IO ================== "

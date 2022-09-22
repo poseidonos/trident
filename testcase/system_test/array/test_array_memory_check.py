@@ -5,6 +5,7 @@ import logger
 
 logger = logger.get_logger(__name__)
 
+
 @pytest.mark.regression
 def test_memory_check():
     try:
@@ -13,7 +14,7 @@ def test_memory_check():
         run_time = 12
         end_time = start_time + (60 * run_time)
         logger.info("RunTime is {} minutes".format(run_time))
-        pos.data_dict['array']['num_array'] = 1
+        pos.data_dict["array"]["num_array"] = 1
         while True:
             assert pos.target_utils.pos_bring_up() == True
             assert pos.cli.stop_system()[0] == True
@@ -25,10 +26,11 @@ def test_memory_check():
         pos.exit_handler()
         assert 0
 
+
 def test_memory_noraid():
     try:
         pos = POS()
-        pos.data_dict['array']['num_array'] = 1
+        pos.data_dict["array"]["num_array"] = 1
         assert pos.target_utils.pos_bring_up() == True
         assert pos.cli.stop_system()[0] == True
     except Exception as e:

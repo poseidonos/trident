@@ -1,7 +1,9 @@
 import pytest
 
 import logger
+
 logger = logger.get_logger(__name__)
+
 
 @pytest.mark.regression
 @pytest.mark.parametrize(

@@ -1,6 +1,7 @@
 import pytest
 from array_test_common import *
 import logger
+
 logger = logger.get_logger(__name__)
 
 

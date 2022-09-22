@@ -1,8 +1,8 @@
 import pytest
 
 import logger
-logger = logger.get_logger(__name__)
 
+logger = logger.get_logger(__name__)
 
 
 @pytest.mark.regression

@@ -1,7 +1,9 @@
 import pytest
 
 import logger
+
 logger = logger.get_logger(__name__)
+
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
@@ -12,7 +14,7 @@ def test_wt_array_nvme_flush(setup_cleanup_array_function, raid_type, nr_data_dr
         " ==================== Test : test_wt_array_nvme_flush ================== "
     )
     try:
-        pos = setup_cleanup_array_function 
+        pos = setup_cleanup_array_function
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert pos.cli.reset_devel()[0] == True

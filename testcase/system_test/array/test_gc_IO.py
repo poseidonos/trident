@@ -16,10 +16,11 @@ def setup_module():
     global pos, data_dict
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
-    data_dict['array']['num_array'] = "false"
-    data_dict['volume']['phase'] = "false"
+    data_dict["array"]["num_array"] = "false"
+    data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
+
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
@@ -43,6 +44,7 @@ def teardown_function():
 def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
+
 
 def gc_array_io():
     try:
@@ -70,7 +72,12 @@ def gc_array_io():
             == True
         )
         assert pos.cli.mount_array(array_name=array_name, write_back=True)[0] == True
-        assert pos.cli.create_volume(array_name=array_name, size="2000gb", volumename="vol")[0]== True
+        assert (
+            pos.cli.create_volume(
+                array_name=array_name, size="2000gb", volumename="vol"
+            )[0]
+            == True
+        )
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.list_volume(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
@@ -103,9 +110,7 @@ def gc_array_io():
 
 @pytest.mark.regression
 def test_gc_long_io():
-    logger.info(
-        " ==================== Test : test_gc_diff_bk_size ================== "
-    )
+    logger.info(" ==================== Test : test_gc_diff_bk_size ================== ")
     try:
         assert gc_array_io() == True
         assert pos.client.nvme_list() == True
@@ -126,19 +131,24 @@ def test_gc_long_io():
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 @pytest.mark.regression
 def test_set_gc_while_io():
-    logger.info(
-        " ==================== Test : test_set_gc_while_io ================== "
-    )
+    logger.info(" ==================== Test : test_set_gc_while_io ================== ")
     try:
         assert gc_array_io() == True
         assert pos.client.nvme_list() == True
         dev_list = pos.client.nvme_list_out
-        res, async_out =pos.client.fio_generic_runner(pos.client.nvme_list_out,fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=read --iodepth=64 --direct=1 --numjobs=1 --bs=63k --time_based --runtime=300",run_async=True
-            )
+        res, async_out = pos.client.fio_generic_runner(
+            pos.client.nvme_list_out,
+            fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=read --iodepth=64 --direct=1 --numjobs=1 --bs=63k --time_based --runtime=300",
+            run_async=True,
+        )
         assert res == True
-        assert pos.cli.wbt_set_gc_threshold(array_name=array_name, normal=10 , urgent = 3)[0] == True
+        assert (
+            pos.cli.wbt_set_gc_threshold(array_name=array_name, normal=10, urgent=3)[0]
+            == True
+        )
         assert pos.cli.wbt_get_gc_status(array_name=array_name)[0] == True
 
         # Wait for async FIO completions
@@ -153,11 +163,10 @@ def test_set_gc_while_io():
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
+
 @pytest.mark.regression
 def test_gc_in_loop():
-    logger.info(
-        " ==================== Test : test_set_gc_while_io ================== "
-    )
+    logger.info(" ==================== Test : test_set_gc_while_io ================== ")
     try:
         assert gc_array_io() == True
         assert pos.client.nvme_list() == True
@@ -165,12 +174,18 @@ def test_gc_in_loop():
         assert (
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=read --iodepth=64 --direct=1 --numjobs=1 --bs=63k --time_based --runtime=300",run_async=True
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=read --iodepth=64 --direct=1 --numjobs=1 --bs=63k --time_based --runtime=300",
+                run_async=True,
             )[0]
             == True
         )
         for i in range(10):
-            assert pos.cli.wbt_set_gc_threshold(array_name=array_name, normal=10 , urgent = 3)[0] == True
+            assert (
+                pos.cli.wbt_set_gc_threshold(
+                    array_name=array_name, normal=10, urgent=3
+                )[0]
+                == True
+            )
             assert pos.cli.wbt_get_gc_status(array_name=array_name)[0] == True
         logger.info("As expected gc is running fine")
         logger.info(
@@ -179,4 +194,3 @@ def test_gc_in_loop():
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
-

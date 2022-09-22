@@ -1,6 +1,7 @@
 import pytest
 
 import logger
+
 logger = logger.get_logger(__name__)
 
 
@@ -18,7 +19,9 @@ logger = logger.get_logger(__name__)
         ("RAID10", 2, "Spor"),
     ],
 )
-def test_wt_array_Npor_Spor_nobackup(setup_cleanup_array_function, raid_type, nr_data_drives, por):
+def test_wt_array_Npor_Spor_nobackup(
+    setup_cleanup_array_function, raid_type, nr_data_drives, por
+):
 
     logger.info(
         " ==================== Test : test_wt_array_Npor_Spor_nobackup ================== "
