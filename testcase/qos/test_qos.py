@@ -50,6 +50,7 @@ def test_qos_happy_path(array_fixture):
     except Exception as e:
         logger.error(e)
         pos.exit_handler()
+        assert 0
 
 
 @pytest.mark.sanity
@@ -72,6 +73,7 @@ def test_qos_set_reset(array_fixture, num_vol):
     except Exception as e:
         logger.error(e)
         pos.exit_handler()
+        assert 0
 
 
 @pytest.mark.sanity
@@ -80,6 +82,7 @@ def test_qos_rebuilding_Array(array_fixture):
         pos = array_fixture
         pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 1
         pos.data_dict["array"]["num_array"] = 1
+        pos.data_dict["array"]["pos_array"][0]["spare_device"] = 1
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         run_io(pos)
@@ -93,6 +96,7 @@ def test_qos_rebuilding_Array(array_fixture):
                 )
                 == True
             )
+            assert pos.target_utils.array_rebuild_wait(array_name=array) == True
         assert pos.cli.list_volume(array_name="array1")[0] == True
         for vol in pos.cli.vols:
             assert (
@@ -103,3 +107,4 @@ def test_qos_rebuilding_Array(array_fixture):
     except Exception as e:
         logger.error(e)
         pos.exit_handler()
+        assert 0
