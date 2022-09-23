@@ -46,7 +46,7 @@ from pos import POS
 from utils import Client
 from _pytest.runner import runtestprotocol
 
-global pos
+global pos, method_name
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 trident_config_file = f"{dir_path}/config_files/trident_config.json"
@@ -352,34 +352,29 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
     global pos
     pos = POS()
 
-
-def pos_logs_core_dump(item, nextitem, issuekey):
-    time_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+def pos_logs_core_dump(report, issuekey):
+    time_stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     unique_key = f"{issuekey}_{time_stamp}"
-    reports = runtestprotocol(item, nextitem=nextitem, log=False)
-    for report in reports:
-        if report.when == "call" and report.outcome == "failed":
-            if trident_config_data["dump_pos_core"]["enable"] == "true":
-                assert pos.target_utils.dump_core() == True
-                assert pos.target_utils.copy_core(unique_key) == True
+    if (report.when == 'call' and report.outcome == 'failed'):
+        if trident_config_data["dump_pos_core"]["enable"] == "true":
+            assert pos.target_utils.dump_core() == True
+            assert pos.target_utils.copy_core(unique_key) == True
 
-            if trident_config_data["copy_pos_log"]["test_fail"] == "true":
-                assert pos.target_utils.copy_pos_log(unique_key) == True
+        if trident_config_data["copy_pos_log"]["test_fail"] == "true":
+            assert pos.target_utils.copy_pos_log(unique_key) == True
 
-        elif (
-            report.when == "call"
-            and report.outcome == "passed"
-            and trident_config_data["copy_pos_log"]["test_pass"] == "true"
-        ):
+    elif (report.when == 'call' and report.outcome == 'passed' and
+        trident_config_data["copy_pos_log"]["test_pass"] == "true"):
             assert pos.target_utils.copy_pos_log(unique_key) == True
     return True
 
 
 @pytest.hookimpl(tryfirst=False, hookwrapper=True)
 def pytest_runtest_protocol(item, nextitem):
-
+    global method_name
     driver = item.nodeid.split("::")[0]
     method = item.nodeid.split("::")[1]
+    method_name = method
     try:
         issuekey = mapping_dict[method]
     except:
@@ -407,9 +402,6 @@ def pytest_runtest_protocol(item, nextitem):
         )
     )
 
-    if not pos_logs_core_dump(item, nextitem, method):
-        logger.error("Failed to generate and save the core dump")
-
     logger.info(
         "======================== END OF {} ========================\n".format(method)
     )
@@ -430,6 +422,9 @@ def pytest_runtest_logreport(report):
         elif test_status == "failed":
             logger.info(log_status.format("FAIL"))
 
+    global method_name
+    if not pos_logs_core_dump(report, method_name):
+        logger.error("Failed to generate and save the core dump")
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
