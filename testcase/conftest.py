@@ -244,7 +244,7 @@ def client_tear_down() -> bool:
     if pos.client.ctrlr_list()[1] is not None:
 
         assert unmount_fs() == True
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
+        assert pos.client.nvme_disconnect() == True
     return True
 
 
