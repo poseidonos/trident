@@ -266,9 +266,16 @@ def array_cleanup():
             for array in array_list:
                 assert pos.cli.info_array(array_name=array)[0] == True
                 if pos.cli.array_dict[array].lower() == "mounted":
+                    assert volume_cleanup(array_name=array) == True
                     assert pos.cli.unmount_array(array_name=array)[0] == True
             assert pos.cli.reset_devel()[0] == True
         return True
+def volume_cleanup(array_name):
+    assert pos.cli.list_volume(array_name = array_name)[0] == True
+    if len(pos.cli.vols) > 0:
+        assert pos.target_utils.deleteAllVolumes(array_name = array_name) == True
+    return True
+
 
 @pytest.fixture(scope="function")
 def array_fixture():
