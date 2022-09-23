@@ -1335,7 +1335,7 @@ class TargetUtils:
             logger.error("Command Execution failed because of {}".format(e))
             return False
 
-    def copy_core(self, unique_key, dir="/tmp"):
+    def copy_core(self, unique_key, dir="/root"):
         """
         Method to rename the core dump file using unique key and issue key
         """
@@ -1345,13 +1345,18 @@ class TargetUtils:
             # Zip all core files
             cmd = f"zip -r {dir}/core_{unique_key}.zip {core_files_dir}"
             out = self.ssh_obj.execute(cmd)
-            logger.info(f"Copied core dump file {out}.")
+            if type(out) == list:
+                out = " ".join(out)
+                if "zip: command not found" in out:
+                    logger.warning("ZIP is not installed in system. Skipped core copy")
+                else:
+                    logger.info(f"Copied core dump file {out}.")
             return True
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False
 
-    def copy_pos_log(self, unique_key, dir="/tmp"):
+    def copy_pos_log(self, unique_key, dir="/root"):
         """
         Method to rename the core dump file using unique key and issue key
         """
@@ -1362,7 +1367,12 @@ class TargetUtils:
             cmd = f"zip -r {dir}/logs_{unique_key}.zip {pos_log_dir}"
 
             out = self.ssh_obj.execute(cmd)
-            logger.info(f"POS log file copied {out}")
+            if type(out) == list:
+                out = " ".join(out)
+                if "zip: command not found" in out:
+                    logger.warning("ZIP is not installed in system. Skipped logs copy")
+                else:
+                    logger.info(f"POS log files copied {out}.")
             return True
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
