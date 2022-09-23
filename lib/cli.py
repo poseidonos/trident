@@ -550,17 +550,20 @@ class Cli:
             array_name (str) : name of the array
         """
         try:
-            if array_name != None:
-                self.array_name = array_name
+            
+
+            
+            if array_name == None:
+                array_name = self.array_name
             cmd = "addspare -s {} -a {}".format(device_name, self.array_name)
-            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                return True, out
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
-            logger.error("command execution failed with exception {}".format(e))
-            return False, out
+            logger.error("failed due to {}".format(e))
+            return False, jout
 
     def rmspare_array(self, device_name: str, array_name: str = None) -> (bool, dict()):
         """
