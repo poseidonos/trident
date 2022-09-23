@@ -249,11 +249,11 @@ def client_tear_down() -> bool:
 
 
 def array_tear_down_function():
-    array_list = []
+    
     assert pos.target_utils.helper.check_system_memory() == True
-    assert client_tear_down() == True
+    
     if pos.target_utils.helper.check_pos_exit() == False:
-        array_cleanup()
+        assert array_cleanup() ==True 
         assert pos.target_utils.pci_rescan() == True
         
     return True
@@ -266,14 +266,14 @@ def array_cleanup():
             for array in array_list:
                 assert pos.cli.info_array(array_name=array)[0] == True
                 if pos.cli.array_dict[array].lower() == "mounted":
-                    assert volume_cleanup(array_name=array) == True
+                    assert volume_cleanup(array) == True
                     assert pos.cli.unmount_array(array_name=array)[0] == True
             assert pos.cli.reset_devel()[0] == True
         return True
 def volume_cleanup(array_name):
     assert pos.cli.list_volume(array_name = array_name)[0] == True
     if len(pos.cli.vols) > 0:
-        assert pos.target_utils.deleteAllVolumes(array_name = array_name) == True
+        assert pos.target_utils.deleteAllVolumes(arrayname = array_name) == True
     return True
 
 
@@ -289,6 +289,7 @@ def array_fixture():
     assert check_pos_and_bringup() == True
     yield pos
     logger.info("========== CLEANUP AFTER TEST ==========")
+    assert client_tear_down() == True
     assert array_tear_down_function() == True
     
     session_end_time = datetime.now()

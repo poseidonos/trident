@@ -30,6 +30,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import array
 from datetime import datetime
 import time
 import re
@@ -1284,7 +1285,7 @@ class TargetUtils:
         try:
             assert self.cli.list_array()[0] == True
             if arrayname in list(self.cli.array_dict.keys()):
-                assert self.cli.list_volume()[0] == True
+                assert self.cli.list_volume(array_name=arrayname)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
                     return True
