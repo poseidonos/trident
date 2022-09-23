@@ -128,3 +128,150 @@ def test_raid6_array_disk_fail_random_io(setup_cleanup_array_function, write_mix
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
+@pytest.mark.parametrize("raid_type", ["RAID5", "RAID10"])
+def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
+    """
+    The purpose of this test is to create a RAID6 array with other raid types (RAID5, RAID10)
+    Mounted as WT or WB. Create 16 volumes and run Block IO Mix of Random Write and Read IO.
+    Fail the data disks upto the max fault tolarance, verify IO is working in degraded state.
+    Verification: POS CLI, Fault Tolarance, End to End Data Flow
+    """
+    logger.info(
+        f" ==================== Test : test_raid6_array_max_disk_fail[{raid_type}] ================== "
+    )
+    pos = setup_cleanup_array_function
+    try:
+        num_vols = 16
+        num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
+        arrays_num_disks = (RAID6_MIN_DISKS, num_disk)
+        assert pos.cli.list_device()[0] == True
+        if len(pos.cli.system_disks) < sum(arrays_num_disks):
+            pytest.skip("Less number of data disk")
+
+        assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", raid_type), 
+                                      arrays_num_disks, (0, 0), ("WT", "WB"),
+                                      (False, False)) == True
+        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+
+        assert pos.cli.list_subsystem()[0] == True
+        subs_list = pos.target_utils.ss_temp_list
+
+        assert volume_create_and_mount_multiple(pos, num_vols,
+                                                subs_list=subs_list) == True
+
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for nqn in subs_list:
+            assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+
+        assert pos.client.nvme_list() == True
+        nvme_devs = pos.client.nvme_list_out
+
+        # Run FIO for 30 minutes
+        fio_cmd = f"fio --name=test_seqwrite --ioengine=libaio --rw=write --iodepth=64 --bs=128k "\
+                   "--size=200gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
+
+        # Restart The IO
+        out, async_io = pos.client.fio_generic_runner(nvme_devs,
+                                    fio_user_data=fio_cmd, run_async=True)
+        assert out == True
+
+        logger.info("Wait for 5 minutes before going to disk hot remove")
+        time.sleep(300)
+
+        # Disk Fail on Both Array
+        for pos_array in pos.data_dict["array"]["pos_array"]:
+            array_name = pos_array["array_name"]
+            raid_type = pos_array["raid_type"]
+            num_disk_remove = RAID_MAX_DISK_FAIL_DICT[raid_type]
+
+            if num_disk_remove > 1:
+                disk_remove_interval_list = [(50, 50)]
+            elif num_disk_remove == 1:
+                disk_remove_interval_list = [(50, )]
+            assert array_disks_hot_remove(pos, array_name, disk_remove_interval_list) == True
+
+        # Wait for rebuild to complete in both array
+        for pos_array in pos.data_dict["array"]["pos_array"]:
+            array_name = pos_array["array_name"]
+            assert pos.target_utils.array_rebuild_wait(array_name=array_name) == True
+
+        # Wait for async fio to complete
+        assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=120) == True
+
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+
+def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
+    """
+    The purpose of this test is to create two RAID6 arrays Mounted as WT or WB. Create 16 volumes and
+    run Block IO Mix of Random Write and Read IO. Fail three data disks in different rebuild interval.
+    Verification: POS CLI, Fault Tolarance, End to End Data Flow, No POS Crash
+    """
+    logger.info(
+        f" ==================== Test : test_raid6_array_three_disk_fail_during_io ================== "
+    )
+    pos = setup_cleanup_array_function
+    try:
+        num_vols = 16
+        arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
+        assert pos.cli.list_device()[0] == True
+        if len(pos.cli.system_disks) < sum(arrays_num_disks):
+            pytest.skip("Less number of data disk")
+
+        assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", "RAID6"), 
+                                      arrays_num_disks, (0, 0), ("WT", "WB"),
+                                      (False, False)) == True
+        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+
+        assert pos.cli.list_subsystem()[0] == True
+        subs_list = pos.target_utils.ss_temp_list
+
+        assert volume_create_and_mount_multiple(pos, num_vols,
+                                                subs_list=subs_list) == True
+
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for nqn in subs_list:
+            assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+
+        async_io_list = []
+        for pos_array in pos.data_dict["array"]["pos_array"]:
+            array_name = pos_array["array_name"]
+
+            assert pos.client.nvme_list(str=array_name) == True
+            nvme_devs = pos.client.nvme_list_out
+
+            # Run FIO for 30 minutes
+            fio_cmd = f"fio --name=rand_write --ioengine=libaio --rw=readwrite --iodepth=64 --bs=128k "\
+                    "--size=50gb –numjobs=4 --group_reporting --runtime=1800 --time_based --rwmixread={write_mix_read}"
+
+            # Restart The IO
+            out, async_io = pos.client.fio_generic_runner(nvme_devs,
+                                        fio_user_data=fio_cmd, run_async=True)
+            assert out == True
+
+            async_io_list.append(async_io)
+
+        # Fail three data Disks from Array 1
+        logger.info("Wait for 5 minutes before going to disk hot remove")
+        time.sleep(500)
+
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+
+        disk_remove_interval_list = [(50, 50, 50)]
+        assert array_disks_hot_remove(pos, array_name, disk_remove_interval_list) == True
+
+        # Wait for async fio to complete
+        assert wait_sync_fio([], nvme_devs, None, async_io[1], sleep_time=120) == True
+
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)

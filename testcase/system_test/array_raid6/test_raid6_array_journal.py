@@ -13,6 +13,8 @@ def pos_connection():
 
     yield pos
 
+    
+
     logger.info("========= CLEANUP MODULE ========")
     del pos
 
@@ -57,8 +59,8 @@ def pos_bringup(pos):
 # Num of Volumes, IO (Write, Rand Write, Read, Random Read))
 jouranl_enable = [True, False]
 @pytest.mark.parametrize("jouranl_enable", jouranl_enable)
-@pytest.mark.parametrize("raid_type, num_disk", ARRAY_ALL_RAID_LIST)
-def test_raid6_arrays_journal_enable(journal_setup_cleanup, raid_type, num_disk, jouranl_enable):
+@pytest.mark.parametrize("raid_type", ARRAY_ALL_RAID_LIST)
+def test_raid6_arrays_journal_enable(journal_setup_cleanup, raid_type, jouranl_enable):
     """
     The purpose of this test is to create two arrays and atleast 1 should be RAID 6. 
     Create and mount multiple volumes to each array and utilize its full capacity.  
@@ -66,7 +68,7 @@ def test_raid6_arrays_journal_enable(journal_setup_cleanup, raid_type, num_disk,
     Verification: POS CLI, End to End Data Flow, Data Integrity
     """
     logger.info(
-        f" ==================== Test : test_raid6_arrays_journal_enable_disable[{raid_type}-{num_disk}-{jouranl_enable}] ================== "
+        f" ==================== Test : test_raid6_arrays_journal_enable[{raid_type}-{jouranl_enable}] ================== "
     )
     pos = journal_setup_cleanup
     try:
@@ -76,6 +78,7 @@ def test_raid6_arrays_journal_enable(journal_setup_cleanup, raid_type, num_disk,
         assert pos_bringup(pos) == True
 
         num_vols = 8
+        num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         arrays_num_disks = (RAID6_MIN_DISKS, num_disk)
         assert pos.cli.list_device()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):

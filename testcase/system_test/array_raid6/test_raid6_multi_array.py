@@ -21,7 +21,8 @@ def test_mount_raid6_array_with_all_raids(setup_cleanup_array_function, array_mo
         assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
         
-        for raid_type, num_disk in ARRAY_ALL_RAID_LIST:
+        for raid_type in ARRAY_ALL_RAID_LIST:
+            num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
             arrays_num_disks = (RAID6_MIN_DISKS, num_disk)
 
             if sum(arrays_num_disks) > len(system_disks):
@@ -45,18 +46,19 @@ def test_mount_raid6_array_with_all_raids(setup_cleanup_array_function, array_mo
 
 
 @pytest.mark.regression
-@pytest.mark.parametrize("raid_type, num_disks", ARRAY_ALL_RAID_LIST)
-def test_random_volumes_on_raid6_arrays(setup_cleanup_array_function, raid_type, num_disks):
+@pytest.mark.parametrize("raid_type", ARRAY_ALL_RAID_LIST)
+def test_random_volumes_on_raid6_arrays(setup_cleanup_array_function, raid_type):
     """
     The purpose of this test is to create two array and either should be RAID 6. 
     Create and mount different volumes and utilize its capacity selectly randomally.
     Verification: POS CLI - Array - Create, Mount, and List: Volume - Create, Mount, List
     """
     logger.info(
-        f" ==================== Test : test_random_volumes_on_raid6_array[{raid_type}-{num_disks}] ================== "
+        f" ==================== Test : test_random_volumes_on_raid6_array[{raid_type}] ================== "
     )
     pos = setup_cleanup_array_function
     try:
+        num_disks = RAID_MIN_DISK_REQ_DICT[raid_type]
         arrays_num_disks = (RAID6_MIN_DISKS, num_disks)
         assert pos.cli.list_device()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):

@@ -1,6 +1,5 @@
 import random
 import time
-from unittest import expectedFailure
 import logger
 logger = logger.get_logger(__name__)
 
@@ -9,13 +8,32 @@ RAID0_MIN_DISKS = 2
 RAID5_MIN_DISKS = 3
 RAID6_MIN_DISKS = 4
 RAID10_MIN_DISKS = 2
+
 MAX_VOL_SUPPORTED = 256
 
-ARRAY_ALL_RAID_LIST = [("NORAID", NORAID_MIN_DISKS),
-                       ("RAID0",  RAID0_MIN_DISKS),
-                       ("RAID5", RAID5_MIN_DISKS),
-                       ("RAID6", RAID6_MIN_DISKS),
-                       ("RAID10", RAID10_MIN_DISKS)]
+RAID_MIN_DISK_REQ_DICT = {
+    "NORAID": NORAID_MIN_DISKS,
+    "RAID0":  RAID0_MIN_DISKS,
+    "RAID5":  RAID5_MIN_DISKS,
+    "RAID6":  RAID6_MIN_DISKS,
+    "RAID10": RAID10_MIN_DISKS,
+}
+
+ARRAY_ALL_RAID_LIST = ["NORAID", "RAID0", "RAID5", "RAID6", "RAID10"]
+
+NORAID_MAX_DISK_FAIL = 0
+RAID0_MAX_DISK_FAIL = 0
+RAID5_MAX_DISK_FAIL = 1
+RAID6_MAX_DISK_FAIL = 2
+RAID10_MAX_DISK_FAIL = 1
+
+RAID_MAX_DISK_FAIL_DICT = {
+    "NORAID": NORAID_MAX_DISK_FAIL,
+    "RAID0": RAID0_MAX_DISK_FAIL,
+    "RAID5": RAID5_MAX_DISK_FAIL,
+    "RAID6": RAID6_MAX_DISK_FAIL,
+    "RAID10": RAID10_MAX_DISK_FAIL,
+}
 
 def multi_array_data_setup(data_dict: dict, num_array: int, raid_types: tuple, 
                            num_data_disks: tuple, num_spare_disk: tuple,
@@ -169,7 +187,7 @@ def wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
         logger.error(f"Async FIO Wait Failed due to {e}")
         return False
 
-def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", 
+def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", size='5g',
                         file_mount='xfs', nvme_devs=[], sleep_time=30):
     try:
         mount_point = []
@@ -180,7 +198,7 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block",
 
         if not fio_cmd:
             fio_cmd = f"fio --name=sequential_write --ioengine=libaio --rw=write \
-                    --iodepth=64 --direct=1 --bs=128k --size=1g"
+                    --iodepth=64 --direct=1 --bs=128k --size={size}"
         
         file_io_devs, block_io_devs = get_file_block_devs(nvme_devs, fio_type)
 
@@ -247,7 +265,7 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list):
         logger.error(f"Array data disk hot remove failed due to {e}")
         return False
     
-def vol_connect_and_run_random_io(pos, subs_list, size):
+def vol_connect_and_run_random_io(pos, subs_list, size='20g'):
     try:
         ip_addr = pos.target_utils.helper.ip_addr[0]
         for nqn in subs_list:
@@ -258,8 +276,7 @@ def vol_connect_and_run_random_io(pos, subs_list, size):
 
         logger.info(f"******** Start IO *****************")
 
-        if not fio_cmd:
-            fio_cmd = f"fio --name=test_randwrite --ioengine=libaio --rw=randwrite --iodepth=64 --bs=128k --size={size}"
+        fio_cmd = f"fio --name=test_randwrite --ioengine=libaio --rw=randwrite --iodepth=64 --bs=128k --size={size}"
         assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         logger.info(f"******** IO Completed ********************* ")
