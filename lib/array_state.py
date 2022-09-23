@@ -847,8 +847,8 @@ class _Array(POS):
             status = self.cli.addspare_array(
                 device_name=target_dev, array_name=self.name
             )
-            logger.info(status, self.func["expected"])
-            assert status == self.func["expected"]
+            
+            assert status[0] == self.func["expected"]
 
             if self.func["expected"] == True:
                 assert self.cli.info_array(array_name=self.name)[0] == True

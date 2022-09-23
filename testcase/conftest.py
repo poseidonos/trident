@@ -450,4 +450,13 @@ def pytest_sessionfinish(session):
         "Logs and Html report for executed TCs are present in {}".format(log_path)
     )
     copy_dir(log_path)
-    pos._clearall_objects()
+    try:
+        if pos:
+            if pos.target_utils.helper.check_pos_exit() == True:
+                pos.cli.stop_system(grace_shutdown = False)
+            pos._clearall_objects()
+    except NameError:
+        return "Exiting"
+    logger.info("/n")
+
+
