@@ -5,7 +5,7 @@ import logger
 import pytest
 from collections import OrderedDict
 from lxml import etree
-from subprocess import Popen, PIPE
+import threading
 
 # from hurry.filesize import size
 
@@ -14,6 +14,12 @@ from node import SSHclient
 
 logger = logger.get_logger(__name__)
 
+def threaded(fn):
+    def wrapper(*args, **kwargs):
+        thread = threading.Thread(target=fn, args=args, kwargs=kwargs)
+        thread.start()
+        return thread
+    return wrapper
 
 class EnvTags(SSHclient):
     def __init__(self, item, ip, username, password):
@@ -27,7 +33,7 @@ class EnvTags(SSHclient):
         except Exception as e:
             logger.error("Unable to connect to {} due to {}".format(self.item, e))
             assert 0
-
+    @threaded
     def get_tags(self):
         try:
             logger.info(

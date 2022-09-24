@@ -32,6 +32,7 @@
 import pytest, sys, json, os, shutil
 import uuid
 import traceback
+from time import sleep
 
 from datetime import datetime
 
@@ -333,6 +334,7 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
     logger.info("JIRA_TC_ID : " + issuekey)
     logger.info("################### End Tag - Test Info #####################")
     invent = {}
+    login = list(dict.fromkeys(login))
     for item in login:
         node = [str(item["ip"]), str(item["username"]), str(item["password"])]
         tag = EnvTags(node, item["ip"], item["username"], item["password"])
@@ -343,6 +345,7 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
         else:
             logger.error("No tags received from the node : {}".format(node[0]))
             assert 0
+    sleep(3)
     logger.info("################### Start Tag - System Info #####################")
     for key, value in invent.items():
         value.update({"IP": str(key)})
