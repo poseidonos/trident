@@ -334,7 +334,6 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
     logger.info("JIRA_TC_ID : " + issuekey)
     logger.info("################### End Tag - Test Info #####################")
     invent = {}
-    login = list(dict.fromkeys(login))
     for item in login:
         node = [str(item["ip"]), str(item["username"]), str(item["password"])]
         tag = EnvTags(node, item["ip"], item["username"], item["password"])
