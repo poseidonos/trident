@@ -4,3 +4,4 @@ logs/*
 *.log
 *.pyc
 */.cache/
+testcase/config_files/topology.json

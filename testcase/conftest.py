@@ -255,7 +255,7 @@ def array_tear_down_function():
     
     if pos.target_utils.helper.check_pos_exit() == False:
         assert array_cleanup() ==True 
-        assert pos.target_utils.pci_rescan() == True
+    assert pos.target_utils.re_scan() == True
         
     return True
 def array_cleanup():
@@ -334,7 +334,6 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
     logger.info("JIRA_TC_ID : " + issuekey)
     logger.info("################### End Tag - Test Info #####################")
     invent = {}
-    login = list(dict.fromkeys(login))
     for item in login:
         node = [str(item["ip"]), str(item["username"]), str(item["password"])]
         tag = EnvTags(node, item["ip"], item["username"], item["password"])
@@ -463,6 +462,6 @@ def pytest_sessionfinish(session):
             pos._clearall_objects()
     except NameError:
         return "Exiting"
-    logger.info("/n")
+    logger.info("\n")
 
 

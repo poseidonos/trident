@@ -20,35 +20,35 @@
             "client":
             [
                 {
-                    "ip":"10.0.0.9",
+                    "ip":"10.0.0.6",
                     "username":"root",
                     "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "Data_Ip": "10.0.0.6"
                 },{
-                    "ip":"10.0.0.9",
+                    "ip":"10.0.0.6",
                     "username":"root",
                     "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "Data_Ip": "10.0.0.6"
                 },{
-                    "ip":"10.0.0.9",
+                    "ip":"10.0.0.6",
                     "username":"root",
                     "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "Data_Ip": "10.0.0.6"
+		},{
+                    "ip":"10.0.0.6",
+                    "username":"root",
+                    "password":"siso@123",
+                    "Data_Ip": "10.0.0.6"
                 },{
-                    "ip":"10.0.0.9",
+                    "ip":"10.0.0.6",
                     "username":"root",
                     "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "Data_Ip": "10.0.0.6"
                 },{
-                    "ip":"10.0.0.9",
+                    "ip":"10.0.0.6",
                     "username":"root",
                     "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
-                },{
-                    "ip":"10.0.0.9",
-                    "username":"root",
-                    "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "Data_Ip": "10.0.0.6"
                 }
 
 	    ]

@@ -241,7 +241,11 @@ class TargetUtils:
             logger.error("command execution failed with exception {}".format(e))
             return False, None
         return True, bdf_out
-
+    def re_scan(self):
+        """method to do pci scan with out POS"""
+        re_scan_cmd = "echo 1 > /sys/bus/pci/rescan "
+        self.ssh_obj.execute(re_scan_cmd)
+        return True
     def pci_rescan(self):
         """
         Method to pci rescan
@@ -257,8 +261,7 @@ class TargetUtils:
                 )
             )
 
-            re_scan_cmd = "echo 1 > /sys/bus/pci/rescan "
-            self.ssh_obj.execute(re_scan_cmd)
+            assert self.re_scan() == True
 
             logger.info("scanning the devices after rescan")
             time.sleep(5)  # Adding 5 sec sleep for the sys to get back in normal state
