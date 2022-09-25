@@ -52,13 +52,11 @@ with open("{}/config.json".format(dir_path)) as f:
 
 
 def pos_setup(pos, num_array, list_array_obj, data_dict):
-    pos.target_utils.setup_core_dump()
-    pos.target_utils.setup_max_map_count()
-    pos.target_utils.udev_install()
-    assert pos.target_utils.check_udev_rule() == True
+    
+    
     data_dict["array"]["num_array"] = 2 if num_array == 2 else 1
-    assert pos.target_utils.pos_bring_up(data_dict) == True
-
+    assert pos.target_utils.bringupArray(data_dict = data_dict) == True
+    assert pos.target_utils.bringupVolume(data_dict = data_dict) == True
     assert pos.cli.list_array()[0] == True
     assert pos.target_utils.get_subsystems_list() == True
 
@@ -76,10 +74,10 @@ def pos_setup(pos, num_array, list_array_obj, data_dict):
 
 
 @pytest.mark.parametrize("num_array", [1, 2])
-def test_array_states(num_array):
+def test_array_states(array_fixture,num_array):
     try:
         fio_command = "fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0 "
-        pos = POS()
+        pos = array_fixture
         list_array_obj = []
         # step ::0 : variable initialization
         data_dict = pos.data_dict
