@@ -255,7 +255,7 @@ def array_tear_down_function():
     
     if pos.target_utils.helper.check_pos_exit() == False:
         assert array_cleanup() ==True 
-        assert pos.target_utils.pci_rescan() == True
+    assert pos.target_utils.re_scan() == True
         
     return True
 def array_cleanup():
@@ -462,6 +462,6 @@ def pytest_sessionfinish(session):
             pos._clearall_objects()
     except NameError:
         return "Exiting"
-    logger.info("/n")
+    logger.info("\n")
 
 

@@ -38,6 +38,7 @@ import random
 import json
 import traceback
 import helper
+import threadable_node 
 
 logger = logger.get_logger(__name__)
 
@@ -52,11 +53,12 @@ class Client:
     """
 
     def __init__(self, ssh_obj, client_cleanup: bool = True):
-
+        
         self.ssh_obj = ssh_obj
         self.helper = helper.Helper(ssh_obj)
         self.client_clean = client_cleanup
         self.mount_point = {}
+        logger.info(f"creating client object on {ssh_obj.hostname}")
         if self.client_clean == True:
             self.client_cleanup()
 
@@ -818,17 +820,18 @@ class Client:
             count = 0
             while True:
                 out = self.ctrlr_list()
+                cmd_list = []
                 if out[1] is not None:
                     if len(nqn) != 0:
                         logger.info("Disconnecting Subsystem")
                         for nqn_name in nqn:
-                            cmd = f"nvme disconnect -n {nqn_name}"
-                            self.ssh_obj.execute(cmd)
+                            cmd_list.append(f"nvme disconnect -n {nqn_name}")
+                            
                     else:
                         for ctrlr in out[1]:
-                            cmd = "nvme disconnect -d {}".format(ctrlr)
-                            out = self.ssh_obj.execute(cmd, get_pty=True)
-
+                            cmd_list.append("nvme disconnect -d {}".format(ctrlr))
+                           
+                threadable_node.sync_parallel_run(self.ssh_obj,cmd_list=cmd_list)
                 self.nvme_list()
                 if len(self.nvme_list_out) == 0:
                     logger.info("Nvme disconnect passed")
