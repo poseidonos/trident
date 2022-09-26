@@ -10,7 +10,9 @@
         "enable": "false"
     },
     "code_coverage": {
-        "enable": "true",
-        "config_file": "cce_config.json"
+        "enable": "false",
+        "scope": "session",
+        "config_file": "cce_config.json",
+        "issue_key": "sample_test"
     }
 }
