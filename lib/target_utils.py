@@ -613,9 +613,10 @@ class TargetUtils:
 
     def bringupSystem(self, data_dict: dict) -> bool:
         """method to bringup system phase"""
-
+        self.setup_core_dump()
         self.setup_max_map_count()
         self.udev_install()
+        
         self.static_dict = data_dict
         ###system config
         if self.static_dict["system"]["phase"] == "true":

@@ -11,15 +11,10 @@ import threading
 
 sys.path.insert(0, "../")
 from node import SSHclient
+from threadable_node import *
 
 logger = logger.get_logger(__name__)
 
-def threaded(fn):
-    def wrapper(*args, **kwargs):
-        thread = threading.Thread(target=fn, args=args, kwargs=kwargs)
-        thread.start()
-        return thread
-    return wrapper
 
 class EnvTags(SSHclient):
     def __init__(self, item, ip, username, password):
