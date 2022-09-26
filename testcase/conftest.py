@@ -430,7 +430,8 @@ def pytest_runtest_protocol(item, nextitem):
         )
     )
 
-    if trident_config_data["code_coverage"]["enable"] == "true":
+    if (trident_config_data["code_coverage"]["enable"] == "true" 
+        and trident_config_data["code_coverage"]["scope"] == "function"):
         if issuekey == "No mapping found":
             issuekey = "No_Mapping"
         get_code_coverage_data(issuekey)
@@ -493,6 +494,13 @@ def pytest_sessionfinish(session):
             pos._clearall_objects()
     except NameError:
         return "Exiting"
+    
+    if (trident_config_data["code_coverage"]["enable"] == "true" 
+        and trident_config_data["code_coverage"]["scope"] == "session"):
+
+        issuekey = trident_config_data["issue_key"]
+        get_code_coverage_data(issuekey)
+
     logger.info("\n")
 
 
