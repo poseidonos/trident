@@ -138,6 +138,27 @@ class POS_Config:
             return self.update_config()
 
         return True
+    
+    def rebuild_auto_start(self, auto_start: bool = False, update_now: bool = False) -> bool:
+        rebuild_autostart = self.file_data["rebuild"]["auto_start"]
+        if rebuild_autostart:
+            if auto_start == "true":
+                logger.info("POS Rebuild Auto Start is already enabled.")
+            else:
+                logger.info("Enable POS Rebuild Auto Start")
+                self.file_data["rebuild"]["auto_start"] = "true"
+        else:
+            if rebuild_autostart == "false":
+                logger.info("POS Rebuild Auto Start is already disabled.")
+            else:
+                logger.info("Disable POS Rebuild Auto Start")
+                self.file_data["rebuild"]["auto_start"] = "false"
+
+        if update_now:
+            self.file_modified = True
+            return self.update_config()
+
+        return True
 
 
 if __name__ == "__main__":
