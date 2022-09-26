@@ -7,6 +7,10 @@
         "test_pass": "false" 
     },
     "dump_pos_core": {
-        "enable": "true"
+        "enable": "false"
+    },
+    "code_coverage": {
+        "enable": "true",
+        "config_file": "cce_config.json"
     }
 }
