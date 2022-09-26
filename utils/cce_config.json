@@ -23,7 +23,7 @@
             "password": "passwrd_1"
         },
         "test_covrage_table": "codecoveragetest_1100", 
-        "overall_coverage_table": "overallcodecoverage_1100"
+        "overall_coverage_table": "overallcodecoverage_1102"
     }
 
 }

@@ -153,9 +153,11 @@ class Target(object):
         self.coverage_data[test_id] = coverage_dict
 
     def get_coverage_data_dict(self, test_id):
+        test_id = test_id.upper()
         return self.coverage_data.get(test_id, None)
 
     def generate_coverage(self, test_id, unique_key=None):
+        test_id = test_id.upper()
         if not self.pre_coverage_varified:
             if not self.verify_coverage_pre():
                 logger.error("Target code coverage setup ready.")
@@ -163,6 +165,7 @@ class Target(object):
 
         self._init_coverage_info(test_id, unique_key=unique_key)
         coverage_dict = self.get_coverage_data_dict(test_id)
+        logger.info(f"{coverage_dict}")
 
         cc_out = coverage_dict["lcov_file"]
 
@@ -331,8 +334,8 @@ class Target(object):
         self._delete_file(f"{coverage_overall_dir}.tar.gz")
 
     def __del__(self):
-        print(self.coverage_data.keys())
-        print(self.coverage_data.values())
+        #print(self.coverage_data.keys())
+        #print(self.coverage_data.values())
         if self.ssh_obj:
             # self.ssh_obj.close()
             pass
@@ -380,7 +383,9 @@ class Parser():
             f_out = csv.writer(f_open)
             headers = [
                 "Type",
-                "Coverage-Percentage",
+                "Covered",
+                "Total",
+                "Percent",
             ]
             f_out.writerow(headers)
             for file in os.listdir(coverage_file_path):
@@ -406,9 +411,11 @@ class Parser():
                             d[f_name_list[n]] = new_list[n] + \
                                 [f_percentage_count[n].text]
 
-                    for val in zip(list(d.keys()), list(d.values())):
-                        f_out.writerow(val)
-                        val_list.append(val)
+                    for type, val in d.items():
+                        row_data = [type]
+                        row_data.extend(val)
+                        f_out.writerow(row_data)
+                        val_list.append([type, val])
             f_open.close()
         except Exception as e:
             logger.error(
@@ -419,13 +426,14 @@ class Parser():
 
     @classmethod
     def unzip_tar(cls, tar_file_path):
-        cmd = f"tar -xvf {tar_file_path} -C /tmp"
+        cmd = f"tar -xvf {tar_file_path} -C /tmp/"
         tar_out = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
         (o, e) = tar_out.communicate()
         if e:
             logger.error(
                 f"Failed to unzip file '{tar_file_path}' due to '{e}'")
             return False
+        #logger.info(f"Unzip the tar : {o}")
         return True
 
     @classmethod
@@ -434,16 +442,13 @@ class Parser():
                                      csv_file_path) -> bool:
         if not cls.unzip_tar(tar_file_path):
             return False
-        coverage_loc_path = f"/tmp/{coverage_file_path}/overall_coverage"
+        coverage_loc_path = f"/tmp/{coverage_file_path}"
         try:
-            overall_list = cls.parse_indexfile(
-                coverage_loc_path, csv_file_path)
-            logger.info(f"{overall_list}")
+            return cls.parse_indexfile(coverage_loc_path, csv_file_path)
         except Exception as e:
             logger.info(f"Failed to prepare overall coverage csv. {e}")
             return False
 
-        return True
 
     @classmethod
     def prepare_test_coverage_csv(cls, test_id, tar_file_path,
@@ -452,7 +457,7 @@ class Parser():
         if not cls.unzip_tar(tar_file_path):
             return False
 
-        coverage_loc_path = "{}{}".format("/tmp", coverage_file_path)
+        coverage_loc_path = f"/tmp/{coverage_file_path}"
         headers = ["file_path", "file_name", "func_name",
                    "Hit_count", "coverage", "TC_ID"]
         try:
@@ -509,6 +514,7 @@ class Parser():
                 csv_reader = csv.reader(csv_fp)
 
                 for row in csv_reader:
+                    logger.info(f"{row}")
                     val_list.append(row)
         except Exception as e:
             logger.error(f"Failed to read coverage data due to {e}")
@@ -590,7 +596,7 @@ class DBOperator():
 
         logger.info(f"Creating table {table_name}....")
         query = f"CREATE TABLE {table_name} (Type VARCHAR(25), Hit INT, "\
-                f"Total INT, overage_Percentage NUMERIC(5,2))"
+                f"Total INT, Coverage_Percentage NUMERIC(5,2))"
         if not self.execute_query(query):
             logger.error(f"Failed to create coverage main table {table_name}")
             return False
@@ -606,7 +612,6 @@ class DBOperator():
             query = f"insert into {table_name}(FilePath,FileName,FuncName,HitCount,Coverage,TCId,Version,Inc_Coverage) "\
                     f"values('{val[0]}','{val[1]}','{val[2]}',{val[3]},'{val[4]}','{val[5]}','{version}','{Inc_Coverage}')"
 
-            print(query)
             if not self.execute_query(query):
                 logger.error("Failed to Insert data to databse")
                 return False
@@ -615,14 +620,13 @@ class DBOperator():
             
         return True
 
-    def insert_overall_data(self, val_list, version=None, 
-                    tc_name=None, Inc_Coverage=None) -> bool:
+    def insert_overall_data(self, val_list, version=None) -> bool:
         table_name = self.overall_coverage_table
         for val in val_list:
-            val_pcent = val[1][2].split("%")[0]
+            val_pcent = val[3].split("%")[0]
             if table_name == self.overall_coverage_table:
                 query = f"insert into {table_name}(Type,Hit,Total,Coverage_Percentage) "\
-                        f"values('{val[0]}','{val[1][0]}','{val[1][1]}','{val_pcent}')"
+                        f"values('{val[0]}','{val[1]}','{val[2]}','{val_pcent}')"
 
             """
             elif table_name == self.test_coverage_table:
@@ -630,11 +634,11 @@ class DBOperator():
                         f"values('{val[0]}','{val_pcent}','{tc_name}','{version}','{Inc_Coverage}')"
             """
             if not self.execute_query(query):
-                logger.error(f"Failed to insert data in table {table_name}")
+                logger.error(f"Failed to insert data {val} in table {table_name}")
                 return False
 
-            logger.ingo(f"Data inserted in the table {table_name}")
-            return True
+            logger.info(f"Data {val} inserted in the table {table_name}")
+        return True
                 
     def update_overall_data(self, val_list):
         try:
@@ -675,7 +679,7 @@ class CodeCoverage():
 
         if not abs_path:
             file_dir = os.path.join(os.path.dirname(__file__),
-                                    "../testcase/config_files")
+                                    "../utils")
             file_abs_path = os.path.abspath(file_dir)
             config_file = "{}/{}".format(file_abs_path, config_file)
 
@@ -795,25 +799,27 @@ class CodeCoverage():
         unique_key = test_file_dict["unique_key"]
         local_file_dir = self.config_data["host"]["store_dir"]
 
-        tar_file_path = f"{local_file_dir}/coverage_{jira_id}_{unique_key}.tar"
-        csv_file_path = f"{local_file_dir}/coverage_{jira_id}_{unique_key}.csv"
+        test_coverage = f"coverage_{jira_id}_{unique_key}"
+        tar_file_path = f"{local_file_dir}/{test_coverage}.tar"
+        csv_file_path = f"{local_file_dir}/{test_coverage}.csv"
         
         coverage_file_path = self.coverage_file_path
-        
+        test_coverage_path = f"{coverage_file_path}/{test_coverage}"
         if not self.parser.prepare_test_coverage_csv(jira_id, tar_file_path,
-                                                     coverage_file_path, csv_file_path):
+                                                     test_coverage_path, csv_file_path):
             logger.error("Failed to prepare test coverage csv")
 
         tar_file_path = f"{local_file_dir}/overall_coverage.tar"
         csv_file_path = f"{local_file_dir}/overall_coverage.csv"
 
+        overall_coverage_path = f"{coverage_file_path}/overall_coverage"
         if not self.parser.prepare_overall_coverage_csv(tar_file_path,
-                                    coverage_file_path, csv_file_path):
+                                    overall_coverage_path, csv_file_path):
             logger.error("Failed to prepare overall coverage csv")
 
         return True
 
-    def save_coverage_report(self, jira_id):
+    def save_coverage_report(self, jira_id, version = 0):
         jira_id = jira_id.upper()
         test_file_dict = self.tgt_obj.get_coverage_data_dict(jira_id)
         if not test_file_dict or not test_file_dict["file_transfered"]:
@@ -834,9 +840,8 @@ class CodeCoverage():
             logger.info("Failed to get coverage data from csv file")
             return False
 
-        version = 0
         cov_val.pop(0)
-        if not self.db_oprator.insert_code_coverage_data(cov_val, version):
+        if not self.db_oprator.insert_code_coverage_data(cov_val, version=version):
             logger.error("Failed to insert the code coverage data")
             return False
 
@@ -847,7 +852,8 @@ class CodeCoverage():
             logger.info("Failed to get coverage data from csv file")
             return False
 
-        if not self.db_oprator.insert_overall_data(cov_val):
+        cov_val.pop(0)
+        if not self.db_oprator.insert_overall_data(cov_val, version=version):
             logger.error("Failed to insert the code coverage data")
             return False
 
@@ -866,18 +872,50 @@ if __name__ == '__main__':
 
     # Test execution done
     # Get the code coverge
-    """
+
     assert cc.get_code_coverage(jira_id)
     assert cc.parse_coverage_report(jira_id)
     assert cc.save_coverage_report(jira_id)
     """
+
+    local_file_dir = cc.config_data["host"]["store_dir"]
+    coverage_file_path = cc.coverage_file_path
+
+    tar_file_path = f"{local_file_dir}/overall_coverage.tar"
+    csv_file_path = f"{local_file_dir}/overall_coverage.csv"
+    overall_coverage_path = f"{coverage_file_path}/overall_coverage"
+    if not cc.parser.prepare_overall_coverage_csv(tar_file_path,
+                                overall_coverage_path, csv_file_path):
+        logger.error("Failed to prepare overall coverage csv")
+
+
     csv_file_path = "/tmp/overall_coverage.csv"
     res, cov_val = cc.parser.get_coverage_csv_data(csv_file_path)
     if not res:
         logger.info("Failed to get coverage data from csv file")
 
-    print(cov_val)
     cov_val.pop(0)
 
     if not cc.db_oprator.insert_overall_data(cov_val):
         logger.error("Failed to insert the code coverage data")
+
+    test_coverage = "coverage_SPS_TEST_SAMPLE_20220925_121826"
+    tar_file_path = f"/tmp/{test_coverage}.tar"
+    csv_file_path = f"/tmp/{test_coverage}.csv"
+    
+    coverage_file_path = cc.coverage_file_path
+
+    test_coverage_path = f"{coverage_file_path}/{test_coverage}"
+    out = cc.parser.prepare_test_coverage_csv(jira_id, tar_file_path,
+                                                    test_coverage_path, csv_file_path)
+
+    res, cov_val = cc.parser.get_coverage_csv_data(csv_file_path)
+    if not res:
+        logger.info("Failed to get coverage data from csv file")
+
+    cov_val.pop(0)
+    if not cc.db_oprator.insert_code_coverage_data(cov_val, version=1):
+        logger.info("Failed to insert coverage data to database")
+
+    """
+    

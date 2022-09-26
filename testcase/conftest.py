@@ -47,6 +47,9 @@ from pos import POS
 from utils import Client
 from _pytest.runner import runtestprotocol
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../utils")))
+from cce_tool import CodeCoverage 
+
 global pos, method_name
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -92,6 +95,27 @@ def pytest_sessionstart(session):
         )
     )
 
+    if trident_config_data["code_coverage"]["enable"] == "true":
+        global cc
+        cce_config_file = trident_config_data["code_coverage"]["config_file"]
+        cc = CodeCoverage(cce_config_file)
+        assert cc.target_init() == True
+        assert cc.databse_init() == True
+
+def get_code_coverage_data(jira_id):
+    if not cc.get_code_coverage(jira_id):
+        logger.error("Failed to get the code coverage")
+        return False
+    
+    if not cc.parse_coverage_report(jira_id):
+        logger.error("Failed to parser the code coverage report")
+        return False
+
+    if not cc.save_coverage_report(jira_id):
+        logger.error("Failed to save the code coverage report")
+        return False
+
+    return True
    
 @pytest.fixture(scope="module")
 def setup_clenup_array_module():
@@ -405,6 +429,11 @@ def pytest_runtest_protocol(item, nextitem):
             execution_minutes[0], execution_minutes[1]
         )
     )
+
+    if trident_config_data["code_coverage"]["enable"] == "true":
+        if issuekey == "No mapping found":
+            issuekey = "No_Mapping"
+        get_code_coverage_data(issuekey)
 
     logger.info(
         "======================== END OF {} ========================\n".format(method)
