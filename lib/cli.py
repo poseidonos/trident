@@ -588,9 +588,6 @@ class Cli:
             array_name (str) : name of the array
         """
         try:
-            
-
-            
             if array_name == None:
                 array_name = self.array_name
             cmd = "addspare -s {} -a {}".format(device_name, array_name)
@@ -657,6 +654,43 @@ class Cli:
             else:
                 cmd += " --no-raid"
 
+            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                return True, out
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False, out
+
+    def replace_drive_array(self, device_name: str, array_name: str) -> (bool, dict()):
+        """
+        Method to replace data drive with spare drive
+
+        Args:
+            device_name (str) : name of the data device
+            array_name (str) : name of the array
+        """
+        try:
+            cmd = "replace -d {} -a {}".format(device_name, array_name)
+            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                return True, out
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False, out
+
+    def rebuild_array(self, array_name: str) -> (bool, dict()):
+        """
+        Method to start the array rebuild
+
+        Args:
+            array_name (str) : name of the array
+        """
+        try:
+            cmd = "rebuild -a {}".format(array_name)
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 return True, out
