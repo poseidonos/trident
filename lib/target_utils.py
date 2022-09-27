@@ -1295,9 +1295,11 @@ class TargetUtils:
                 assert self.cli.list_volume(array_name=array)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
-                for vol in self.cli.vols:
+                else:
                     # TODO skip mount volumes those were not mounted.
-                    assert self.cli.mount_volume(vol, array)[0] == True
+                    ss_list = [ss for ss in subsystem_list if array in ss]
+                    assert self.mount_volume_multiple(array,
+                                     self.cli.vols, ss_list[0]) == True
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")
