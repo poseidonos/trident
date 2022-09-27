@@ -41,6 +41,7 @@ from sys import exit
 import logger
 import pathlib
 import inspect
+from threadable_node import threaded
 
 logger = logger.get_logger(__name__)
 
@@ -104,20 +105,28 @@ class POS:
         self.client_cnt = self.config_dict["login"]["initiator"]["number"]
         if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:
             for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):
-                ip = self.config_dict["login"]["initiator"]["client"][client_cnt]["ip"]
-                username = self.config_dict["login"]["initiator"]["client"][client_cnt][
-                    "username"
-                ]
-                password = self.config_dict["login"]["initiator"]["client"][client_cnt][
-                    "password"
-                ]
-                client_obj = SSHclient(ip, username, password)
-                self.obj_list.append(client_obj)
-                self.client_handle.append(Client(client_obj))
+                self.create_client_objects(client_cnt)
+                
         else:
             assert 0
+        
+               
+    
+    def create_client_objects(self,client_cnt):
+        ip = self.config_dict["login"]["initiator"]["client"][client_cnt]["ip"]
+        username = self.config_dict["login"]["initiator"]["client"][client_cnt][
+                    "username"
+                ]
+        password = self.config_dict["login"]["initiator"]["client"][client_cnt][
+                    "password"
+                ]
+        client_obj = SSHclient(ip, username, password)
+        self.obj_list.append(client_obj)
+        self.client_handle.append(Client(client_obj))
         if self.client_cnt == 1:
             self.client = self.client_handle[0]
+        
+
     def _clearall_objects(self):
         if len(self.obj_list) > 0:
             for obj in self.obj_list:

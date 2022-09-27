@@ -457,7 +457,7 @@ def pytest_sessionfinish(session):
     copy_dir(log_path)
     try:
         if pos:
-            if pos.target_utils.helper.check_pos_exit() == True:
+            if pos.target_utils.helper.check_pos_exit() == False:
                 pos.cli.stop_system(grace_shutdown = False)
             pos._clearall_objects()
     except NameError:

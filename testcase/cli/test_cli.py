@@ -121,8 +121,8 @@ def test_cli_happypath(array_fixture):
         qos(pos)
 
         logger.info("====================GC=====================")
-        assert pos.cli.wbt_do_gc()[0] == True
-        assert pos.cli.wbt_get_gc_status(array_name="array1")[0] == True
+        pos.cli.wbt_do_gc()
+        pos.cli.wbt_get_gc_status(array_name="array1")
 
         logger.info(" ================== logger ================")
         assert pos.cli.get_log_level_logger()[0] == True

@@ -159,7 +159,7 @@ def subsystem_module(target, client, data_set, config_dict, action, phase=None):
             # data_set.subsystem[basename][-1].transport = transport_protocol
             assert (
                 target.cli.create_subsystem(
-                    nqn_name=nqn_name, ns_count="256", model_name=model_number
+                    nqn_name=nqn_name, ns_count="256", model_name=model_number, serial_number = "POS000000000001"
                 )[0]
                 == True
             )
@@ -359,7 +359,7 @@ def npor_recover(target, data_set):
             port = subsystem.port
             assert (
                 target.cli.create_subsystem(
-                    nqn_name=name, ns_count="256", model_name=model
+                    nqn_name=name, ns_count="256", model_name=model, serial_number = "POS000000000001"
                 )[0]
                 == True
             )
