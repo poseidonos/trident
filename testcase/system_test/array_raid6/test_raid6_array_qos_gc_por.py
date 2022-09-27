@@ -53,7 +53,7 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
 
-        fio_cmd = "fio --name=test_seq_write --runtime=300 --ramp_time=60 --ioengine=sync --iodepth=32 --rw=write --size=50g bs=32kb --direct=1 --verify=md5"
+        fio_cmd = "fio --name=test_seq_write --ioengine=libaio --iodepth=32 --rw=write --size=50g --bs=32k --direct=1"
 
         assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
@@ -104,11 +104,17 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
         assert volume_create_and_mount_multiple(pos, num_vols, 
                                                 subs_list=subs_list) == True
 
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for nqn in subs_list:
+            assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
 
+        pattern = "0x5678"
+
         fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k "\
-                "--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
+                f"--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
         assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         if por_operation == "POR_LOOP":
@@ -120,11 +126,12 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
 
             if por == "NPOR":
                 assert pos.target_utils.Npor() == True
+
             else:
                 assert pos.target_utils.Spor() == True
 
             fio_cmd = "fio --name=seq_read --ioengine=libaio --rw=read --iodepth=64 --bs=128k "\
-                    "--size=200gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
+                    f"--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
             assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         logger.info(
@@ -164,11 +171,16 @@ def test_raid6_arrays_gc(setup_cleanup_array_function, gc_operation):
         assert volume_create_and_mount_multiple(pos, num_vols, 
                                                 subs_list=subs_list) == True
 
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for nqn in subs_list:
+            assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
 
+        pattern = "0x5678"
         fio_cmd = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k "\
-                  "--size=200gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
+                  f"--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
         assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         if gc_operation == "normal":
@@ -179,7 +191,7 @@ def test_raid6_arrays_gc(setup_cleanup_array_function, gc_operation):
             pass
 
         fio_cmd = "fio --name=seq_read --ioengine=libaio --rw=read --iodepth=64 --bs=128k "\
-                  "--size=200gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
+                  f"--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
         assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         logger.info(
