@@ -20,10 +20,10 @@
             "client":
             [
                 {
-                    "ip":"10.0.0.10",
+                    "ip":"10.0.0.9",
                     "username":"root",
                     "password":"siso@123",
-                    "Data_Ip": "10.0.0.10"
+                    "Data_Ip": "10.0.0.9"
                 },{
                     "ip":"10.0.0.9",
                     "username":"root",
