@@ -29,3 +29,15 @@ def run_io(
         == True
     )
     return True
+
+def common_setup(pos,raid_type, nr_data_drives):
+    
+        pos.data_dict["array"]["pos_array"][0]["raid_type"] = raid_type
+        pos.data_dict["array"]["pos_array"][1]["raid_type"] = raid_type
+       
+        pos.data_dict["array"]["pos_array"][0]["data_device"] = nr_data_drives
+        pos.data_dict["array"]["pos_array"][1]["data_device"] = nr_data_drives
+       
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        run_io(pos)

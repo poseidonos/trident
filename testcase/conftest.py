@@ -217,12 +217,14 @@ def check_pos_and_bringup():
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.bringupSystem(data_dict=pos.data_dict) == True
             assert pos.target_utils.bringupDevice(data_dict=pos.data_dict) == True
+            array_cleanup()
             assert pos.target_utils.bringupSubsystem(data_dict=pos.data_dict) == True
-            assert pos.cli.reset_devel()[0] == True
+           
             assert pos.target_utils.get_subsystems_list() == True
         else:
             logger.info("pos is already running")
             array_cleanup()
+            
         return True
     except Exception as e:
         logger.error(e)
@@ -269,7 +271,7 @@ def array_cleanup():
                 if pos.cli.array_dict[array].lower() == "mounted":
                     assert volume_cleanup(array) == True
                     assert pos.cli.unmount_array(array_name=array)[0] == True
-            assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.reset_devel()[0] == True
         return True
 def volume_cleanup(array_name):
     assert pos.cli.list_volume(array_name = array_name)[0] == True
