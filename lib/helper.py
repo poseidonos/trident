@@ -271,6 +271,7 @@ class Helper:
             logger.info("POS IS NOT RUNNING")
             return True
         else:
+            logger.warning("POS IS RUNNING")
             return False
 
     def wbt_parser(self, file_name: str) -> (bool, dict()):

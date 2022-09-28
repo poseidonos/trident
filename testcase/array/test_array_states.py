@@ -63,7 +63,7 @@ def pos_setup(pos, num_array, list_array_obj, data_dict):
     array_list = list(pos.cli.array_dict.keys())
     for item in range(len(array_list)):
         list_array_obj.append(
-            array(
+            array(pos,
                 array_name=array_list[item],
                 data_dict=data_dict,
                 cli_history=pos.cli.cli_history,

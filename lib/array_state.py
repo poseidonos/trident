@@ -38,10 +38,12 @@ logger = logger.get_logger(__name__)
 
 class _Array(POS):
     def __init__(
-        self, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
+        self,pos, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
     ):
-        super().__init__()
-
+        #super().__init__()
+        self.cli = pos.cli
+        self.target_utils = pos.target_utils
+        self.client = pos.client    
         self.data_dict = data_dict
         self.name = array_name
         self.state = {"current": None, "next": None}
