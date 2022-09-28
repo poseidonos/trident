@@ -1,3 +1,4 @@
+from array import array
 import pytest
 
 import logger
@@ -957,64 +958,38 @@ def test_multiarray_invalid_raid(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multiarray_consume_max_array_capacity(setup_cleanup_array_function):
+def test_multiarray_consume_max_array_capacity(array_fixture):
     logger.info(
         " ==================== Test : test_multiarray_consume_max_array_capacity ================== "
     )
     try:
-        pos = setup_cleanup_array_function
-        num_vols = 256
+       pos = array_fixture
+       array_name_pre = "array"
+       array_name = "array1"
+       assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+       assert pos.cli.mount_array(array_name=array_name)[0] == True
+       assert pos.cli.info_array(array_name=array_name)[0] == True
 
-        required_disk = nr_data_drives * num_array
-        check_disk_precondition(pos, required_disk)
-        system_disks = pos.cli.system_disks
-
-        array_name_pre = "pos_array"
-        vol_name_pre = "pos_vol"
-        data_disk_array = ([], [])
-
-        for i in range(nr_data_drives):
-            data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))
-
-        # Create two arrays
-        for id in range(2):
-            array_name = f"{array_name_pre}_{id+1}"
-            uram_name = f"uram{id}"
-            assert (
-                pos.cli.create_array(
-                    write_buffer=uram_name,
-                    data=data_disk_array[id],
-                    spare=[],
-                    raid_type=raid_type,
-                    array_name=array_name,
-                )[0]
-                == True
-            )
-
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+       array_size = int(pos.cli.array_info[array_name].get("size"))
             # Volume Size in MB
-            vol_size = f"{int((array_size // num_vols) // (1024 * 1024))}mb"
+       vol_size = f"{int((array_size // 256) // (1024 * 1024))}mb"
 
-            assert (
+       assert (
                 pos.target_utils.create_volume_multiple(
-                    array_name, num_vols, vol_name_pre, size=vol_size
+                    array_name, 256, "postempvoltrident", size=vol_size
                 )
                 == True
             )
 
         # Try to create 257th volume on the second array. - Expected Failure
-        array_name = f"{array_name_pre}_2"
-        vol_name = f"{array_name}_{vol_name_pre}_257"
-        assert (
+       array_name = f"{array_name_pre}_2"
+       vol_name = f"{array_name}_posarray2tempvol_257"
+       assert (
             pos.cli.create_volume(vol_name, size=vol_size, array_name=array_name)[0]
             == False
         )
 
-        logger.info(
+       logger.info(
             " ============================= Test ENDs ======================================"
         )
     except Exception as e:
@@ -1023,38 +998,14 @@ def test_multiarray_consume_max_array_capacity(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multiarray_unmount_array_effect(setup_cleanup_array_function):
+def test_multiarray_unmount_array_effect(array_fixture):
     logger.info(
         " ==================== Test : test_multiarray_unmount_array_effect ================== "
     )
     try:
-        pos = setup_cleanup_array_function
-        required_disk = nr_data_drives * num_array
-        check_disk_precondition(pos, required_disk)
-        system_disks = pos.cli.system_disks
-
-        array_name_pre = "pos_array"
-        data_disk_array = ([], [])
-
-        for i in range(nr_data_drives):
-            data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))
-
-        # Create two arrays
-        for id in range(num_array):
-            array_name = f"{array_name_pre}_{id+1}"
-            uram_name = f"uram{id}"
-            assert (
-                pos.cli.create_array(
-                    write_buffer=uram_name,
-                    data=data_disk_array[id],
-                    spare=[],
-                    raid_type=raid_type,
-                    array_name=array_name,
-                )[0]
-                == True
-            )
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
+        pos = array_fixture
+        array_name_pre = "array"
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
         # Unmount second array and Check the array state
         assert pos.cli.unmount_array(array_name=f"{array_name_pre}_2")[0] == True
@@ -1084,41 +1035,16 @@ def test_multiarray_unmount_array_effect(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multiarray_unmount_mount_array1(setup_cleanup_array_function):
+def test_multiarray_unmount_mount_array1(array_fixture):
     logger.info(
         " ==================== Test : test_multiarray_unmount_mount_array1 ================== "
     )
     try:
-        pos = setup_cleanup_array_function
-        required_disk = nr_data_drives * num_array
-        check_disk_precondition(pos, required_disk)
-        system_disks = pos.cli.system_disks
-
-        array_name_pre = "pos_array"
-        data_disk_array = ([], [])
-
-        for i in range(nr_data_drives):
-            data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))
-
-        # Create two arrays
-        for id in range(2):
-            array_name = f"{array_name_pre}_{id+1}"
-            uram_name = f"uram{id}"
-            assert (
-                pos.cli.create_array(
-                    write_buffer=uram_name,
-                    data=data_disk_array[id],
-                    spare=[],
-                    raid_type=raid_type,
-                    array_name=array_name,
-                )[0]
-                == True
-            )
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
+        pos = array_fixture
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
         # Unmount first array and verify the state
-        array_name = f"{array_name_pre}_1"
+        array_name = "array1"
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
         assert pos.cli.info_array(array_name=array_name)[0] == True
         assert pos.cli.array_info[array_name].get("state") == "OFFLINE"
@@ -1137,48 +1063,19 @@ def test_multiarray_unmount_mount_array1(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multiarray_vol_unmount_delete_loop(setup_cleanup_array_function):
+def test_multiarray_vol_unmount_delete_loop(array_fixture):
     logger.info(
         " ==================== Test : test_multiarray_vol_unmount_delete_loop ================== "
     )
     try:
-        pos = setup_cleanup_array_function
-        required_disk = nr_data_drives * num_array
-        check_disk_precondition(pos, required_disk)
-        system_disks = pos.cli.system_disks
-
-        array_name_pre = "pos_array"
-        vol_name_pre = "pos_vol"
-        data_disk_array = ([], [])
-        assert pos.target_utils.get_subsystems_list() == True
-        ss_list = pos.target_utils.ss_temp_list[:2]
-
-        for i in range(nr_data_drives):
-            data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))
-
-        for id in range(num_array):
-            array_name = f"{array_name_pre}_{id+1}"
-            uram_name = f"uram{id}"
-            vol_name = f"{array_name}_{vol_name_pre}"
-            assert (
-                pos.cli.create_array(
-                    write_buffer=uram_name,
-                    data=data_disk_array[id],
-                    spare=[],
-                    raid_type=raid_type,
-                    array_name=array_name,
-                )[0]
-                == True
-            )
-
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
+        pos = array_fixture
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
         loop_limit = 10
         for loop_counter in range(loop_limit):
             for id in range(num_array):
-                array_name = f"{array_name_pre}_{id+1}"
-                vol_name = f"{array_name}_{vol_name_pre}"
+                array_name = "array1"
+                vol_name = f"{array_name}_vol_1111"
                 assert (
                     pos.cli.create_volume(vol_name, size="10gb", array_name=array_name)[
                         0
@@ -1186,7 +1083,7 @@ def test_multiarray_vol_unmount_delete_loop(setup_cleanup_array_function):
                     == True
                 )
                 assert (
-                    pos.cli.mount_volume(vol_name, array_name, nqn=ss_list[id])[0]
+                    pos.cli.mount_volume(vol_name, array_name)[0]
                     == True
                 )
 
@@ -1206,41 +1103,16 @@ def test_multiarray_vol_unmount_delete_loop(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multiarray_mount_mounted_array(setup_cleanup_array_function):
+def test_multiarray_mount_mounted_array(array_fixture):
     logger.info(
         " ==================== Test : test_multiarray_mount_mounted_array ================== "
     )
     try:
-        pos = setup_cleanup_array_function
-        required_disk = nr_data_drives * num_array
-        check_disk_precondition(pos, required_disk)
-        system_disks = pos.cli.system_disks
-
-        array_name_pre = "pos_array"
-        data_disk_array = ([], [])
-
-        for i in range(nr_data_drives):
-            data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))
-
-        for id in range(num_array):
-            array_name = f"{array_name_pre}_{id+1}"
-            uram_name = f"uram{id}"
-            assert (
-                pos.cli.create_array(
-                    write_buffer=uram_name,
-                    data=data_disk_array[id],
-                    spare=[],
-                    raid_type=raid_type,
-                    array_name=array_name,
-                )[0]
-                == True
-            )
-
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
+        pos = array_fixture
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
             # Again mount the same array
-            assert pos.cli.mount_array(array_name=array_name)[0] == False
+        assert pos.cli.mount_array(array_name="array1")[0] == False
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -1248,68 +1120,31 @@ def test_multiarray_mount_mounted_array(setup_cleanup_array_function):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+        assert 0
 
 
 @pytest.mark.regression
-def test_array1_100_vols_array2_257_vols(setup_cleanup_array_function):
-    logger.info(
-        " ==================== Test : test_array1_100_vols_array2_257_vols ================== "
-    )
+def test_array1_100_vols_array2_257_vols(array_fixture):
+    array_name = "array1"
     try:
-        pos = setup_cleanup_array_function
-        required_disk = nr_data_drives * num_array
-        check_disk_precondition(pos, required_disk)
-        system_disks = pos.cli.system_disks
+        pos = array_fixture
+        pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 256
+        pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = 100
+        pos.data_dict["array"]["num_array"] = 2
+        pos.data_dict["volume"]["pos_volumes"][0]["size"] = '1gb'
+        pos.data_dict["volume"]["pos_volumes"][1]["size"] = '1gb'
 
-        array_name_pre = "pos_array"
-        vol_name_pre = "pos_vol"
-        data_disk_array = ([], [])
 
-        for i in range(nr_data_drives):
-            data_disk_array[0].append(system_disks.pop(0))
-            data_disk_array[1].append(system_disks.pop(0))
-
-        # Create two arrays
-        for id in range(2):
-            array_name = f"{array_name_pre}_{id+1}"
-            uram_name = f"uram{id}"
-            assert (
-                pos.cli.create_array(
-                    write_buffer=uram_name,
-                    data=data_disk_array[id],
-                    spare=[],
-                    raid_type=raid_type,
-                    array_name=array_name,
-                )[0]
-                == True
-            )
-
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-
-            array_size = int(pos.cli.array_info[array_name].get("size"))
-            # Volume Size in MB
-            num_vols_list = [101, 257]
-            vol_size = f"{int((array_size // num_vols_list[id]) // (1024 * 1024))}mb"
-
-            assert (
-                pos.target_utils.create_volume_multiple(
-                    array_name, num_vols_list[id] - 1, vol_name_pre, size=vol_size
-                )
-                == True
-            )
-
-        # Try to create 257th volume on the second array. - Expected Failure
-        array_name = f"{array_name_pre}_2"
-        vol_name = f"{array_name}_{vol_name_pre}_257"
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        # negative test
         assert (
-            pos.cli.create_volume(vol_name, size=vol_size, array_name=array_name)[0]
+            pos.cli.create_volume(
+                volumename="invalidvol", array_name=array_name, size="1gb"
+            )[0]
             == False
         )
 
-        logger.info(
-            " ============================= Test ENDs ======================================"
-        )
     except Exception as e:
-        logger.error(f"Test script failed due to {e}")
-        pos.exit_handler(expected=False)
+        logger.error(f" ======= Test FAILED due to {e} ========")
+        assert 0
