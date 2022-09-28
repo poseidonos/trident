@@ -110,8 +110,6 @@ class POS:
         else:
             assert 0
         
-               
-    
     def create_client_objects(self,client_cnt):
         ip = self.config_dict["login"]["initiator"]["client"][client_cnt]["ip"]
         username = self.config_dict["login"]["initiator"]["client"][client_cnt][
@@ -195,5 +193,6 @@ class POS:
             )
             # time.sleep(10000)
             # self.cli.core_dump()
-            self.cli.stop_system(grace_shutdown=False)
+            #self.cli.stop_system(grace_shutdown=False)
+            
             assert 0
