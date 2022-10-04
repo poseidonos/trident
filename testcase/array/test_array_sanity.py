@@ -170,8 +170,10 @@ def test_SanityArray(array_fixture):
 
             negative_tests(pos)
             if por == True:
+                logger.info("Performing SPOR")
                 pos.target_utils.Spor()
             else:
+                logger.info("Performing NPOR")
                 pos.target_utils.Npor()
 
             array_ops(pos)
@@ -203,7 +205,7 @@ def test_Create_Array_alldrives(array_fixture):
                 raid_type="RAID5",
                 spare=[],
             )[0]
-            == False  # True if all drives are same NUMA
+            == True  # True if all drives are same NUMA
         )
     except Exception as e:
         logger.error("Test case failed due to {e}")
