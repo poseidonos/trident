@@ -845,7 +845,7 @@ class _Array(POS):
                 self.state["next"] = self.state["current"]
                 self.situation["next"] = self.situation["current"]
                 self.func["expected"] = False
-
+            logger.info(self.name)
             status = self.cli.addspare_array(
                 device_name=target_dev, array_name=self.name
             )

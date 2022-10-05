@@ -7,6 +7,6 @@
         "test_pass": "false" 
     },
     "dump_pos_core": {
-        "enable": "false"
+        "enable": "true"
     }
 }
