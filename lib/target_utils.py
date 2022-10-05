@@ -34,6 +34,7 @@ import array
 from datetime import datetime
 import time
 import re
+import traceback
 import helper
 import logger
 from cli import Cli
@@ -1106,6 +1107,7 @@ class TargetUtils:
             return True
         except Exception as e:
             logger.error(f"NPOR failed due to {e}")
+            traceback.print_exc()
             return False
 
     def bringupPOR(self, array_list) -> bool:
@@ -1202,6 +1204,7 @@ class TargetUtils:
             return True
         except Exception as e:
             logger.error(f"NPOR and recovery failed due to {e}")
+            traceback.print_exc()
             return False
 
     def Spor(self, uram_backup=True, write_through=False) -> bool:
@@ -1282,6 +1285,7 @@ class TargetUtils:
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")
+            traceback.print_exc()
             return False
 
     def deleteAllVolumes(self, arrayname):
@@ -1325,7 +1329,8 @@ class TargetUtils:
         """
         try:
             if self.helper.check_pos_exit() == False:
-                dump_type = "triggercrash"
+                out = self.ssh_obj.execute("pkill -11 poseidonos")
+                dump_type = "crashed"
             else:
                 dump_type = "crashed"
 

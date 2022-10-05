@@ -1,11 +1,11 @@
 {
 "Project Info":{
-	"Project name": "POS"
+	"Project name": "POS-CLI"
 	},
 
 "Test Cycle Info": {
 	"Validation Type": "sanity",
-	"Release": "1Q-0.11.0",
-	"Version":"0.11.0.rc-5"}
+	"Release": "3Q",
+	"Version":"v0.12.0-rc0"}
 }
 

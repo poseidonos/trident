@@ -69,7 +69,7 @@ class Cli:
         self.lock = Lock()
 
     def run_cli_command(
-        self, command: str, command_type: str = "request", timeout=30
+        self, command: str, command_type: str = "request", timeout=100
     ) -> (bool, dict()):
         """
         Method to Execute CLI commands and return Response
@@ -278,7 +278,7 @@ class Cli:
                     logger.error(f"POS PID is still active after {count} seconds.")
                     return False, out
             else:
-                out = self.ssh_obj.execute(command="pkill -9 pos")
+                out = self.ssh_obj.execute(command="pkill -11 pos")
         except Exception as e:
             logger.error("failed due to {}".format(e))
             # self.stop_system(grace_shutdown=False)
@@ -328,16 +328,15 @@ class Cli:
             cmd = "list"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
 
-            if cli_error == False and int(jout["status_code"]) == 1224:
+            if cli_error == False and int(jout["status_code"]) == 1225:
                 logger.info(jout["description"])
                 return True, jout
             if cli_error == True:
                 out = jout["output"]["Response"]
-                if "There is no array" in out["result"]["data"]["arrayList"]:
+                if jout["data"] is None:
                     logger.info("No arrays present in the config")
                     return True, out
                 else:
-
                     for i in out["result"]["data"]["arrayList"]:
                         a_name = i["name"]
                         a_status = i["status"]
@@ -507,7 +506,7 @@ class Cli:
                 array_state = out[1]["data"]["state"]
                 array_size = out[1]["data"]["capacity"]
                 array_situation = out[1]["data"]["situation"]
-                rebuild_progress = out[1]["data"]["rebuilding_progress"]
+                rebuild_progress = out[1]["data"]["rebuildingProgress"]
                 for dev in out[1]["data"]["devicelist"]:
                     if dev["type"] == "DATA":
                         data_dev.append(dev["name"])
@@ -555,7 +554,7 @@ class Cli:
             
             if array_name == None:
                 array_name = self.array_name
-            cmd = "addspare -s {} -a {}".format(device_name, self.array_name)
+            cmd = "addspare -s {} -a {}".format(device_name, array_name)
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
                 return True, jout
@@ -707,15 +706,27 @@ class Cli:
                     dev = out["data"]["devicelist"]
                     for device in dev:
                         devices.append(device["name"])
-                        dev_map = {
-                            "name": device["name"],
-                            "addr": device["addr"],
-                            "mn": device["mn"],
-                            "sn": device["sn"],
-                            "size": device["size"],
-                            "type": device["type"],
-                            "class": device["class"],
-                            "numa": device["numa"],
+                        if device["type"] == "NVRAM":
+                            dev_map = {
+                                "name": device["name"],
+                                "addr": device["name"],
+                                "mn": device["modelNumber"],
+                                "sn": device["serialNumber"],
+                                "size": device["size"],
+                                "type": device["type"],
+                                "class": device["class"],
+                                "numa": device["numa"],
+                            }
+                        else:
+                            dev_map = {
+                                "name": device["name"],
+                                "addr": device["address"],
+                                "mn": device["modelNumber"],
+                                "sn": device["serialNumber"],
+                                "size": device["size"],
+                                "type": device["type"],
+                                "class": device["class"],
+                                "numa": device["numa"],
                         }
                         if dev_map["type"] in self.dev_type.keys():
                             self.dev_type[dev_map["type"]].append(dev_map["name"])
