@@ -389,8 +389,8 @@ class Cli:
                 cmd += f" --raid {raid_type}"
             else:
                 cmd += " --no-raid"
-           cli_error, jout = self.run_cli_command(cmd, command_type="array")
-           if cli_error == True:
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
                 return True, jout
             else:
                 raise Exception("CLI Error")
@@ -611,11 +611,6 @@ class Cli:
                 self.array_name, buffer_name, num_data
             )
 
-            if (
-                int(num_spare) > 0
-                and raid.lower() != "no-raid"
-                and raid.lower() != "raid0"
-            ):
             if int(num_spare) > 0:
                 cmd += f" --num-spare {num_spare} "
             if raid != "no-raid":
