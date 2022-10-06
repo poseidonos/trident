@@ -175,6 +175,7 @@ class POS:
             self.pos_conf.restore_config()
 
             # Reset the target to previous state
+
             if hetero_setup:
                 if not self.target_utils.hetero_setup.reset():
                     raise Exception("Failed to reset the target state")
