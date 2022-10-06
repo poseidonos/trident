@@ -12,7 +12,7 @@ logger = logging.get_logger(__name__)
 @pytest.mark.regression
 @pytest.mark.parametrize(
     "raid_type, nr_data_drives",
-    [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
+    [("no-raid", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
 )
 def test_wt_array_block_file_FIO(
     array_fixture, raid_type, nr_data_drives
@@ -35,7 +35,7 @@ def test_wt_array_block_file_FIO(
 @pytest.mark.regression
 @pytest.mark.parametrize(
     "raid_type, nr_data_drives",
-    [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
+    [("no-raid", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
 )
 @pytest.mark.parametrize("io_type", ["block", "xfs", "ext4"])
 def test_wt_array_one_hour_FIO(
@@ -47,11 +47,13 @@ def test_wt_array_one_hour_FIO(
     try:
         mount_point = None
         pos = array_fixture
+
         common_setup(pos,raid_type=raid_type, nr_data_drives=nr_data_drives)
         
         # Run File IO and Block IO Parallely
         fio_cmd = f"fio --name=random_write --ioengine=libaio --rw=randwrite \
             --iodepth=64 --direct=1 --bs=128k --time_based --runtime=30 --size=1g"
+        nvme_devs = pos.client.nvme_list_out
 
         if io_type == "block":
             io_mode = True  # Set True this to Block IO
