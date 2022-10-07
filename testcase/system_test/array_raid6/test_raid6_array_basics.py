@@ -198,6 +198,11 @@ def test_raid6_array_vols_data_integrity(setup_cleanup_array_function, array_mou
 
         assert volume_create_and_mount_multiple(pos, num_vols) == True
 
+        subs_list = pos.target_utils.ss_temp_list
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for nqn in subs_list:
+            assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+
         fio_cmd = "fio --name=wt_verify --ioengine=libaio --rw=write --iodepth=64 --bs=128k"\
                   " --size=2gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
         assert run_fio_all_volumes(pos, fio_cmd=fio_cmd, fio_type="mix") == True
