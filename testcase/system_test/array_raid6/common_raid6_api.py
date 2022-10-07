@@ -92,7 +92,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
         for array_name in array_list:
             assert pos.cli.info_array(array_name=array_name)[0] == True
 
-            array_cap = pos.cli.array_info[array_name]["size"]
+            array_cap = int(pos.cli.array_info[array_name]["size"])
             vol_size = (array_cap * (vol_utilize / 100) / num_volumes)
             vol_size = f"{int(vol_size // (1024 * 1024))}mb"     # Size in mb
 
@@ -107,6 +107,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
             assert pos.cli.list_volume(array_name=array_name)[0] == True
             if mount_vols:
                 ss_list = [ss for ss in subs_list if array_name in ss]
+                logger.info(f"{ss_list}")
                 assert pos.target_utils.mount_volume_multiple(array_name,
                                         pos.cli.vols, ss_list[0]) == True
     except Exception as e:
@@ -143,10 +144,10 @@ def volume_create_and_mount_random(pos, array_list=None, subsyste_list=None, arr
             subsyste_list = pos.target_utils.ss_temp_list
 
         if not arr_cap_vol_list:
-            array_cap_volumes = [(1, 100), (2, 100), (256, 100), 
+            arr_cap_vol_list = [(1, 100), (2, 100), (256, 100), 
                                 (256, 105), (257, 100), (257, 105)]
-            random.shuffle(array_cap_volumes)
-            num_volumes, cap_utilize = array_cap_volumes[0]
+        random.shuffle(arr_cap_vol_list)
+        num_volumes, cap_utilize = arr_cap_vol_list[0]
 
         return volume_create_and_mount_multiple(pos, num_volumes, cap_utilize,
                 array_list=array_list, mount_vols=True, subs_list=subsyste_list)
@@ -230,7 +231,7 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", size='5g',
         return False
     return True
 
-def array_disks_hot_remove(pos, array_name, disk_remove_interval_list):
+def array_disks_hot_remove(pos, array_name, disk_remove_interval_list, delay=2):
     """
     disk_remove_interval_list = list of interval of subsequent disk failure
                                 e.g: [(100), (50, 100)]
@@ -239,27 +240,27 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list):
 
     """
     try:
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
-        remaining_spare_disk = len(pos.cli.array_info[array_name]["spare_list"])
-
+        logger.info("*********** HOT REMOVE REBUILD START **************")
         for disk_rebuild in disk_remove_interval_list:
-            if len(disk_rebuild) > remaining_spare_disk:
-                logger.info(f"Skipped - Required {len(disk_rebuild)} spare drives. "\
-                             "Available {remaining_spare_disk} drives")
-                continue
+            logger.info(f"REBUILD INTERVAL : {disk_rebuild} ")
+            assert pos.cli.info_array(array_name=array_name)[0] == True
+            data_disk_list = pos.cli.array_info[array_name]["data_list"]
 
             random.shuffle(data_disk_list)
             hot_remove_disks = data_disk_list[: len(disk_rebuild)]
+            logger.info(f"Hot remove disks: {hot_remove_disks}")
             for rebuild_complete in disk_rebuild:
                 data_devs = [hot_remove_disks.pop(0)]
                 assert pos.target_utils.device_hot_remove(data_devs) == True
                 assert pos.target_utils.pci_rescan() == True
 
                 # Wait for array rebuilding if rebuild_complete != 0
-                if not rebuild_complete:
+                time.sleep(delay)
+                logger.info(f"Rebuild Wait: {rebuild_complete}")
+                if rebuild_complete > 0:
                     assert pos.target_utils.array_rebuild_wait(array_name=array_name, 
                                             rebuild_percent=rebuild_complete) == True
+        logger.info("*********** HOT REMOVE REBUILD COMPLETED **************")
         return True
     except Exception as e:
         logger.error(f"Array data disk hot remove failed due to {e}")

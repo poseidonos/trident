@@ -412,7 +412,7 @@ class TargetUtils:
 
             if self.cli.info_array(array_name=array_name)[0]:
                 situation = self.cli.array_info[array_name]["situation"]
-                progress = self.cli.array_info[array_name]["rebuilding_progress"]
+                progress = int(self.cli.array_info[array_name]["rebuilding_progress"])
                 state = self.cli.array_info[array_name]["state"]
 
                 if situation == "REBUILDING" and progress < rebuild_progress:
