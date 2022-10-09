@@ -53,13 +53,13 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
 
-        fio_cmd = "fio --name=test_seq_write --ioengine=libaio --iodepth=32 --rw=write --size=50g --bs=32k --direct=1"
+        fio_cmd = "fio --name=test_seq_write --ioengine=libaio --iodepth=32 --rw=write --size=10g --bs=32k --direct=1"
 
         assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         fio_out = {}
         fio_out["iops"] = pos.client.fio_par_out["write"]["iops"]
-        fio_out["bw"] = pos.client.fio_par_out["write"]["bw"] / 1024  # Conver to MB
+        fio_out["bw"] = pos.client.fio_par_out["write"]["bw"] / 1000  # Conver to MB
 
         # Verify the QOS Throttling
         assert pos.client.fio_verify_qos({"max_iops":maxiops, "max_bw":maxbw},
@@ -178,21 +178,16 @@ def test_raid6_arrays_gc(setup_cleanup_array_function, gc_operation):
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
 
-        pattern = "0x5678"
-        fio_cmd = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k "\
-                  f"--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
-        assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
-
         if gc_operation == "normal":
-            # Use 80% of total array
-            pass
+            fio_cmd = "fio --name=rand_write --ioengine=libaio --numjobs=4 --rw=randwrite --iodepth=64 --bs=128k --size=85%"
+            assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
         else:
-            # Use wbt do gc to trigger GC
-            pass
+            fio_cmd = "fio --name=seq_write --ioengine=libaio --numjobs=4 --rw=write --iodepth=64 --bs=128k --size=15%"
+            assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
+            assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
+            assert pos.cli.wbt_do_gc()[0] == True
 
-        fio_cmd = "fio --name=seq_read --ioengine=libaio --rw=read --iodepth=64 --bs=128k "\
-                  f"--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
-        assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
+        assert pos.cli.wbt_get_gc_status()[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
