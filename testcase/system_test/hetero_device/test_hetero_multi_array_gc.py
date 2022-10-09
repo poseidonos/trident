@@ -99,7 +99,7 @@ def test_hetero_multi_array_GC(array_raid, num_devs, num_vols):
             assert pos.cli.list_volume(array_name=array_name)[0] == True
             nqn=ss_list[id]
             assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                            volume_list=pos.cli.vols, nqn_list=[nqn]) == True
+                            volume_list=pos.cli.vols, nqn=nqn) == True
 
             # Connect client
             assert pos.client.nvme_connect(nqn, 

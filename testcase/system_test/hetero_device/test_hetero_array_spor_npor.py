@@ -164,9 +164,9 @@ def test_hetero_array_spor(array_raid, num_devs):
         assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
         assert pos.client.nvme_list() == True
 
-        fio_cmd  = f"fio --name=seq_write --ioengine=libaio --rw=write "\
+        fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write "\
                    f"--iodepth=64 --direct=1 --numjobs=1 --bs=128k "\
-                   f"--time_based --runtime=120",
+                   f"--time_based --runtime=120"
 
         assert pos.client.fio_generic_runner(pos.client.nvme_list_out,
                 fio_user_data=fio_cmd)[0] == True
@@ -254,7 +254,7 @@ def test_hetero_multi_array_spor(array_raid, num_devs, fio_runtime):
                   f"--size={vol_size}"
 
         assert pos.client.fio_generic_runner(
-                nvme_devs, fio_user_data=fio_cmd, IO_mode=True) == True
+                nvme_devs, fio_user_data=fio_cmd, IO_mode=True)[0] == True
 
         assert pos.target_utils.Spor() == True
 
