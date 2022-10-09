@@ -222,9 +222,9 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
             array_size = int(pos.cli.array_info[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             vol_name = f"{array_size}_pos_vol"
-            assert pos.cli.create_volume(vol_name, vol_size, array_name=array_name)[0] == False
+            assert pos.cli.create_volume(vol_name, vol_size, array_name=array_name)[0] == True
 
-            ss_list = [ss for ss in ss_temp_list if f"subsystem{id + 1}" in ss]
+            ss_list = [ss for ss in ss_temp_list if array_name in ss]
             nqn=ss_list[0]
             assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == True
 
