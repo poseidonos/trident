@@ -89,12 +89,7 @@ def test_unmnt_array_while_io(setup_cleanup_array_function):
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert (
-            volume_create_and_mount_multiple_with_io(
-                pos, 2, fio_cmd=None, run_async=True
-            )
-            == True
-        )
+        assert volume_create_and_mount_multiple_with_io(pos, 2) == True
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():
             assert pos.cli.unmount_array(array_name=array_name)[0] == True

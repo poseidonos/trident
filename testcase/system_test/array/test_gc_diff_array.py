@@ -80,7 +80,7 @@ def test_gc_delete_array():
             pos.cli.create_array(
                 write_buffer="uram1",
                 data=data_disk_list,
-                spare=None,
+                spare=[],
                 raid_type="RAID5",
                 array_name="array_gc",
             )[0]
