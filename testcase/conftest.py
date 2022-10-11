@@ -137,9 +137,14 @@ def setup_cleanup_array_function(setup_clenup_array_module):
     logger.info("========== SETUP ARRAY TEST =========")
     pos = setup_clenup_array_module
     if pos.target_utils.helper.check_pos_exit() == True:
+        data_dict["system"]["phase"] = "true"
+        data_dict["subsystem"]["phase"] = "true"
+        data_dict["device"]["phase"] = "true"
+        data_dict["array"]["phase"] = "false"
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
     data_dict = pos.data_dict
     data_dict["system"]["phase"] = "false"
+    data_dict["subsystem"]["phase"] = "false"
     data_dict["device"]["phase"] = "false"
     data_dict["array"]["phase"] = "true"
 
@@ -149,8 +154,11 @@ def setup_cleanup_array_function(setup_clenup_array_module):
     yield pos
 
     logger.info("========== CLEANUP ARRAY TEST =========")
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
+    try:
+        if pos.client.ctrlr_list()[1] is not None:
+            assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
+    except Exception as e:
+        logger.error(f"Failed to nvme disconnect due to {e}")
 
     assert pos.cli.list_array()[0] == True
     for array in pos.cli.array_dict.keys():

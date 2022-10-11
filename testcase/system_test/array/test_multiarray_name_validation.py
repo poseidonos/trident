@@ -23,7 +23,7 @@ def test_multi_array_name(setup_cleanup_array_function, new_name, expected_resul
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 1
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.list_device()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
         spare_disk_list = []
