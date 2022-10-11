@@ -80,7 +80,7 @@ def test_random_volumes_on_raid6_arrays(setup_cleanup_array_function, raid_type)
 
 @pytest.mark.regression
 @pytest.mark.parametrize("num_vols", [2, 256])
-def test_raid6_arrays_file_block_io(setup_cleanup_array_function, num_vols, fio_type):
+def test_raid6_arrays_file_block_io(setup_cleanup_array_function, num_vols):
     """
     The purpose of this test is to create two arrays and atleast 1 should be RAID 6. 
     Create and mount different volumes and utilize its capacity selectly randomally.
@@ -112,7 +112,7 @@ def test_raid6_arrays_file_block_io(setup_cleanup_array_function, num_vols, fio_
         for nqn in subs_list:
             assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
 
-        for fio_type in ["Block", "File", "Mix"]:
+        for fio_type in ["Block", "Mix", "File"]:
             assert run_fio_all_volumes(pos, fio_type=fio_type) == True
 
         logger.info(
