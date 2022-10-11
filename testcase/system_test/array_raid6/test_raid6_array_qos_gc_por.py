@@ -113,8 +113,8 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
 
         pattern = "0x5678"
 
-        fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k "\
-                f"--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
+        fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=8k "\
+                f"--size=20gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
         assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         if por_operation == "POR_LOOP":
@@ -123,16 +123,19 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
             por_list = [por_operation]
 
         for por in por_list:
-
             if por == "NPOR":
                 assert pos.target_utils.Npor() == True
 
             else:
                 assert pos.target_utils.Spor() == True
 
-            fio_cmd = "fio --name=seq_read --ioengine=libaio --rw=read --iodepth=64 --bs=128k "\
-                    f"--size=200gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
-            assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
+        if por == "NPOR":
+            for nqn in subs_list:
+                assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+
+        fio_cmd = "fio --name=seq_read --ioengine=libaio --rw=read --iodepth=64 --bs=8k "\
+                 f"--size=20gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
+        assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"

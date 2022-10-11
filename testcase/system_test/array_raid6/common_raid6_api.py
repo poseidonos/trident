@@ -204,6 +204,7 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", size='5g',
         file_io_devs, block_io_devs = get_file_block_devs(nvme_devs, fio_type)
 
         if file_io_devs:
+            logger.info(f"File IO Dev: {file_io_devs}")
             assert pos.client.create_File_system(file_io_devs, fs_format=file_mount)
             out, mount_point = pos.client.mount_FS(file_io_devs)
             assert out == True
@@ -213,6 +214,7 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", size='5g',
             )
             assert out == True
         if block_io_devs:
+            logger.info(f"Block IO Dev: {block_io_devs}")
             io_mode = True  # Set False this to Block IO
             out, async_block_io = pos.client.fio_generic_runner(
                 block_io_devs, fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True
@@ -222,8 +224,9 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", size='5g',
         assert wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
                              async_block_io, sleep_time=sleep_time) == True
         if mount_point:
+            logger.info(f"mount_point: {mount_point}")
             assert pos.client.unmount_FS(mount_point) == True
-            mount_point = False
+            mount_point = []
     except Exception as e:
         logger.error(f"Async FIO Failed due to {e}")
         if mount_point:
