@@ -33,7 +33,8 @@ def teardown_function():
     assert pos.cli.list_volume(array_name=array_name)[0] == True
     for vol_name in pos.cli.vols:
         assert pos.cli.reset_volume_policy_qos(vol_name, array_name)[0] == True
-        assert pos.cli.unmount_volume(vol_name, array_name)[0] == True
+        if pos.cli.vol_dict[vol_name]["status"] != "Unmounted":
+            assert pos.cli.unmount_volume(vol_name, array_name)[0] == True
         assert pos.cli.delete_volume(vol_name, array_name)[0] == True
 
     logger.info("==========================================")
@@ -67,11 +68,15 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
     )
     try:
         assert pos.cli.create_volume(vol_name, "12GB", array_name)[0] == True
+        exp_res = False if max_iops == 15.0 else True
 
         assert (
             pos.cli.create_volume_policy_qos(vol_name, array_name, max_iops, max_bw)[0]
-            == True
+            == exp_res
         )
+
+        if not exp_res:
+            return True
 
         assert pos.target_utils.get_subsystems_list() == True
         for ss in pos.target_utils.ss_temp_list:
@@ -89,10 +94,7 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
 
-        fio_cmd = (
-            f"fio --name=sequential_write --ioengine=libaio --rw=write "
-            "--iodepth=64 --direct=1 --bs=128k --size=1g"
-        )
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --bs=4k --size=3g"
         mount_point = None
         if io_type == "file":  # Run File IO
             assert pos.client.create_File_system(nvme_devs, fs_format="xfs") == True

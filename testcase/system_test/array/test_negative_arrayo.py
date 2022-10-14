@@ -44,7 +44,7 @@ def test_array_invalid_data_disk(
         status = pos.cli.create_array(
             write_buffer="uram0",
             data=data_disk_list,
-            spare=None,
+            spare=[],
             raid_type=raid_type,
             array_name=array_name,
         )
@@ -76,7 +76,7 @@ def test_create_array_invalid_commands(
             pos.cli.create_array(
                 write_buffer="dummy",
                 data=data_disk_list,
-                spare=None,
+                spare=[],
                 raid_type="RAID5",
                 array_name=array_name,
             )[0]
@@ -100,7 +100,7 @@ def test_array_less_data_drive(
         status = pos.cli.create_array(
             write_buffer="uram0",
             data=data_disk_list,
-            spare=None,
+            spare=[],
             raid_type=raid_type,
             array_name=array_name,
         )
@@ -133,7 +133,7 @@ def test_add_spare_without_array_mount(
             pos.cli.create_array(
                 write_buffer="uram0",
                 data=data_disk_list,
-                spare=None,
+                spare=[],
                 raid_type=raid_type,
                 array_name=array_name,
             )[0]
@@ -223,7 +223,7 @@ def test_mnt_vol_stop_arrray_state(
             pos.cli.create_array(
                 write_buffer="uram0",
                 data=data_disk_list,
-                spare=None,
+                spare=[],
                 raid_type=raid_type,
                 array_name=array_name,
             )[0]
@@ -269,7 +269,7 @@ def test_rename_vol_stop_arrray_state(
             pos.cli.create_array(
                 write_buffer="uram0",
                 data=data_disk_list,
-                spare=None,
+                spare=[],
                 raid_type=raid_type,
                 array_name=array_name,
             )[0]
@@ -346,7 +346,7 @@ def test_delete_create_array(
             pos.cli.create_array(
                 write_buffer="uram0",
                 data=data_disk_list,
-                spare=None,
+                spare=[],
                 raid_type=raid_type,
                 array_name=array_name,
             )[0]
@@ -358,7 +358,7 @@ def test_delete_create_array(
             pos.cli.create_array(
                 write_buffer="uram0",
                 data=data_disk_list,
-                spare=None,
+                spare=[],
                 raid_type=raid_type,
                 array_name=array_name,
             )[0]
@@ -385,7 +385,7 @@ def test_logger_info(setup_cleanup_array_function, raid_type="RAID5", nr_data_dr
             pos.cli.create_array(
                 write_buffer="uram0",
                 data=data_disk_list,
-                spare=None,
+                spare=[],
                 raid_type=raid_type,
                 array_name=array_name,
             )[0]

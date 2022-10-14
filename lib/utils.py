@@ -463,7 +463,7 @@ class Client:
                 outfio = self.ssh_obj.execute(
                     fio_cmd, get_pty=True, expected_exit_code=expected_exit_code
                 )
-                #self.fio_parser()
+                self.fio_parser()
                 return True, outfio
 
         except Exception as e:
@@ -484,7 +484,6 @@ class Client:
         logger.info(printout)
         self.fio_par_out = {}
         str_out = "".join(str_out).replace("\n", "")
-        """
         jout = json.loads(str_out)
 
         self.fio_par_out["read"] = {
@@ -497,7 +496,6 @@ class Client:
             "iops": jout["jobs"][0]["write"]["iops"],
             "clat": jout["jobs"][0]["write"]["clat_ns"],
         }
-        """
         return True
 
     def fio_verify_qos(self, qos_data: dict, fio_out: dict, num_dev: int) -> bool:
@@ -530,6 +528,7 @@ class Client:
             if avg_fio_bw < qos_max_bw and avg_fio_bw > qos_max_bw * 0.95:
                 result = True
         else:
+            qos_max_iops = qos_max_iops * kiops
             logger.info(
                 "avg fio iops: {} ({}/{} - total iops/num of device). qos max iops {}".format(
                     avg_fio_iops, fio_iops, num_dev, qos_max_iops
