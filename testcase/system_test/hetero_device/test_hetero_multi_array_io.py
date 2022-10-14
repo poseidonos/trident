@@ -42,29 +42,37 @@ def teardown_module():
     logger.info("========= TEAR DOWN AFTER SESSION ========")
     pos.exit_handler(expected=True)
 
-array_raid_disk = [("RAID0", 2), ("RAID0", 4), ("RAID5", 3), ("RAID10", 4), ("RAID5", 16)]
-array_mount_type = ["WT", "WB"]
-fio_io_type = ["block", "file"]
+
+test_params = {
+        "t0":  ("RAID5",  3,  "wt", "RAID5",  3,  "wt", "block", 60),
+        "t1":  ("RAID5",  3,  "wt", "RAID5",  3,  "wt", "file", 60),
+        "t2":  ("RAID5",  16, "wb", "RAID5",  16, "wb", "block", 60),
+        "t3":  ("RAID5",  16, "wb", "RAID5",  16, "wt", "file", 60),
+        "t4":  ("RAID0",  2,  "wt", "RAID0",  4,  "wb", "file", 60),
+        "t5":  ("RAID10", 4,  "wb", "RAID10", 4,  "wb", "block", 60),
+        "t6":  ("RAID0",  2,  "wb", "RAID0",  2,  "wb", "file", 60),
+        "t7":  ("RAID0",  2,  "wb", "RAID0",  2,  "wb", "block", 60),
+        "t8":  ("RAID10", 4,  "wb", "RAID10", 4,  "wb", "block", 60),
+        "t9":  ("RAID0",  2,  "wb", "RAID0",  2,  "wb", "block", 60),
+        "t10": ("RAID5",  3,  "wb", "RAID5",  3,  "wb", "file", 60),
+        "t11": ("RAID5",  3,  "wb", "RAID5",  6,  "wb", "file", 60),
+        "t12": ("RAID5",  3,  "wb", "RAID5",  6,  "wb", "block", 60),
+        }
 
 @pytest.mark.regression
-@pytest.mark.parametrize("fio_runtime", ["60", "120"])
-@pytest.mark.parametrize("io_type", fio_io_type)
-@pytest.mark.parametrize("array2_mount", array_mount_type)
-@pytest.mark.parametrize("array2_raid, array2_devs", array_raid_disk)
-@pytest.mark.parametrize("array1_mount", array_mount_type)
-@pytest.mark.parametrize("array1_raid, array1_devs", array_raid_disk)
-def test_hetero_multi_array_max_size_volume_FIO(
-                        array1_raid, array1_devs, array1_mount,
-                        array2_raid, array2_devs, array2_mount, 
-                        io_type, fio_runtime):
+@pytest.mark.parametrize("test_id", test_params)
+def test_hetero_multi_array_max_size_volume_FIO(test_id):
     """
     Test two arrays using hetero devices, Create max size volume on each array.
     Run File or Block FIO.
     """
     logger.info(
-        " ==================== Test : test_hetero_multi_array_max_size_volume_FIO ================== "
+        f" ==================== Test : test_hetero_multi_array_max_size_volume_FIO[{test_id}] ================== "
     )
     try:
+        array1_raid, array1_devs, array1_mount = test_params[test_id][:3]
+        array2_raid, array2_devs, array2_mount = test_params[test_id][3:6] 
+        io_type, fio_runtime = test_params[test_id][6:8]
         mount_point = None
         io_mode = True
         assert pos.target_utils.get_subsystems_list() == True
@@ -179,6 +187,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
         num_vols = 256
         fio_runtime = 120  # FIO for 2 minutes
         ss_list = pos.target_utils.ss_temp_list[:num_array]
+        mount_point = None
 
         for counter in range(repeat_ops):
             for id in range(num_array):
@@ -222,7 +231,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                 nqn=ss_list[id]
                 assert pos.cli.list_volume(array_name=array_name)[0] == True
                 assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                                volume_list=pos.cli.vols, nqn_list=[nqn]) == True
+                                volume_list=pos.cli.vols, nqn=nqn) == True
 
                 # Connect client
                 assert pos.client.nvme_connect(nqn, 
@@ -235,42 +244,42 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
             fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --bs=128k "\
                     f"--iodepth=64 --time_based --runtime={fio_runtime} --size={vol_size}"
 
-            nr_dev = 64
-            for i in range(len(nvme_devs) // nr_dev):
-                nvme_dev_list = nvme_devs[i * nr_dev : (i + 1) * nr_dev]
-                file_io_devs = nvme_dev_list[:32]
-                # File IO
-                mount_point = None
-                assert pos.client.create_File_system(file_io_devs, fs_format="xfs")
-                out, mount_point = pos.client.mount_FS(file_io_devs)
-                assert out == True
-                io_mode = True  # Set True for File IO
+            half = int(num_vols // 2)
+            file_io_devs = nvme_devs[:half]
+            block_io_devs = nvme_devs[half:]
+
+            # File IO
+            mount_point = None
+            assert pos.client.create_File_system(file_io_devs, fs_format="xfs")
+            out, mount_point = pos.client.mount_FS(file_io_devs)
+            assert out == True
+            io_mode = False  # Set False for File  IO
   
-                out, async_file_io = pos.client.fio_generic_runner(mount_point,
-                        fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True)
-                assert out == True
+            out, async_file_io = pos.client.fio_generic_runner(mount_point,
+                    fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True)
+            assert out == True
 
-                # Block IO
-                block_io_devs = nvme_dev_list[32:]
-                io_mode = False  # Set False for Block IO
-                out, async_block_io = pos.client.fio_generic_runner(block_io_devs,
-                        fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True)
+            # Block IO
+            io_mode = True  # Set True for Block IO
+            out, async_block_io = pos.client.fio_generic_runner(block_io_devs,
+                    fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True)
 
-                # Wait for async FIO completions
-                while True:
-                    time.sleep(30)  # Wait for 30 seconds
-                    msg = []
-                    if not async_file_io.is_complete():
-                        msg.append("File IO")
-                    if not async_block_io.is_complete():
-                        msg.append("Block IO")
-                    if msg:
-                        logger.info(f"{','.join(msg)} is still running. Wait 30 seconds...")
-                        continue
-                    break
+            # Wait for async FIO completions
+            while True:
+                time.sleep(30)  # Wait for 30 seconds
+                msg = []
+                if not async_file_io.is_complete():
+                    msg.append("File IO")
+                if not async_block_io.is_complete():
+                    msg.append("Block IO")
+                if msg:
+                    logger.info(f"{','.join(msg)} is still running. Wait 30 seconds...")
+                    continue
+                break
 
-                if mount_point:
-                    assert pos.client.unmount_FS(mount_point) == True
+            if mount_point:
+                assert pos.client.unmount_FS(mount_point) == True
+                mount_point = None
 
             if repeat_ops > 1:
                 if pos.client.ctrlr_list()[1]:
@@ -293,6 +302,9 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
+        if mount_point:
+            pos.client.unmount_FS(mount_point)
+
         traceback.print_exc()
         pos.exit_handler(expected=False)
     

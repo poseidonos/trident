@@ -573,8 +573,8 @@ class Helper:
         for dev_name, dev in devices.items():
             if dev["type"].lower() != "ssd" or dev["class"].lower() == "array":
                 continue
-
-            size = int(dev["size"] // (1024 * 1024 * 1024))  # Convert in GiB
+            dev_size = int(dev["size"])
+            size = int(dev_size // (1024 * 1024 * 1024))  # Convert in GiB
             size = f"{size}GiB"
             try:
                 device_size_dict[size].append(dev_name)
@@ -640,7 +640,7 @@ class Helper:
                         selected_devices.append(dev_name)
                         counter += 1
 
-        return True, device_select
+        return True, selected_devices
 
     def select_hetro_devices(
         self, devices: dict, data_dev_select: dict, spare_dev_select: dict = None
