@@ -264,15 +264,16 @@ class Helper:
         """method to check pos running status
         if pos is not running returns True else False
         """
-        command = "ps -aef | grep -i poseidonos"
-        out = self.ssh_obj.execute(command)
-        ps_out = "".join(out)
-        if "bin/poseidonos" not in ps_out:
-            logger.info("POS IS NOT RUNNING")
-            return True
-        else:
-            logger.warning("POS IS RUNNING")
+        
+        cmd = 'systemctl is-active  poseidonos.service'
+        out = self.ssh_obj.execute(cmd, get_pty=True)
+        if "active" in out[0]:
+            logger.info("POS IS RUNNING")
             return False
+        else:
+              logger.warning("POS IS NOT RUNNING")
+              return True
+        
 
     def wbt_parser(self, file_name: str) -> (bool, dict()):
         """

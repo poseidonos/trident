@@ -91,12 +91,12 @@ class POS:
         self.cli = Cli(
             self.target_ssh_obj,
             data_dict=self.data_dict,
-            pos_path=self.config_dict["login"]["paths"]["pos_path"],
+            
         )
         self.target_utils = TargetUtils(
             self.target_ssh_obj,
             self.data_dict,
-            self.config_dict["login"]["paths"]["pos_path"],
+            
         )
 
         self.pos_conf = POS_Config(self.target_ssh_obj)
