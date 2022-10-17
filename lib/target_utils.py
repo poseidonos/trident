@@ -49,19 +49,19 @@ class TargetUtils:
     Args:
         ssh_obj : ssh obj of the Target
         data_dict (dict) : path for POS config
-        pos_path : path of pos source
+        
         array_name (str) : name of the POS array | (default = POS_ARRAY1)
 
     """
 
-    def __init__(self, ssh_obj, data_dict: dict, pos_path: str):
+    def __init__(self, ssh_obj, data_dict: dict):
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
-        self.pos_path = pos_path
-        self.cli = Cli(ssh_obj, self.static_dict, pos_path)
+        
+        self.cli = Cli(ssh_obj, self.static_dict,)
         # self.array = array_name
         self.helper = helper.Helper(ssh_obj)
-        self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_path)
+        self.hetero_setup = TargetHeteroSetup(ssh_obj)
         self.udev_rule = False
         self.total_required = 0
         assert self.helper.get_mellanox_interface_ip()[0] == True
@@ -614,9 +614,10 @@ class TargetUtils:
 
     def bringupSystem(self, data_dict: dict) -> bool:
         """method to bringup system phase"""
-        self.setup_core_dump()
-        self.setup_max_map_count()
-        self.udev_install()
+        ##TODO set pos path
+        #self.setup_core_dump()
+        #self.setup_max_map_count()
+        #self.udev_install()
         
         self.static_dict = data_dict
         ###system config
@@ -1321,7 +1322,8 @@ class TargetUtils:
         except Exception as e:
             logger.error(e)
             return False
-
+    ##TODO update pos path
+    
     def dump_core(self):
         """
         Method to collect core dump by giving different options depending on
@@ -1334,10 +1336,10 @@ class TargetUtils:
             else:
                 dump_type = "crashed"
 
-            command = "{}/tool/dump/trigger_core_dump.sh {}".format(
-                self.pos_path, dump_type
-            )
-            out = self.ssh_obj.execute(command)
+            #command = "{}/tool/dump/trigger_core_dump.sh {}".format(
+           #     self.pos_path, dump_type
+            #)
+            #out = self.ssh_obj.execute(command)
             logger.info("core dump file created: {}".format(out))
             return True
         except Exception as e:
@@ -1364,7 +1366,7 @@ class TargetUtils:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False
-
+    
     def copy_pos_log(self, unique_key, dir="/root"):
         """
         Method to rename the core dump file using unique key and issue key

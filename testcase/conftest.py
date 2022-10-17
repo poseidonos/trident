@@ -392,9 +392,12 @@ def pos_logs_core_dump(report, issuekey):
     time_stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     unique_key = f"{issuekey}_{time_stamp}"
     if (report.when == 'call' and report.outcome == 'failed'):
+        #TODO update pos path
+
         if trident_config_data["dump_pos_core"]["enable"] == "true":
-            assert pos.target_utils.dump_core() == True
-            assert pos.target_utils.copy_core(unique_key) == True
+            #assert pos.target_utils.dump_core() == True
+            #assert pos.target_utils.copy_core(unique_key) == True
+            pass
 
         if trident_config_data["copy_pos_log"]["test_fail"] == "true":
             assert pos.target_utils.copy_pos_log(unique_key) == True

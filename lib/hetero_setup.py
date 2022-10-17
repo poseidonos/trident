@@ -24,6 +24,7 @@ class NS_State(Enum):
     UNALLOCATED = 4
 
 
+
 class NVMe_Command:
     def __init__(self, conn: object) -> None:
         """
@@ -500,10 +501,10 @@ class NVMe_Dev(NVMe_Command):
 
 class TargetHeteroSetup:
     def __init__(
-        self, ssh_obj: object, pos_dir: str, hetero_setup_data: dict = None
+        self, ssh_obj: object,  hetero_setup_data: dict = None
     ) -> None:
         self.ssh_obj = ssh_obj
-        self.pos_dir = pos_dir
+        
         self.hetero_setup_data = hetero_setup_data
         self.nvme_test_device = {}
         self.nvme_sys_devices = {}
@@ -563,7 +564,7 @@ class TargetHeteroSetup:
         return self.nvme_test_device
 
     def _do_spdk_setup_reset(self) -> bool:
-        reset_cmd = f"{self.pos_dir}/lib/spdk/scripts/setup.sh reset"
+        reset_cmd = "/usr/local/lib/spdk/scripts/setup.sh reset"
 
         out = self.ssh_obj.execute(reset_cmd)
         try:
