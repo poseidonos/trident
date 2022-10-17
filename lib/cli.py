@@ -51,25 +51,24 @@ class Cli:
     Args:
         con (object) : target ssh obj
         data_dict (dict) : pos_config details from testcase/config_files/`.json
-         pos_path (str) : path for pos source
+         
         array_name (str) : name of the POS array
     """
 
     def __init__(
-        self, con, data_dict: dict, pos_path: str, array_name: str = "POSARRAY1"
+        self, con, data_dict: dict, array_name: str = "array1"
     ):
         self.ssh_obj = con
         self.helper = helper.Helper(con)
         self.data_dict = data_dict
-        self.pos_path = pos_path
         self.array_name = array_name
-        self.new_cli_path = "/bin/poseidonos-cli"  ##path of POS cli
+        self.cli_path = "poseidonos-cli"  ##path of POS cli
         self.array_info = {}
         self.cli_history = []
         self.lock = Lock()
 
     def run_cli_command(
-        self, command: str, command_type: str = "request", timeout=100
+        self, command: str, command_type: str = "request", timeout: int=100
     ) -> (bool, dict()):
         """
         Method to Execute CLI commands and return Response
@@ -81,10 +80,12 @@ class Cli:
         """
 
         try:
+            
             retry_cnt = 1
-            cmd = "{}{} {} {} --json-res".format(
-                self.pos_path, self.new_cli_path, command_type, command
-            )
+            cmd = "poseidonos-cli {} {} --json-res".format(
+                 command_type, command )
+           
+
             start_time = time.time()
             run_end_time = start_time + timeout
 
@@ -197,36 +198,49 @@ class Cli:
                 pass
 
     #####################################################system################################
-    def start_system(self) -> (bool, dict()):
+    def pos_service(self,operation:str) -> (bool,list):
+        """method to start/stop poseidon service
+           operation (str) : start/stop"""
+        try:
+            cmd = f'systemctl {operation} poseidonos.service'
+            out = self.ssh_obj.execute(cmd, get_pty=True)
+                    
+            return True, out
+        except Exception as e:
+            logger.error("failed to start POS as a service")
+            return False, out
+    
+    
+        
+
+
+    def start_system(self, mode:str = 'service', timeout = 60) -> (bool, dict()):
         """
         Method to start pos
+        mode = cli if to use system start else mode = service
         """
         try:
-            out = ""
-            """
-            max_running_time = 30 * 60 #30min
-            start_time = time.time()
-            self.out = self.ssh_obj.run_async("nohup {}/bin/{} >> {}/script/pos.log".format(self.pos_path, "poseidonos", self.pos_path))
-            while True:
-                logger.info("waiting for POS logs")
-                time.sleep(5)
-                if self.out.is_complete() is False:
-                    logger.info("Time-consuming : {}".format(time.time() - start_time))
-                    return True, out
-                cur_time = time.time()
-                running_time = cur_time - start_time
-                if running_time > max_running_time:
-                    return False, out
+            jout = {}
+            if mode == "cli":
+                cli_error, jout = self.run_cli_command("start", command_type="system")
+                if cli_error == True:
+                     return True, jout
+            else:
+                assert self.pos_service(operation="start")[0] == True
+                start_time = time.time()
+                run_end_time = start_time + timeout
 
-            """
+                while time.time() < run_end_time:
+                    if self.helper.check_pos_exit() == True:
+                        logger.warning("waiting for POS to be UP and running")
+                        time.sleep(5)
+                    else:
+                        break
 
-            # to use the CLI to start the
-            cli_error, jout = self.run_cli_command("start", command_type="system")
-            if cli_error == True:
+            
                 return True, jout
-
         except Exception as e:
-            logger.error(f"failed due to {jout}")
+            logger.error(f"failed due to {e}")
             return False, jout
 
     def stop_system(
