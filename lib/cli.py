@@ -910,7 +910,30 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
+    def get_property(self) -> (bool, dict()):
+        try:
+            cmd = "get-property"
+            cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
+            if cli_error == True:
+                return True, jout
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
 
+
+    def set_property(self, publication_list_path = '/etc/pos/pos-prometheus.yml') -> (bool, dict()):
+        try:
+            cmd = f"set-property --publication-list-path {publication_list_path}"
+            cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
+            if cli_error == True:
+                return True, jout
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
     ###################################################QOS##############################
     def create_volume_policy_qos(
         self,
