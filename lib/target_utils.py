@@ -54,14 +54,15 @@ class TargetUtils:
 
     """
 
-    def __init__(self, ssh_obj, data_dict: dict):
+    def __init__(self, ssh_obj, data_dict: dict, pos_as_service = "true"):
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
+        self.pos_as_service = pos_as_service
         
-        self.cli = Cli(ssh_obj, self.static_dict,)
+        self.cli = Cli(ssh_obj, self.static_dict,pos_as_service=self.pos_as_service)
         # self.array = array_name
-        self.helper = helper.Helper(ssh_obj)
-        self.hetero_setup = TargetHeteroSetup(ssh_obj)
+        self.helper = helper.Helper(ssh_obj, pos_as_service= self.pos_as_service)
+        self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_as_service=self.pos_as_service)
         self.udev_rule = False
         self.total_required = 0
         assert self.helper.get_mellanox_interface_ip()[0] == True
@@ -1332,15 +1333,16 @@ class TargetUtils:
         try:
             if self.helper.check_pos_exit() == False:
                 out = self.ssh_obj.execute("pkill -11 poseidonos")
-                dump_type = "crashed"
+              
+            if self.pos_as_service != "true":
+                self.cli_path = self.helper.get_pos_path()
+                command = "{}/tool/dump/trigger_core_dump.sh crashed".format(
+                  self.cli_path )
+                out = self.ssh_obj.execute(command)
+                logger.info("core dump file created: {}".format(out))
             else:
-                dump_type = "crashed"
-
-            #command = "{}/tool/dump/trigger_core_dump.sh {}".format(
-           #     self.pos_path, dump_type
-            #)
-            #out = self.ssh_obj.execute(command)
-            logger.info("core dump file created: {}".format(out))
+                #TODO dump creation for pos as service
+                pass
             return True
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))

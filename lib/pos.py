@@ -35,6 +35,7 @@ from cli import Cli
 from target_utils import TargetUtils
 from pos_config import POS_Config
 from utils import Client
+from prometheus import Prometheus
 from json import load
 from os import path
 from sys import exit
@@ -66,7 +67,7 @@ class POS:
             data_path = "pos_config.json"
         if config_path is None:
             config_path = "topology.json"
-
+        trident_config = "trident_config.json"
         self.client_cnt = 0
         self.client_handle = []
         self.obj_list = []
@@ -81,7 +82,8 @@ class POS:
         else:
             self.data_dict = self._json_reader(data_path)[1]
         self.config_dict = self._json_reader(config_path)[1]
-
+        self.pos_AsService = self._json_reader(trident_config)[1]["pos_as_a_service"]["enable"]
+       
         self.target_ssh_obj = SSHclient(
             self.config_dict["login"]["target"]["server"][0]["ip"],
             self.config_dict["login"]["target"]["server"][0]["username"],
@@ -90,17 +92,20 @@ class POS:
         self.obj_list.append(self.target_ssh_obj)
         self.cli = Cli(
             self.target_ssh_obj,
-            data_dict=self.data_dict,
-            
-        )
-        self.target_utils = TargetUtils(
-            self.target_ssh_obj,
-            self.data_dict,
+            data_dict=self.data_dict,pos_as_service= self.pos_AsService
             
         )
 
+        self.target_utils = TargetUtils(
+            self.target_ssh_obj,
+            self.data_dict,
+            pos_as_service=self.pos_AsService
+            
+        )
+         
         self.pos_conf = POS_Config(self.target_ssh_obj)
         self.pos_conf.load_config()
+        self.prometheus = Prometheus(self.target_ssh_obj, self.data_dict)
 
         self.client_cnt = self.config_dict["login"]["initiator"]["number"]
         if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:

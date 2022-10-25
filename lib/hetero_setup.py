@@ -501,7 +501,7 @@ class NVMe_Dev(NVMe_Command):
 
 class TargetHeteroSetup:
     def __init__(
-        self, ssh_obj: object,  hetero_setup_data: dict = None
+        self, ssh_obj: object,  hetero_setup_data: dict = None, pos_as_service = "true"
     ) -> None:
         self.ssh_obj = ssh_obj
         
@@ -510,6 +510,7 @@ class TargetHeteroSetup:
         self.nvme_sys_devices = {}
         self.nvme_devices = []
         self.nvme_device_scanned = False
+        self.pos_as_service = pos_as_service
 
     def execute(self, command):
         try:
