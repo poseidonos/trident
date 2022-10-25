@@ -56,17 +56,23 @@ class Cli:
     """
 
     def __init__(
-        self, con, data_dict: dict, array_name: str = "array1"
+        self, con, data_dict: dict, array_name: str = "array1",pos_as_service: str = "true"
     ):
         self.ssh_obj = con
-        self.helper = helper.Helper(con)
+        self.helper = helper.Helper(con, pos_as_service = pos_as_service)
         self.data_dict = data_dict
         self.array_name = array_name
-        self.cli_path = "poseidonos-cli"  ##path of POS cli
         self.array_info = {}
         self.cli_history = []
         self.lock = Lock()
-
+        self.pos_as_service = pos_as_service
+        self.helper.get_pos_path()
+        if self.pos_as_service == "false":
+            self.cli_path =  f'{self.helper.pos_path}/bin/poseidonos-cli'
+        else:
+            self.cli_path = "poseidonos-cli"
+        
+            
     def run_cli_command(
         self, command: str, command_type: str = "request", timeout: int=100
     ) -> (bool, dict()):

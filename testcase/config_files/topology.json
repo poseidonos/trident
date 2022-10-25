@@ -55,7 +55,7 @@
         },
 	"paths": 
 	{
-		"pos_path": "/root/pos_v0.12-rc0/ibofos" 
+		"pos_path": "/root/poseidon/ibofos" 
 	}
     }
 }

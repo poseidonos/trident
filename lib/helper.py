@@ -58,11 +58,12 @@ class Helper:
 
     """helper methods for target and initiator"""
 
-    def __init__(self, ssh_obj):
+    def __init__(self, ssh_obj,pos_as_service = "true"):
         self.ssh_obj = ssh_obj
         self.cli_history = []
         self.sys_memory_list = []
         self.ip_addr = []
+        self.pos_as_service = pos_as_service
 
     def json_reader(self, json_file) -> (bool):
         """ "method to read and return Json dict"""
@@ -264,7 +265,26 @@ class Helper:
         """method to check pos running status
         if pos is not running returns True else False
         """
+        if self.pos_as_service == "true":
+            return self.check_pos_service()
+        else:
+            return self.check_pos_pid()
+           
+
+    def check_pos_pid(self) -> str:
         
+        command = "ps -aef | grep -i poseidonos"
+        out = self.ssh_obj.execute(command)
+        ps_out = "".join(out)
+        if "bin/poseidonos" not in ps_out:
+            logger.info("POS IS NOT RUNNING")
+            return True
+        else:
+            logger.warning("POS IS RUNNING")
+            return False
+        
+    
+    def check_pos_service(self) -> str:
         cmd = 'systemctl is-active  poseidonos.service'
         out = self.ssh_obj.execute(cmd, get_pty=True)
         if "active" in out[0]:
@@ -273,7 +293,13 @@ class Helper:
         else:
               logger.warning("POS IS NOT RUNNING")
               return True
-        
+
+    def get_pos_path(self):
+        """method to get pos path as per service option"""
+        if self.pos_as_service == 'false':
+             self.json_reader("../testcase/config_files/topology.json")
+             self.pos_path = self.static_dict["login"]["paths"]
+             
 
     def wbt_parser(self, file_name: str) -> (bool, dict()):
         """
