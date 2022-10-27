@@ -538,6 +538,7 @@ class Cli:
                 array_size = out[1]["data"]["capacity"]
                 array_situation = out[1]["data"]["situation"]
                 rebuild_progress = out[1]["data"]["rebuildingProgress"]
+                uniqueId = out[1]['data']['uniqueId']
                 for dev in out[1]["data"]["devicelist"]:
                     if dev["type"] == "DATA":
                         data_dev.append(dev["name"])
@@ -566,6 +567,7 @@ class Cli:
             "data_list": data_dev,
             "spare_list": spare_dev,
             "buffer_list": buffer_dev,
+            'uniqueId' :uniqueId
         }
         return (True, out)
 
