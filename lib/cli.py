@@ -210,13 +210,24 @@ class Cli:
         try:
             cmd = f'systemctl {operation} poseidonos.service'
             out = self.ssh_obj.execute(cmd, get_pty=True)
+           
                     
             return True, out
         except Exception as e:
             logger.error("failed to start POS as a service")
             return False, out
     
-    
+    def pos_exporter(self,operation:str) -> (bool,list):
+        """method to start/stop poseidon service
+           operation (str) : start/stop"""
+        try:
+            cmd = f'systemctl {operation} pos-exporter.service'
+            out = self.ssh_obj.execute(cmd, get_pty=True)
+                    
+            return True, out
+        except Exception as e:
+            logger.error("failed to start POS as a service")
+            return False, out
         
 
 
