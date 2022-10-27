@@ -6,6 +6,8 @@ from cli import Cli
 
 logger = logger.get_logger(__name__)
 
+class paths():
+    pos_prometheus = '/etc/pos/pos-prometheus.yml'
 
 class Prometheus(Cli):
     """class to navigate in prometheus DB"""
@@ -13,7 +15,8 @@ class Prometheus(Cli):
     def __init__(self, con, data_dict: dict, array_name: str = "array1"):
         """con : ssh obj of the target"""
         super().__init__(con, data_dict, array_name)
-        self.prometheus_path = '/etc/pos/pos-prometheus.yml'
+        assert self.pos_exporter(operation = "start")[0] == True
+        self.prometheus_path = paths.pos_prometheus
         self.ssh_obj = con
         assert self.update_config() == True
         url = f'http://{self.ssh_obj.hostname}:2113'
