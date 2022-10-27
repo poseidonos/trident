@@ -16,6 +16,10 @@ class Prometheus(Cli):
         self.prometheus_path = '/etc/pos/pos-prometheus.yml'
         self.ssh_obj = con
         assert self.update_config() == True
+        url = f'http://{self.ssh_obj.hostname}:2113'
+        self.prom = PrometheusConnect(url=url)
+        
+
     def config_check(self) -> bool:
         """verify if targetip is updated in pos-prometheus.yml"""
         logger.info("Reading current config")
@@ -45,6 +49,24 @@ class Prometheus(Cli):
         except Exception as e:
             logger.error(e)
             return False
+    
+    def set_telemetry_configs(self) -> bool:
+        """method to start and do set-property in telemetry"""
+        assert self.start_telemetry()[0] == True
+        assert self.set_property()[0] == True
+        assert self.get_property()[0] == True
+        return True
+
+    
+    def get_all_metrics(self) -> bool:
+        """method to list all the metric info"""
+        try:
+            self.promlist = self.prom.all_metrics()
+            return True
+        except Exception as e:
+            logger.error(e)
+            return False
+    
 
 
         
