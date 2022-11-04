@@ -11,7 +11,7 @@ def make_dir(path = "results"):
     if not os.path.exists(path):
         os.makedirs(path)
 
-makedir()
+make_dir()
 with open(htm, "r") as report:
     output = report.readlines()
     for line in output:
