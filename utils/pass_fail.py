@@ -15,5 +15,11 @@ with open(htm, "r") as report:
         if '<span class="passed">' in line:
             passed = re.findall('<span class="passed">(\d+)', line)
             failed = re.findall('<span class="failed">(\d+)', line)
-with open("report.txt", "a+") as textreport:
+report.close()
+with open("results/pos_poc3_Summary.txt", "a+") as textreport:
     textreport.write("Pass = {}\nFail= {}\n".format(passed[0], failed[0]))
+
+with open("results/pos_report.html", "a+") as report:
+    for line in output:
+        report.write(line)
+report.close()
