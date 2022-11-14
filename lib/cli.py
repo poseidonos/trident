@@ -160,6 +160,7 @@ class Cli:
     def parse_out(self, jsonout, command):
 
         out = json.loads(jsonout)
+        
         command = command
         if "param" in out.keys():
             param = out["Request"]["param"]
@@ -358,8 +359,11 @@ class Cli:
             self.array_dict = {}
             cmd = "list"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
-
+            
             if cli_error == False and int(jout["status_code"]) == 1225:
+                logger.info(jout["description"])
+                return True, jout
+            elif cli_error == False and int(jout["status_code"]) == 1226:
                 logger.info(jout["description"])
                 return True, jout
             if cli_error == True:
@@ -430,7 +434,7 @@ class Cli:
             return False, jout
 
     def mount_array(
-        self, array_name: str = None, write_back: bool = True
+        self, array_name: str = None, write_back: bool = False
     ) -> (bool, dict()):
         """
         Method to mount array

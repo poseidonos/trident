@@ -463,7 +463,7 @@ class Client:
                 outfio = self.ssh_obj.execute(
                     fio_cmd, get_pty=True, expected_exit_code=expected_exit_code
                 )
-                self.fio_parser()
+                #self.fio_parser()
                 return True, outfio
 
         except Exception as e:

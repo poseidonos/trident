@@ -368,7 +368,7 @@ class TargetUtils:
         self.spare_drives = devices["spare_dev_list"]
         return True
 
-    def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
+    def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = False) -> bool:
         """
         Method to spor preparation
         wbt_flush : If true, Issue the wbt flush command
@@ -386,7 +386,7 @@ class TargetUtils:
             if uram_backup:
                 self.ssh_obj.execute(
                     "{}/script/backup_latest_hugepages_for_uram.sh".format(
-                        self.cli.pos_path
+                        self.helper.pos_path
                     ),
                     get_pty=True,
                 )
@@ -484,7 +484,7 @@ class TargetUtils:
             bool
         """
 
-        if size == None:
+        if size == None or size == "None":
             assert self.cli.info_array(array_name)[0] == True
             temp = self.helper.convert_size(
                 int(self.cli.array_info[array_name]["size"])
@@ -1336,13 +1336,14 @@ class TargetUtils:
               
             if self.pos_as_service != "true":
                 self.cli_path = self.helper.get_pos_path()
-                command = "{}/tool/dump/trigger_core_dump.sh crashed".format(
-                  self.cli_path )
-                out = self.ssh_obj.execute(command)
-                logger.info("core dump file created: {}".format(out))
             else:
-                #TODO dump creation for pos as service
-                pass
+                self.cli_path = "/usr/local/bin"
+            command = "{}/tool/dump/trigger_core_dump.sh crashed".format(
+                  self.cli_path )
+              
+            out = self.ssh_obj.execute(command)
+            logger.info("core dump file created: {}".format(out))
+           
             return True
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
