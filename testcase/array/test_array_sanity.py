@@ -139,7 +139,7 @@ def test_SanityArray(array_fixture):
             pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = random.randint(
                 1, 256
             )
-            por = random.choice([True, False])
+            por = random.choice([False])
             logger.info(pos.data_dict)
             assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
             assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True

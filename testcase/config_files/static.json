@@ -4,8 +4,8 @@
 	},
 
 "Test Cycle Info": {
-	"Validation Type": "sanity",
+	"Validation Type": "regression",
 	"Release": "3Q",
-	"Version":"v0.12.0-rc0"}
+	"Version":"v0.12.0-rc4"}
 }
 
