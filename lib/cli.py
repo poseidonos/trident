@@ -72,6 +72,7 @@ class Cli:
         else:
             self.cli_path = "poseidonos-cli"
         
+        
             
     def run_cli_command(
         self, command: str, command_type: str = "request", timeout: int=100
@@ -88,7 +89,7 @@ class Cli:
         try:
             
             retry_cnt = 1
-            cmd = "poseidonos-cli {} {} --json-res".format(
+            cmd = "{} {} {} --json-res".format(self.cli_path,
                  command_type, command )
            
 
@@ -104,6 +105,7 @@ class Cli:
                         timedelta(seconds=elapsed_time_secs)
                     )
                 )
+                
                 out = "".join(listout)
                 if "volume mount" in cmd:
                     out = listout[1] if len(listout) > 1 else "".join(listout)
@@ -232,14 +234,14 @@ class Cli:
         
 
 
-    def start_system(self, mode:str = 'service', timeout = 60) -> (bool, dict()):
+    def start_system(self, timeout = 60) -> (bool, dict()):
         """
         Method to start pos
         mode = cli if to use system start else mode = service
         """
         try:
             jout = {}
-            if mode == "cli":
+            if self.pos_as_service == "false":
                 cli_error, jout = self.run_cli_command("start", command_type="system")
                 if cli_error == True:
                      return True, jout
