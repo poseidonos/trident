@@ -463,7 +463,7 @@ class Client:
                 outfio = self.ssh_obj.execute(
                     fio_cmd, get_pty=True, expected_exit_code=expected_exit_code
                 )
-                #self.fio_parser()
+                self.fio_parser()
                 return True, outfio
 
         except Exception as e:
@@ -478,6 +478,7 @@ class Client:
         iops: iops
         clat: nsec
         """
+        logger.info("am here")
         cmd = f"cat {self.fio_out_json}"
         str_out = self.ssh_obj.execute(cmd)
         printout = "".join(str_out)
