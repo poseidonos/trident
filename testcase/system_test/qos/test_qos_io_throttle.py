@@ -53,7 +53,7 @@ qos_iops_bw = [
     (5000, 100),
     (50, 10),
     (12, 50),
-    (15.0, 100.0),
+    ('15.0', 100.0),
     (5000, 10),
 ]
 fio_io_type = ["file", "block"]
@@ -68,7 +68,7 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
     )
     try:
         assert pos.cli.create_volume(vol_name, "12GB", array_name)[0] == True
-        exp_res = False if max_iops == 15.0 else True
+        exp_res = False if max_iops == '15.0' else True
 
         assert (
             pos.cli.create_volume_policy_qos(vol_name, array_name, max_iops, max_bw)[0]

@@ -384,6 +384,7 @@ class TargetUtils:
             assert self.cli.stop_system(grace_shutdown=False)[0] == True
 
             if uram_backup:
+                self.helper.get_pos_path()
                 self.ssh_obj.execute(
                     "{}/script/backup_latest_hugepages_for_uram.sh".format(
                         self.helper.pos_path
