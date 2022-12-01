@@ -398,7 +398,7 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def check_rebuild_status(self, array_name: str = None) -> bool:
+    def check_rebuild_status(self, array_name: str = None, rebuild_progress=100) -> bool:
         """
         Method to check rebuild status
         Args:
@@ -412,15 +412,20 @@ class TargetUtils:
 
             if self.cli.info_array(array_name=array_name)[0]:
                 situation = self.cli.array_info[array_name]["situation"]
-                progress = self.cli.array_info[array_name]["rebuilding_progress"]
+                progress = int(self.cli.array_info[array_name]["rebuilding_progress"])
                 state = self.cli.array_info[array_name]["state"]
 
-                if situation == "REBUILDING":
+                if situation == "REBUILDING" and progress < rebuild_progress:
                     logger.info(
-                        f" {array_name} REBUILDING in Progress... [{progress}%]"
+                        f"{array_name} REBUILDING in Progress... [{progress}%]"
                     )
+                elif situation == "REBUILDING":
+                    logger.info(
+                        f"{array_name} REBUILDING completed [{rebuild_progress}%]"
+                    )
+                    return False
                 else:
-                    logger.info(f" {array_name}  REBUILDING is Stoped/Not Started!")
+                    logger.info(f"{array_name} REBUILDING is Stoped/Not Started!")
                     logger.info(f"Situation: {situation}, State: {state}")
                     return False
             else:
@@ -432,7 +437,7 @@ class TargetUtils:
         return True
 
     def array_rebuild_wait(
-        self, array_name: str = None, wait_time: int = 5, loop_count: int = 20
+        self, array_name: str = None, wait_time: int = 5, loop_count: int = 20, rebuild_percent=100
     ) -> bool:
         """
         Method to check rebuild status
@@ -446,7 +451,8 @@ class TargetUtils:
                 array_name = self.array
             counter = 0
             while counter <= loop_count:
-                if not self.check_rebuild_status(array_name):
+                if not self.check_rebuild_status(array_name, 
+                                                 rebuild_progress=rebuild_percent):
                     # The rebuild is not in progress
                     break
                 time.sleep(wait_time)
@@ -457,6 +463,9 @@ class TargetUtils:
                     return False
             else:
                 logger.info(f"Rebuilding completed for the array {array_name}")
+
+            # Increment the counter
+            counter += 1
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False
@@ -468,8 +477,8 @@ class TargetUtils:
         num_vol: int,
         vol_name: str = "PoS_VoL",
         size: str = "100GB",
-        maxiops: int = 100000,
-        bw: int = 1000,
+        maxiops: int = 0,
+        bw: int = 0,
     ) -> bool:
         """
         method to create_multiple_volumes
@@ -484,26 +493,29 @@ class TargetUtils:
         Returns:
             bool
         """
-
-        if size == None or size == "None":
-            assert self.cli.info_array(array_name)[0] == True
-            temp = self.helper.convert_size(
-                int(self.cli.array_info[array_name]["size"])
-            )
-            if "TB" in temp:
-                size_params = int(float(temp[0]) * 1000)
-                size_per_vol = int(size_params / num_vol)
-                d_size = str(size_per_vol) + "GB"
-        else:
-            d_size = size
-        for i in range(num_vol):
-            volume_name = f"{array_name}_{vol_name}_{str(i)}"
-            assert (
-                self.cli.create_volume(
-                    volume_name, d_size, array_name, iops=maxiops, bw=bw
-                )[0]
-                == True
-            )
+        try:
+            if size == None or size == "None"::
+                assert self.cli.info_array(array_name)[0] == True
+                temp = self.helper.convert_size(
+                    int(self.cli.array_info[array_name]["size"])
+                )
+                if "TB" in temp:
+                    size_params = int(float(temp[0]) * 1000)
+                    size_per_vol = int(size_params / num_vol)
+                    d_size = str(size_per_vol) + "GB"
+            else:
+                d_size = size
+            for i in range(num_vol):
+                volume_name = f"{array_name}_{vol_name}_{str(i)}"
+                assert (
+                    self.cli.create_volume(
+                        volume_name, d_size, array_name, iops=maxiops, bw=bw
+                    )[0]
+                    == True
+                )
+        except Exception as e:
+            logger.error(f"Create volume '{volume_name}' failed due to {e}")
+            return False
         return True
 
     def mount_volume_multiple(
@@ -519,11 +531,12 @@ class TargetUtils:
             bool
         """
 
-        for vol in volume_list:
-            assert (
-                self.cli.mount_volume(volumename=vol, array_name=array_name, nqn=nqn)[0]
-                == True
-            )
+        try:
+            for vol in volume_list:
+                assert self.cli.mount_volume(volumename=vol, array_name=array_name,nqn = nqn)[0] == True
+        except Exception as e:
+            logger.error(f"Mount volume'{vol}' failed due to {e}")
+            return False
         return True
 
     def create_subsystems_multiple(
@@ -1282,9 +1295,11 @@ class TargetUtils:
                 assert self.cli.list_volume(array_name=array)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
-                for vol in self.cli.vols:
+                else:
                     # TODO skip mount volumes those were not mounted.
-                    assert self.cli.mount_volume(vol, array)[0] == True
+                    ss_list = [ss for ss in subsystem_list if array in ss]
+                    assert self.mount_volume_multiple(array,
+                                     self.cli.vols, ss_list[0]) == True
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")

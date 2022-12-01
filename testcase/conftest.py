@@ -125,6 +125,7 @@ def setup_clenup_array_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
+    assert pos.cli.reset_devel()[0] == True
 
     yield pos
 
@@ -136,13 +137,13 @@ def setup_clenup_array_module():
 def setup_cleanup_array_function(setup_clenup_array_module):
     logger.info("========== SETUP ARRAY TEST =========")
     pos = setup_clenup_array_module
-    if pos.target_utils.helper.check_pos_exit() == True:
-        data_dict["system"]["phase"] = "true"
-        data_dict["subsystem"]["phase"] = "true"
-        data_dict["device"]["phase"] = "true"
-        data_dict["array"]["phase"] = "false"
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
     data_dict = pos.data_dict
+    if pos.target_utils.helper.check_pos_exit() == True:
+        data_dict['system']['phase'] = "true"
+        data_dict['subsystem']['phase'] = "true"
+        data_dict['device']['phase'] = "true"
+        data_dict['array']['phase'] = "false"
+        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
     data_dict["system"]["phase"] = "false"
     data_dict["subsystem"]["phase"] = "false"
     data_dict["device"]["phase"] = "false"
