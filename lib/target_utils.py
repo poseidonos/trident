@@ -1131,12 +1131,8 @@ class TargetUtils:
         assert self.cli.start_system()[0] == True
         uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
         for uram in uram_list:
-            assert (
-                self.cli.create_device(
-                    uram_name=uram, bufer_size="8388608", strip_size="512"
-                )[0]
-                == True
-            )
+            assert self.cli.create_device(uram_name=uram)[0] == True
+
         assert self.cli.scan_device()[0] == True
         assert self.cli.list_array()[0] == True
         array_list = list(self.cli.array_dict.keys())
