@@ -125,7 +125,6 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
                                   (num_data_disk,), (num_spare_disk, ),
                                   (array_mount, ), (auto_create, ))
 
-
 def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None, 
                         array_index=0, array_unmount=None, array_info=False):
     """
@@ -177,7 +176,7 @@ def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None,
     return True
 
 
-def array_unmount_and_delete(pos, unmount=True, delete=True, array_info=False):
+def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
     """
     Common cleanup function to unmount and delete arrays
     """
