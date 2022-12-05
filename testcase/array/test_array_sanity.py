@@ -52,6 +52,7 @@ raid = {
     "RAID10": {"spare": 2, "data": 2},
     "no-raid": {"spare": 0, "data": 1},
     "RAID5": {"spare": 1, "data": 3},
+    "RAID6": {"spare": 2, "data": 4},
 }
 
 
