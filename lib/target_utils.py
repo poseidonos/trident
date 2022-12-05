@@ -456,7 +456,7 @@ class TargetUtils:
                 time.sleep(wait_time)
 
             if counter > loop_count:
-                if not self.check_rebuild_status(array_name
+                if not self.check_rebuild_status(array_name,
                                                  rebuild_progress=rebuild_percent):
                     logger.info(f"Rebuilding wait time completed... {array_name}")
                     return False
