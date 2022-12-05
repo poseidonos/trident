@@ -456,7 +456,8 @@ class TargetUtils:
                 time.sleep(wait_time)
 
             if counter > loop_count:
-                if not self.check_rebuild_status(array_name):
+                if not self.check_rebuild_status(array_name
+                                                 rebuild_progress=rebuild_percent):
                     logger.info(f"Rebuilding wait time completed... {array_name}")
                     return False
             else:
@@ -464,6 +465,44 @@ class TargetUtils:
 
             # Increment the counter
             counter += 1
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False
+        return True
+
+    def array_rebuild_wait_multiple(
+        self, array_list: list, wait_time: int = 5, loop_count: int = 20
+    ) -> bool:
+        """
+        Method to check rebuild status of multiple array
+        Args:
+            array_list (list):  List of name of the arrays
+        Returns:
+            bool
+        """
+        try:
+            counter = 0
+            rebuild_complete_array = []
+            while counter <= loop_count:
+                for array_name in array_list:
+                    if not self.check_rebuild_status(array_name):
+                        array_list.remove(array_name)
+                        rebuild_complete_array.append(array_name)
+                        # The rebuild is not in progress
+                if not array_list:
+                    break
+                time.sleep(wait_time)
+
+            if counter > loop_count:
+                res = True
+                for array_name in array_list:
+                    if not self.check_rebuild_status(array_name):
+                        logger.info(f"Rebuilding wait time completed... {array_name}")
+                        res = False
+                if not res:
+                    return False
+            else:
+                logger.info(f"Rebuilding completed for the arrays {rebuild_complete_array}")
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False
