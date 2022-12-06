@@ -1,4 +1,3 @@
-import io
 from pos import POS
 import logger
 import random
@@ -118,10 +117,10 @@ def runFIO(io_mode, device_list, ops):
 
 
 @pytest.mark.parametrize("writeback", [True])
-@pytest.mark.parametrize("numvol", [1])
+@pytest.mark.parametrize("numvol", [1,256])
 @pytest.mark.parametrize("iomode", [True, False])
 @pytest.mark.parametrize("numarray", [2])
-@pytest.mark.parametrize("spor", [False, True])
+@pytest.mark.parametrize("spor", [True,False])
 def test_por(writeback, numvol, numarray, iomode, spor):
     try:
         por_dict = data_dict

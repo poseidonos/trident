@@ -31,7 +31,7 @@
                 "uram": "uram0",
                 "auto_create": "true",
                 "mount": "true",
-                "write_back": "true"
+                "write_back": "false"
             },
             {
                 "array_name": "array2",
@@ -41,7 +41,7 @@
                 "uram": "uram1",
                 "auto_create": "true",
                 "mount": "true",
-                "write_back": "true"
+                "write_back": "false"
             }
         ]
     },
@@ -52,7 +52,7 @@
                 "num_vol": 2,
                 "vol_name_pre": "pos_vol",
                 "array_name": "array1",
-                "size": "1gb",
+                "size": "None",
                 "qos": {
                     "maxbw": 100000,
                     "minbw": 1000,
@@ -67,10 +67,10 @@
             },
 
             {
-                "num_vol": 1,
+                "num_vol": 2,
                 "vol_name_pre": "pos_vol",
                 "array_name": "array2",
-                "size": "1gb",
+                "size": "None",
                 "qos": {
                     "maxbw": 100000,
                     "minbw": 1000,

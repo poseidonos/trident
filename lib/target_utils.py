@@ -49,19 +49,20 @@ class TargetUtils:
     Args:
         ssh_obj : ssh obj of the Target
         data_dict (dict) : path for POS config
-        pos_path : path of pos source
+        
         array_name (str) : name of the POS array | (default = POS_ARRAY1)
 
     """
 
-    def __init__(self, ssh_obj, data_dict: dict, pos_path: str):
+    def __init__(self, ssh_obj, data_dict: dict, pos_as_service = "true"):
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
-        self.pos_path = pos_path
-        self.cli = Cli(ssh_obj, self.static_dict, pos_path)
+        self.pos_as_service = pos_as_service
+        
+        self.cli = Cli(ssh_obj, self.static_dict,pos_as_service=self.pos_as_service)
         # self.array = array_name
-        self.helper = helper.Helper(ssh_obj)
-        self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_path)
+        self.helper = helper.Helper(ssh_obj, pos_as_service= self.pos_as_service)
+        self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_as_service=self.pos_as_service)
         self.udev_rule = False
         self.total_required = 0
         assert self.helper.get_mellanox_interface_ip()[0] == True
@@ -367,7 +368,7 @@ class TargetUtils:
         self.spare_drives = devices["spare_dev_list"]
         return True
 
-    def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
+    def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = False) -> bool:
         """
         Method to spor preparation
         wbt_flush : If true, Issue the wbt flush command
@@ -383,9 +384,10 @@ class TargetUtils:
             assert self.cli.stop_system(grace_shutdown=False)[0] == True
 
             if uram_backup:
+                self.helper.get_pos_path()
                 self.ssh_obj.execute(
                     "{}/script/backup_latest_hugepages_for_uram.sh".format(
-                        self.cli.pos_path
+                        self.helper.pos_path
                     ),
                     get_pty=True,
                 )
@@ -492,7 +494,7 @@ class TargetUtils:
             bool
         """
         try:
-            if size == None:
+            if size == None or size == "None"::
                 assert self.cli.info_array(array_name)[0] == True
                 temp = self.helper.convert_size(
                     int(self.cli.array_info[array_name]["size"])
@@ -627,9 +629,10 @@ class TargetUtils:
 
     def bringupSystem(self, data_dict: dict) -> bool:
         """method to bringup system phase"""
-        self.setup_core_dump()
-        self.setup_max_map_count()
-        self.udev_install()
+        ##TODO set pos path
+        #self.setup_core_dump()
+        #self.setup_max_map_count()
+        #self.udev_install()
         
         self.static_dict = data_dict
         ###system config
@@ -1336,7 +1339,8 @@ class TargetUtils:
         except Exception as e:
             logger.error(e)
             return False
-
+    ##TODO update pos path
+    
     def dump_core(self):
         """
         Method to collect core dump by giving different options depending on
@@ -1345,15 +1349,17 @@ class TargetUtils:
         try:
             if self.helper.check_pos_exit() == False:
                 out = self.ssh_obj.execute("pkill -11 poseidonos")
-                dump_type = "crashed"
+              
+            if self.pos_as_service != "true":
+                self.cli_path = self.helper.get_pos_path()
             else:
-                dump_type = "crashed"
-
-            command = "{}/tool/dump/trigger_core_dump.sh {}".format(
-                self.pos_path, dump_type
-            )
+                self.cli_path = "/usr/local/bin"
+            command = "{}/tool/dump/trigger_core_dump.sh crashed".format(
+                  self.cli_path )
+              
             out = self.ssh_obj.execute(command)
             logger.info("core dump file created: {}".format(out))
+           
             return True
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
@@ -1379,7 +1385,7 @@ class TargetUtils:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False
-
+    
     def copy_pos_log(self, unique_key, dir="/root"):
         """
         Method to rename the core dump file using unique key and issue key

@@ -3,3 +3,4 @@ pytest - html
 setuptools_rust
 paramiko
 lxml
+prometheus_api_client

@@ -40,7 +40,8 @@ import datetime
 import os
 import codecs
 import itertools
-
+import inspect
+import pathlib
 logger = logger.get_logger(__name__)
 
 QDValues = [1, 4, 16, 32, 128, 256]
@@ -58,28 +59,35 @@ class Helper:
 
     """helper methods for target and initiator"""
 
-    def __init__(self, ssh_obj):
+    def __init__(self, ssh_obj,pos_as_service = "true"):
         self.ssh_obj = ssh_obj
         self.cli_history = []
         self.sys_memory_list = []
         self.ip_addr = []
+        self.pos_as_service = pos_as_service
 
-    def json_reader(self, json_file) -> (bool):
-        """ "method to read and return Json dict"""
+    def json_reader(self, json_file: str) -> dict:
+        """reads json file from /testcase/config_files
 
+        Read the config file from following location:
+        Args:
+            json_file (str) json name [No path required]
+        """
         try:
-            # dir_path = os.path.dirname(os.path.realpath(__file__))
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            logger.info(dir_path)
+            json_path = f"{dir_path}/../testcase/config_files/{json_file}"
 
-            with open(f"{json_file}") as f:
-                static_dict = json.load(f)
+            logger.info(f"reading json file {json_path}")
+            with open(f"{json_path}") as f:
+                json_out = json.load(f)
             f.close()
-            self.static_dict = static_dict
-
-            return True
-
+            self.static_dict = json_out
+            return True, json_out
         except OSError as e:
-            logger.error(f"json read failed due to {e}")
+            logger.error(f" failed to read {json_file} due to {e}")
             return False
+        
 
     def set_MTU_mel(self, MTU: str = "9000") -> bool:
         """
@@ -172,9 +180,8 @@ class Helper:
         Method to get mellanox interface ip
         """
         try:
-            dir_path = os.path.dirname(os.path.realpath(__file__))
-            json_path = f"{dir_path}/../testcase/config_files/topology.json"
-            self.json_reader(json_path)
+            
+            self.json_reader("topology.json")
 
             if self.static_dict["login"]["target"]["server"][0]["Data_Ip"] != "None":
                 self.ip_addr = [
@@ -264,6 +271,14 @@ class Helper:
         """method to check pos running status
         if pos is not running returns True else False
         """
+        if self.pos_as_service == "true":
+            return self.check_pos_service()
+        else:
+            return self.check_pos_pid()
+           
+
+    def check_pos_pid(self) -> str:
+        
         command = "ps -aef | grep -i poseidonos"
         out = self.ssh_obj.execute(command)
         ps_out = "".join(out)
@@ -273,6 +288,28 @@ class Helper:
         else:
             logger.warning("POS IS RUNNING")
             return False
+        
+    
+    def check_pos_service(self) -> str:
+        cmd = 'systemctl is-active  poseidonos.service'
+        out = self.ssh_obj.execute(cmd, get_pty=True)
+        if "active" in out[0]:
+            logger.info("POS IS RUNNING")
+            return False
+        else:
+              logger.warning("POS IS NOT RUNNING")
+              return True
+
+    def get_pos_path(self):
+        """method to get pos path as per service option"""
+        if self.pos_as_service == 'false':
+             
+                data_path = "topology.json"
+               
+                pos_path = self.json_reader(data_path)
+                
+                self.pos_path = pos_path[1]["login"]["paths"]["pos_path"]
+                return True
 
     def wbt_parser(self, file_name: str) -> (bool, dict()):
         """
