@@ -93,8 +93,6 @@ test_quick_rebuild = {
     "t0" : ("RAID5",  "WB", True, 256),  # RAID Type, Mount Type, Auto Create, Num Vols
     "t1" : ("RAID10", "WB", False, 2),
     "t2" : ("RAID6",  "WT", False, 2),
-    "t3" : ("RAID5",  "WT", False, 256),
-    "t4" : ("RAID5",  "WT", False, 2)
 }
 
 @pytest.mark.sanity
