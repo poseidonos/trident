@@ -34,7 +34,7 @@ def trident_test_init():
     Tridnet Init Sequnce - To be called during each session start.
     """
     try:
-        global trident_config_data, static_dict, config_dict, mapping_dict
+        global trident_config_data, static_dict, config_dict, mapping_dict, login
         logger.info("Trident Init Sequence Started...")
 
         logger.debug("Load Trident Config")
