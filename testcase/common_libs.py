@@ -2,6 +2,7 @@ import random
 import time
 import logger
 import traceback
+import pytest
 
 logger = logger.get_logger(__name__)
 
@@ -114,6 +115,39 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
     return multi_array_data_setup(data_dict, 1, (raid_type, ), 
                                   (num_data_disk,), (num_spare_disk, ),
                                   (array_mount, ), (auto_create, ))
+
+
+def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None, array_index=0):
+    """
+
+    data_disk_req = {'mix': 2, 'any': 1}
+    """
+    try:
+        assert pos.cli.scan_device()[0] == True
+        assert pos.cli.list_device()[0] == True
+        if len(pos.cli.system_disks) < RAID_MIN_DISK_REQ_DICT[raid_type] :
+            pytest.skip(f"Insufficient disk count {len(pos.cli.system_disks)}.")
+
+        data_dict = pos.data_dict
+        array_name = data_dict["array"]["pos_array"][array_index]["array_name"]
+        uram_name = data_dict["device"]["uram"][array_index]["uram_name"]
+
+        if not pos.target_utils.get_hetero_device(data_disk_req, spare_device_config=spare_disk_req, list_device=False):
+            logger.info("Failed to get the required hetero devcies")
+            pytest.skip("Required condition not met. Refer to logs for more details")
+
+        data_drives = pos.target_utils.data_drives
+        spare_drives = pos.target_utils.spare_drives
+
+        assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                                    spare=spare_drives, raid_type=raid_type,
+                                    array_name=array_name)[0] == True
+    except Exception as e:
+        logger.error(f"Failed to create hetero array due to {e}")
+        return False
+
+    return True
+
 
 def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
     """
