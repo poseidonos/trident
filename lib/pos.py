@@ -98,6 +98,7 @@ class POS:
         logger.info("am here")
         self.target_utils = TargetUtils(
             self.target_ssh_obj,
+            self.cli,
             self.data_dict,
             pos_as_service=self.pos_AsService
             
