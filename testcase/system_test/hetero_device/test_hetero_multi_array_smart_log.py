@@ -1,15 +1,16 @@
 import pytest
 import traceback
 
+from common_libs import *
 import logger
 
 logger = logger.get_logger(__name__)
 
-array = [("RAID5", 3)]
+array = ["RAID5"]
 
 @pytest.mark.regression
-@pytest.mark.parametrize("array_raid, num_devs", array)
-def test_hetero_multi_array_smart_log(array_fixture, array_raid, num_devs):
+@pytest.mark.parametrize("array_raid", array)
+def test_hetero_multi_array_smart_log(array_fixture, array_raid):
     """
     Test to create two RAID5 (Default) arrays with 3 (Default) hetero devices.
     Create and mount 100 volumes from each array. Trigger GC.
@@ -23,43 +24,18 @@ def test_hetero_multi_array_smart_log(array_fixture, array_raid, num_devs):
         num_array = 2
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = pos.target_utils.ss_temp_list[:num_array]
-        for id in range(num_array):
-            assert pos.cli.device_scan()[0] == True
-            assert pos.cli.device_list()[0] == True
-
-            # Verify the minimum disk requirement
-            if len(pos.cli.system_disks) < (num_array - id) * num_devs:
-                pytest.skip(f"Insufficient disk count {len(pos.cli.system_disks)}. "\
-                            f"Required minimum {(num_array - id) * num_devs}")
-
-            array_name = f"array{id+1}"
-            raid_type = array_raid
-            uram_name = data_dict["device"]["uram"][id]["uram_name"]
-
-            if raid_type.lower() == "raid0" and num_devs == 2:
-                data_device_conf = {'mix': 2}
-            else:
-                data_device_conf = {'mix': 2, 'any': num_devs - 2}
-
-            if not pos.target_utils.get_hetero_device(data_device_conf):
-                logger.info("Failed to get the required hetero devcies")
-                pytest.skip("Required condition not met. Refer to logs for more details")
-
-            data_drives = pos.target_utils.data_drives
-            spare_drives = pos.target_utils.spare_drives
-
-            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
-
-            assert pos.cli.array_mount(array_name=array_name)[0] == True
+        for array_index in range(num_array):
+            data_disk_req = {'mix': 2,
+                             'any': (RAID_MIN_DISK_REQ_DICT[array_raid] - 2) }
+            assert create_hetero_array(pos, array_raid, data_disk_req, 
+                                       array_index=array_index, 
+                                       array_mount=True, array_info=True) == True
 
         assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             assert pos.cli.array_info(array_name=array_name)[0] == True
             for device in pos.cli.array_data[array_name]["data_list"]:
                 assert pos.cli.device_smart_log(devicename=device)[0] == True
-
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
