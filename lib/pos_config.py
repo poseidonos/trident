@@ -134,18 +134,37 @@ class POS_Config:
     def journal_state(self, enable: bool = True, update_now: bool = False) -> bool:
         journal_enable = self.file_data["journal"]["enable"]
         if enable:
-            if journal_enable == "true":
+            if journal_enable == True:
                 logger.info("POS Journal is already enabled.")
             else:
                 logger.info("Enable POS Journal")
-                self.file_data["journal"]["enable"] = "true"
         else:
-            if journal_enable == "false":
+            if journal_enable == False:
                 logger.info("POS Journal is already disabled.")
             else:
                 logger.info("Disable POS Journal")
-                self.file_data["journal"]["enable"] = "false"
 
+        self.file_data["journal"]["enable"] = enable
+        if update_now:
+            self.file_modified = True
+            return self.update_config()
+
+        return True
+    
+    def rebuild_auto_start(self, auto_start: bool = True, update_now: bool = False) -> bool:
+        rebuild_autostart = self.file_data["rebuild"]["auto_start"]
+        if auto_start:
+            if rebuild_autostart == True:
+                logger.info("POS Rebuild Auto Start is already enabled.")
+            else:
+                logger.info("Enable POS Rebuild Auto Start")
+        else:
+            if rebuild_autostart == False:
+                logger.info("POS Rebuild Auto Start is already disabled.")
+            else:
+                logger.info("Disable POS Rebuild Auto Start")
+
+        self.file_data["rebuild"]["auto_start"] = auto_start
         if update_now:
             self.file_modified = True
             return self.update_config()
@@ -155,13 +174,12 @@ class POS_Config:
 
 if __name__ == "__main__":
     pass
-    """
     from pos import POS
 
     pos = POS()
     pos_config = POS_Config(pos.target_ssh_obj)
     assert pos_config.load_config() == True
     assert pos_config.journal_state() == True
+    assert pos_config.rebuild_auto_start() == True
     assert pos_config.update_config() == True
     assert pos_config.restore_config() == True
-    """
