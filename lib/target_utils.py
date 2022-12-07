@@ -54,12 +54,12 @@ class TargetUtils:
 
     """
 
-    def __init__(self, ssh_obj, data_dict: dict, pos_as_service = "true"):
+    def __init__(self, ssh_obj, cli_obj: object, data_dict: dict, pos_as_service = "true"):
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
         self.pos_as_service = pos_as_service
         
-        self.cli = Cli(ssh_obj, self.static_dict,pos_as_service=self.pos_as_service)
+        self.cli = cli_obj
         # self.array = array_name
         self.helper = helper.Helper(ssh_obj, pos_as_service= self.pos_as_service)
         self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_as_service=self.pos_as_service)
