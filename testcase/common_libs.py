@@ -126,12 +126,13 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
                                   (array_mount, ), (auto_create, ))
 
 def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None, 
-                        array_index=0, array_unmount=None, array_info=False):
+                        array_index=0, array_mount=None, array_info=False):
+
     """
     Common api to create array using hetero size device.
     data_disk_req: Dictionay to select data disk of required size e.g - {'mix': 2, 'any': 1}
     spare_disk_req: Dictionay to select spare disk of required size e.g -  {'mix': 2, 'any': 1}
-    array_unmount:  Control flag to mount array. 
+    array_mount:  Control flag to mount array. 
                   None - Do not mount
                   WT/WB - Mount Write Through/ Write Back
     """
@@ -162,7 +163,7 @@ def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None,
         assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                     spare=spare_drives, raid_type=raid_type,
                                     array_name=array_name)[0] == True
-        if array_unmount:
+        if array_mount:
             write_back = False if array_unmount == "WT" else True
             assert pos.cli.array_unmount(array_name=array_name, write_back=write_back)[0] == True
 
