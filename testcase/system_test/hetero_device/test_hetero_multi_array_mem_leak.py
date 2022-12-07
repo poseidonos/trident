@@ -2,53 +2,17 @@
 import pytest
 import traceback
 
-from pos import POS
 import logger
 import time 
 import re
 
 logger = logger.get_logger(__name__)
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, min_hetero_dev
-    pos = POS("pos_config.json")
-
-    data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.devel_resetmbr()[0] == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.array_list()[0] == True
-    for array in pos.cli.array_dict.keys():
-        assert pos.cli.array_info(array_name=array)[0] == True
-        if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.array_unmount(array_name=array)[0] == True
-        assert pos.cli.array_delete(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
 array_raid_disk = [("RAID5", 12)]
 
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, num_devs", array_raid_disk)
-def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
+def test_hetero_multi_array_long_io_mem_leak(array_fixture, raid_type, num_devs):
     """
     Create two RAID5 (Default) arrays using 12 (default) hetero devices. 
     Create two volumes to utilize max capacity of each array. Run overnight
@@ -58,6 +22,7 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
         " ==================== Test : test_hetero_multi_array_long_io_mem_leak ================== "
     )
     try:
+        pos = array_fixture
         num_arrays = 2
 
         assert pos.target_utils.get_subsystems_list() == True

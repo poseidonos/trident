@@ -1,54 +1,15 @@
 import pytest
 import traceback
 
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict
-    pos = POS("pos_config.json")
-
-    data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.array_info(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.array_unmount(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
 
 array = [("RAID5", 3)]
 
 @pytest.mark.regression
 @pytest.mark.parametrize("array_raid, num_devs", array)
-def test_hetero_multi_array_smart_log(array_raid, num_devs):
+def test_hetero_multi_array_smart_log(array_fixture, array_raid, num_devs):
     """
     Test to create two RAID5 (Default) arrays with 3 (Default) hetero devices.
     Create and mount 100 volumes from each array. Trigger GC.
@@ -57,7 +18,7 @@ def test_hetero_multi_array_smart_log(array_raid, num_devs):
         " ==================== Test :  test_hetero_multi_array_GC ================== "
     )
     try:
-        assert pos.cli.devel_resetmbr()[0] == True
+        pos = array_fixture
 
         num_array = 2
         assert pos.target_utils.get_subsystems_list() == True

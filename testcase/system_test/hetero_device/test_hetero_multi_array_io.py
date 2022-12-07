@@ -1,47 +1,10 @@
 import pytest
 import traceback
 
-from pos import POS
 import logger
 import time 
 
 logger = logger.get_logger(__name__)
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, min_hetero_dev
-    pos = POS("pos_config.json")
-
-    data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.devel_resetmbr()[0] == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    for array in array_list:
-        assert pos.cli.array_info(array_name=array)[0] == True
-        if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.array_unmount(array_name=array)[0] == True
-        assert pos.cli.array_delete(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
 
 test_params = {
         "t0":  ("RAID5",  3,  "wt", "RAID5",  3,  "wt", "block", 60),
@@ -61,7 +24,7 @@ test_params = {
 
 @pytest.mark.regression
 @pytest.mark.parametrize("test_id", test_params)
-def test_hetero_multi_array_max_size_volume_FIO(test_id):
+def test_hetero_multi_array_max_size_volume_FIO(array_fixture, test_id):
     """
     Test two arrays using hetero devices, Create max size volume on each array.
     Run File or Block FIO.
@@ -70,6 +33,8 @@ def test_hetero_multi_array_max_size_volume_FIO(test_id):
         f" ==================== Test : test_hetero_multi_array_max_size_volume_FIO[{test_id}] ================== "
     )
     try:
+        pos = array_fixture
+
         array1_raid, array1_devs, array1_mount = test_params[test_id][:3]
         array2_raid, array2_devs, array2_mount = test_params[test_id][3:6] 
         io_type, fio_runtime = test_params[test_id][6:8]
@@ -171,7 +136,7 @@ def test_hetero_multi_array_max_size_volume_FIO(test_id):
 array = [("RAID5", 3)]
 @pytest.mark.parametrize("additional_ops", ["no", "npor", "vol_del_reverse"])
 @pytest.mark.parametrize("raid_type, num_disk", array)
-def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_ops):
+def test_hetero_multi_array_512_volume_mix_FIO(array_fixture, raid_type, num_disk, additional_ops):
     """
     Test two RAID5 arrays using hetero devices, Create 256 volumes on each array.
     Run File and Block FIO.
@@ -180,6 +145,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
         " ==================== Test : test_hetero_multi_array_512_volume_mix_FIO ================== "
     )
     try:
+        pos = array_fixture
         assert pos.target_utils.get_subsystems_list() == True
 
         repeat_ops = 1 if additional_ops == "no" else 5

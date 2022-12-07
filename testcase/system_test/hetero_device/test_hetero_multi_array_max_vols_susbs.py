@@ -2,56 +2,16 @@ from timeit import repeat
 import pytest
 import traceback
 
-from pos import POS
 import logger
 import time
 import random
 
 logger = logger.get_logger(__name__)
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, min_hetero_dev
-    pos = POS("pos_config.json")
-
-    data_dict = pos.data_dict
-    data_dict["subsystem"]["nr_subsystems"] = 1023
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.array_info(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.array_unmount(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
 array = [("RAID5", 12)]
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, num_disk", array)
-def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
+def test_hetero_multi_array_512_vols_1024_subs_FIO(array_fixture, raid_type, num_disk):
     """
     Test two RAID5 arrays using hetero devices, Create 256 volumes on each array.
     mount array to different unique subsystem. Run mix of File and Block FIO.
@@ -60,6 +20,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
         " ==================== Test : test_hetero_multi_array_512_vols_1024_subs_FIO ================== "
     )
     try:
+        pos = array_fixture
         assert pos.cli.devel_resetmbr()[0] == True
         assert pos.target_utils.get_subsystems_list() == True
 

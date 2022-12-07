@@ -1,52 +1,16 @@
 import pytest
 import traceback
 
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, min_hetero_dev
-    pos = POS("pos_config.json")
-
-    data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.devel_resetmbr()[0] == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.array_list()[0] == True
-    for array in pos.cli.array_dict.keys():
-        assert pos.cli.array_info(array_name=array)[0] == True
-        if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.array_mount(array_name=array)[0] == True
-        assert pos.cli.array_delete(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
 
 array = [("RAID5", 3),]
 
 @pytest.mark.regression
 @pytest.mark.parametrize("repeat_ops", [5])
 @pytest.mark.parametrize("raid_type, num_devs", array)
-def test_hetero_multi_array_npor_mounted_array(raid_type, num_devs, repeat_ops):
+def test_hetero_multi_array_npor_mounted_array(array_fixture, raid_type, num_devs, repeat_ops):
     """
     Create and mount two RAID5 (Default) arrays using 3 (default) number of hetero devices.
     Peform NPOR and verify array are mounted. Unmount and delete arrays. Repeat 5 times.
@@ -55,6 +19,7 @@ def test_hetero_multi_array_npor_mounted_array(raid_type, num_devs, repeat_ops):
         " ==================== Test : test_hetero_multi_array_npor_mounted_array ================== "
     )
     try:
+        pos = array_fixture
         for i in range(repeat_ops):
             num_array = 2
             # Create two RAID array of specified RAID using hetero devices.
@@ -109,7 +74,7 @@ def test_hetero_multi_array_npor_mounted_array(raid_type, num_devs, repeat_ops):
 
 @pytest.mark.regression
 @pytest.mark.parametrize("array_raid, num_devs", array)
-def test_hetero_array_spor(array_raid, num_devs):
+def test_hetero_array_spor(array_fixture, array_raid, num_devs):
     """
     Test create single array of selected raid type and num of disk using hetero 
     devices. Run IO and do SPOR. 
@@ -185,7 +150,7 @@ def test_hetero_array_spor(array_raid, num_devs):
 @pytest.mark.regression
 @pytest.mark.parametrize("fio_runtime", [120])
 @pytest.mark.parametrize("array_raid, num_devs", array)
-def test_hetero_multi_array_spor(array_raid, num_devs, fio_runtime):
+def test_hetero_multi_array_spor(array_fixture, array_raid, num_devs, fio_runtime):
     """
     Test to create multi arrays of selected raid type and num of disk using hetero 
     devices. Run IO and do SPOR. 
@@ -194,7 +159,7 @@ def test_hetero_multi_array_spor(array_raid, num_devs, fio_runtime):
         " ==================== Test : test_hetero_multi_array_spor ================== "
     )
     try:
-        assert pos.cli.devel_resetmbr()[0] == True
+        pos = array_fixture
 
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = pos.target_utils.ss_temp_list
