@@ -92,7 +92,6 @@ class POS:
             self.config_dict["login"]["target"]["server"][0]["password"],
         )
         self.obj_list.append(self.target_ssh_obj)
-
         self.cli = Cli(self.target_ssh_obj, data_dict=self.data_dict,
                        pos_as_service=self.pos_as_service)
 
