@@ -326,9 +326,19 @@ def wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
         return False
 
 def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", size='5g',
-                        file_mount='xfs', nvme_devs=[], sleep_time=30):
+                        file_mount='xfs', nvme_devs=[], sleep_time=30,
+                        run_async=True):
     """
     Common function to run FIO all nvme device.
+    Run Fio to all volumes. 
+    pos : POS object 
+    fio_cmd : FIO command to run IO to all device
+    fio_type : Type of IO (Block or File)
+    size : FIO command IO size
+    file_mount : File System format
+    nvme_devs : Block devices connected to initiator
+    sleep_time : Sleep duration before checking the asycn IO running status
+    run_async : True to run async IO and False to run sync IO
     """
     try:
         mount_point = []
@@ -350,19 +360,20 @@ def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", size='5g',
             assert out == True
             io_mode = False  # Set False this to File IO
             out, async_file_io = pos.client.fio_generic_runner(
-                mount_point, fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True
+                mount_point, fio_user_data=fio_cmd, IO_mode=io_mode, run_async=run_async
             )
             assert out == True
         if block_io_devs:
             logger.info(f"Block IO Dev: {block_io_devs}")
             io_mode = True  # Set False this to Block IO
             out, async_block_io = pos.client.fio_generic_runner(
-                block_io_devs, fio_user_data=fio_cmd, IO_mode=io_mode, run_async=True
+                block_io_devs, fio_user_data=fio_cmd, IO_mode=io_mode, run_async=run_async
             )
             assert out == True
 
-        assert wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
-                             async_block_io, sleep_time=sleep_time) == True
+        if run_async:
+            assert wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
+                                 async_block_io, sleep_time=sleep_time) == True
         if mount_point:
             logger.info(f"mount_point: {mount_point}")
             assert pos.client.unmount_FS(mount_point) == True
