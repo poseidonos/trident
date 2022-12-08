@@ -130,9 +130,15 @@ def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None,
     try:
         assert pos.cli.scan_device()[0] == True
         assert pos.cli.list_device()[0] == True
-        
-        if len(pos.cli.system_disks) < RAID_MIN_DISK_REQ_DICT[raid_type] :
-            pytest.skip(f"Insufficient disk count {len(pos.cli.system_disks)}.")
+
+        reqired_disk = sum(data_disk_req.values())
+        if spare_disk_req: 
+            reqired_disk += spare_disk_req.values()
+        system_disk = len(pos.cli.system_disks)
+
+        if system_disk < reqired_disk :
+            logger.info("Requied disks : {reqired_disk}; Available disks {system_disk}")
+            pytest.skip(f"Insufficient disk count!!!")
 
         data_dict = pos.data_dict
         array_name = data_dict["array"]["pos_array"][array_index]["array_name"]
