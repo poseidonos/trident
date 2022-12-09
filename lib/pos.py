@@ -64,7 +64,6 @@ class POS:
             data_dict=self.data_dict,pos_as_service= self.pos_AsService
             
         )
-        logger.info("am here")
         self.target_utils = TargetUtils(
             self.target_ssh_obj,
             self.data_dict,
