@@ -9,15 +9,7 @@
     "dump_pos_core": {
         "enable": "false"
     },
-    "code_coverage": {
-        "enable": "false",
-        "scope": "session",
-        "config_file": "cce_config.json",
-        "issue_key": "sample_test"
-    },
-
     "pos_as_a_service" : {
-
         "enable" : "false"
     }
 
