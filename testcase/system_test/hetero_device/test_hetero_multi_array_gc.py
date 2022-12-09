@@ -1,7 +1,7 @@
 import pytest
 import traceback
 
-from pos import POS
+from common_libs import *
 import logger
 
 logger = logger.get_logger(__name__)
@@ -21,61 +21,31 @@ def test_hetero_multi_array_GC(array_fixture, array_raid, num_devs, num_vols):
         f" ==================== Test :  test_hetero_multi_array_GC[{array_raid}-{num_devs}-{num_vols}] ================== "
     )
     try:
+        pos = array_fixture
         num_array = 2
+
         assert pos.target_utils.get_subsystems_list() == True
-        ss_list = pos.target_utils.ss_temp_list[:num_array]
-        for id in range(num_array):
-            assert pos.cli.device_list()[0] == True
+        subs_list = pos.target_utils.ss_temp_list
+ 
+        # Loop 2 times to create two RAID array of RAID5 using hetero device
+        for array_index in range(num_array):
+            data_disk_req = {'mix': 2, 'any': num_devs - 2}
+            assert create_hetero_array(pos, array_raid, data_disk_req,
+                                       array_index=array_index, array_mount="WT", 
+                                       array_info=True) == True
+ 
+        assert volume_create_and_mount_multiple(pos, num_volumes=num_vols) == True
 
-            # Verify the minimum disk requirement
-            if len(pos.cli.system_disks) < (num_array - id) * num_devs:
-                pytest.skip(f"Insufficient disk count {len(pos.cli.system_disks)}. "\
-                            f"Required minimum {(num_array - id) * num_devs}")
-
-            array_name = f"array{id+1}"
-            raid_type = array_raid
-            uram_name = data_dict["device"]["uram"][id]["uram_name"]
-
-            if raid_type.lower() == "raid0" and num_devs == 2:
-                data_device_conf = {'mix': 2}
-            else:
-                data_device_conf = {'mix': 2, 'any': num_devs - 2}
-
-            if not pos.target_utils.get_hetero_device(data_device_conf):
-                logger.info("Failed to get the required hetero devcies")
-                pytest.skip("Required condition not met. Refer to logs for more details")
-
-            data_drives = pos.target_utils.data_drives
-            spare_drives = pos.target_utils.spare_drives
-
-            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
-
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
-            assert pos.cli.array_info(array_name=array_name)[0] == True 
-
-            array_size = int(pos.cli.array_data[array_name].get("size"))
-            vol_size = f"{int((array_size / num_vols) / (1024 * 1024))}mb"
-            vol_name = "pos_vol"
-
-            assert pos.target_utils.create_volume_multiple(array_name, num_vols,
-                    vol_name=vol_name, size=vol_size, maxiops=0, bw=0) == True
-            assert pos.cli.volume_list(array_name=array_name)[0] == True
-            nqn=ss_list[id]
-            assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                            volume_list=pos.cli.vols, nqn=nqn) == True
-
-            # Connect client
-            assert pos.client.nvme_connect(nqn, 
-                    pos.target_utils.helper.ip_addr[0], "1158") == True
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for nqn in subs_list:
+            assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
 
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
 
         # Run Block IO
         fio_cmd = f"fio --name=seq_write --ioengine=libaio --rw=write --bs=128k "\
-                  f"--iodepth=64 --time_based --runtime=120 --size={vol_size}"
+                  f"--iodepth=64 --time_based --runtime=120 --size=2g"
 
         # Run GC two times to create invalid blocks
         assert pos.client.fio_generic_runner(
