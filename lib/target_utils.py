@@ -533,7 +533,7 @@ class TargetUtils:
             bool
         """
         try:
-            if size == None:
+            if size == None or size == "None":
                 assert self.cli.info_array(array_name)[0] == True
                 temp = self.helper.convert_size(
                     int(self.cli.array_info[array_name]["size"])
