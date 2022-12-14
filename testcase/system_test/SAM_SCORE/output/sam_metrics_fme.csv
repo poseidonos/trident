@@ -1,6 +1,0 @@
-Metric;Path;Entity;Effort;LineNo;Violation
-FME;lib/helper.py;select_hetro_devices;2152.18;376;Y
-FME;lib/array_state.py;select_next_state;10449.03;101;Y
-FME;lib/array_state.py;run_func;12703.55;676;Y
-FME;testcase/system_test/array/test_wt_wb_mixed_block_file_iotest.py;test_wt_wb_multi_array_file_Block_IO;2660.19;50;Y
-FME;testcase/multiverse/test_multi_initiator_ops.py;test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator;1966.13;38;Y
