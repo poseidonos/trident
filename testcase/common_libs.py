@@ -2,6 +2,7 @@ import random
 import time
 import logger
 import traceback
+import pytest
 
 logger = logger.get_logger(__name__)
 
@@ -114,6 +115,58 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
     return multi_array_data_setup(data_dict, 1, (raid_type, ), 
                                   (num_data_disk,), (num_spare_disk, ),
                                   (array_mount, ), (auto_create, ))
+
+
+def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None, 
+                        array_index=0, mount_array=None, info_array=False):
+    """
+
+    data_disk_req: Dictionay to select data disk of required size e.g - {'mix': 2, 'any': 1}
+    spare_disk_req: Dictionay to select spare disk of required size e.g -  {'mix': 2, 'any': 1}
+    mount_array:  Control flag to mount array. 
+                  None - Do not mount
+                  WT/WB - Mount Write Through/ Write Back
+    """
+    try:
+        assert pos.cli.scan_device()[0] == True
+        assert pos.cli.list_device()[0] == True
+
+        reqired_disk = sum(data_disk_req.values())
+        if spare_disk_req: 
+            reqired_disk += spare_disk_req.values()
+        system_disk = len(pos.cli.system_disks)
+
+        if system_disk < reqired_disk :
+            logger.info("Requied disks : {reqired_disk}; Available disks {system_disk}")
+            pytest.skip(f"Insufficient disk count!!!")
+
+        data_dict = pos.data_dict
+        array_name = data_dict["array"]["pos_array"][array_index]["array_name"]
+        uram_name = data_dict["device"]["uram"][array_index]["uram_name"]
+
+        if not pos.target_utils.get_hetero_device(data_disk_req, spare_device_config=spare_disk_req, list_device=False):
+            logger.info("Failed to get the required hetero devcies")
+            pytest.skip("Required condition not met. Refer to logs for more details")
+
+        data_drives = pos.target_utils.data_drives
+        spare_drives = pos.target_utils.spare_drives
+
+        assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                                    spare=spare_drives, raid_type=raid_type,
+                                    array_name=array_name)[0] == True
+        if mount_array:
+            write_back = False if mount_array == "WT" else True
+            assert pos.cli.mount_array(array_name=array_name, write_back=write_back)[0] == True
+
+        if info_array: 
+            assert pos.cli.info_array(array_name=array_name)[0] == True
+
+    except Exception as e:
+        logger.error(f"Failed to create hetero array due to {e}")
+        return False
+
+    return True
+
 
 def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
     """
@@ -347,7 +400,7 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list, delay=2):
         logger.error(f"Array data disk hot remove failed due to {e}")
         return False
     
-def vol_connect_and_run_random_io(pos, subs_list, size='20g'):
+def vol_connect_and_run_random_io(pos, subs_list, size='20g', time_based=False, run_time='2m'):
     """
 
     """
@@ -361,7 +414,12 @@ def vol_connect_and_run_random_io(pos, subs_list, size='20g'):
 
         logger.info(f"******** Start IO *****************")
 
-        fio_cmd = f"fio --name=test_randwrite --ioengine=libaio --rw=randwrite --iodepth=64 --bs=128k --size={size}"
+        fio_cmd = "fio --name=test_randwrite --ioengine=libaio --rw=randwrite --iodepth=64 --bs=128k"
+        if time_based:
+            fio_cmd += f" --time_based=1 --runtime={run_time}" 
+        else:
+            fio_cmd += f" --size={size}"
+
         assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
 
         logger.info(f"******** IO Completed ********************* ")

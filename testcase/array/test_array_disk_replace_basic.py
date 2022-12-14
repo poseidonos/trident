@@ -135,7 +135,7 @@ def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
         nvme_devs = pos.client.nvme_list_out
 
         fio_cmd = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k "\
-                  "--size=10gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
+                  "--size=100gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
         out, async_block_io = pos.client.fio_generic_runner(
                 nvme_devs, fio_user_data=fio_cmd, run_async=True)
         assert out == True
