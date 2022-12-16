@@ -200,7 +200,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
             array_list = list(pos.cli.array_dict.keys())
 
         if not subs_list:
-            assert pos.cli.list_subsystem()[0] == True
+            assert pos.target_utils.get_subsystems_list() == True
             subs_list = pos.target_utils.ss_temp_list
 
         for array_name in array_list:
@@ -260,7 +260,7 @@ def volume_create_and_mount_random(pos, array_list=None, subsyste_list=None, arr
             array_list = list(pos.cli.array_dict.keys())
 
         if not subsyste_list:
-            assert pos.cli.list_subsystem()[0] == True
+            assert pos.target_utils.get_subsystems_list() == True
             subsyste_list = pos.target_utils.ss_temp_list
 
         if not arr_cap_vol_list:
