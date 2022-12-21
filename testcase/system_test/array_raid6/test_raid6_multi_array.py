@@ -121,3 +121,37 @@ def test_raid6_arrays_file_block_io(setup_cleanup_array_function, num_vols):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
+
+def test_create_arrays_vol_delete_arrays_vol(array_fixture):
+    logger.info(
+        f" ==================== Test : test_create_arrays_vol_delete_arrays_vol ================== "
+    )
+    try:
+        pos = array_fixture
+        assert multi_array_data_setup(data_dict=pos.data_dict, num_array=2,
+                                      raid_types=("RAID6","RAID6"),
+                                      num_data_disks=(4,4),
+                                      num_spare_disk=(1,1),
+                                      auto_create=(True, True),
+                                      array_mount=("WT", "WT")) == True
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.cli.list_array()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
+        num_vols=[1,128,256]
+        for num in num_vols:
+            assert volume_create_and_mount_multiple(pos=pos, num_volumes=num, array_list=pos.cli.array_dict.keys(),
+                                                    subs_list=pos.target_utils.ss_temp_list) == True
+            assert pos.cli.list_array()[0] == True
+            array_list = list(pos.cli.array_dict.keys())
+
+            assert volume_unmount_and_delete_multiple(pos, array_list) == True
+
+        assert array_unmount_and_delete(pos) == True
+
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
