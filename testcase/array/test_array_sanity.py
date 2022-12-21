@@ -1,7 +1,6 @@
 from array import array
 import pytest
 import random
-import logger
 from pos import POS
 from common_libs import *
 import json
@@ -14,7 +13,9 @@ with open("{}/config.json".format(dir_path)) as f:
     config_dict = json.load(f)
 
 
+import logger
 logger = logger.get_logger(__name__)
+
 raid = {
     "RAID0": {"spare": 0, "data": 2},
     "RAID10": {"spare": 2, "data": 2},

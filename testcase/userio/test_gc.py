@@ -1,10 +1,10 @@
 import pytest
 
 # from lib.pos import POS
-import logger
 import random
 from common_libs import *
 
+import logger
 logger = logger.get_logger(__name__)
 
 
