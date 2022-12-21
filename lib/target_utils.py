@@ -1277,15 +1277,7 @@ class TargetUtils:
             # Create subsystem and Add listner
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in subsystem_list:
-                assert (
-                    self.cli.create_subsystem(
-                        ss,
-                        ns_count="1024",
-                        serial_number="POS000000000001",
-                        model_name="POS_VOLUME",
-                    )[0]
-                    == True
-                )
+                assert self.cli.create_subsystem(ss)[0] == True
                 assert (
                     self.cli.add_listner_subsystem(
                         nqn_name=ss, mellanox_interface=ip_addr, port="1158"
