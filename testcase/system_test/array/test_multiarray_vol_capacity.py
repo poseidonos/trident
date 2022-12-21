@@ -39,7 +39,7 @@ def test_multi_array_full_cap_data_integrity(setup_cleanup_array_function):
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        fio_runner = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k --size=100gb --do_verify=1 --verify=pattern --verify_pattern=0x5678 --time_based --runtime=300"
+        fio_runner = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k --size=100gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
         assert (
             volume_create_and_mount_multiple_with_io(pos, 1, fio_cmd=fio_runner) == True
         )
@@ -78,7 +78,7 @@ def test_multi_array_max_vol_data_integrity(setup_cleanup_array_function):
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        fio_runner = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k --size=100gb --do_verify=1 --verify=pattern --verify_pattern=0x5678 --time_based --runtime=300"
+        fio_runner = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k --size=100gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
         assert (
             volume_create_and_mount_multiple_with_io(pos, 256, fio_cmd=fio_runner)
             == True

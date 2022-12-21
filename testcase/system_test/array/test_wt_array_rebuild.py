@@ -1,13 +1,13 @@
 from array import array
 import pytest
 import random
-import logger
 from pos import POS
 from common_libs import *
 import json
 import os
 import time
 
+import logger
 logger = logger.get_logger(__name__)
 
 
