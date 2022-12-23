@@ -89,7 +89,7 @@ def multi_array_data_setup(data_dict: dict, num_array: int, raid_types: tuple,
                            num_data_disks: tuple, num_spare_disk: tuple,
                            array_mount: tuple, auto_create: tuple):
     """
-    Create a multi array setup.
+    Create a multi array setup. Update the data dict values.
     """
     data_dict["array"]["num_array"] = num_array
     for index in range(data_dict["array"]["num_array"]):
@@ -110,7 +110,7 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
                             num_data_disk: int, num_spare_disk: int,
                             array_mount: str, auto_create: bool):
     """
-
+    Create a single array setup.
     """
     return multi_array_data_setup(data_dict, 1, (raid_type, ), 
                                   (num_data_disk,), (num_spare_disk, ),
@@ -120,7 +120,7 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
 def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None, 
                         array_index=0, mount_array=None, info_array=False):
     """
-
+    Common api to create array using hetero size device.
     data_disk_req: Dictionay to select data disk of required size e.g - {'mix': 2, 'any': 1}
     spare_disk_req: Dictionay to select spare disk of required size e.g -  {'mix': 2, 'any': 1}
     mount_array:  Control flag to mount array. 
@@ -170,7 +170,7 @@ def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None,
 
 def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
     """
-
+    Common cleanup function to unmount and delete arrays
     """
     try:
         assert pos.cli.list_array()[0] == True
@@ -192,7 +192,7 @@ def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
 def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=100, 
                                      array_list=None, mount_vols=True, subs_list=[]):
     """
-
+    Common function to create and mount volumes
     """
     try:
         if not array_list:
@@ -231,7 +231,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
 
 def volume_unmount_and_delete_multiple(pos, array_list=None):
     """
-
+    Common function to unmount and delete volumes. 
     """
     try:
         if not array_list:
@@ -252,7 +252,7 @@ def volume_unmount_and_delete_multiple(pos, array_list=None):
     
 def volume_create_and_mount_random(pos, array_list=None, subsyste_list=None, arr_cap_vol_list=None):
     """
-
+    Common function to create and mount random number of volumes
     """
     try:
         if not array_list:
@@ -264,8 +264,7 @@ def volume_create_and_mount_random(pos, array_list=None, subsyste_list=None, arr
             subsyste_list = pos.target_utils.ss_temp_list
 
         if not arr_cap_vol_list:
-            arr_cap_vol_list = [(1, 100), (2, 100), (256, 100), 
-                                (256, 105), (257, 100), (257, 105)]
+            arr_cap_vol_list = [(1, 100), (2, 100), (256, 100)]
         random.shuffle(arr_cap_vol_list)
         num_volumes, cap_utilize = arr_cap_vol_list[0]
 
@@ -279,7 +278,7 @@ def volume_create_and_mount_random(pos, array_list=None, subsyste_list=None, arr
 
 def get_file_block_devs(nvme_devs, fio_type):
     """
-
+    Function to split use of nvme device as file or block IO
     """
     file_io_devs, block_io_devs = [], []
     if fio_type.lower() == "file":
@@ -295,7 +294,7 @@ def get_file_block_devs(nvme_devs, fio_type):
 def wait_sync_fio(file_io_devs, block_io_devs, async_file_io, 
                   async_block_io, sleep_time=30):
     """
-
+    Function to wait for async IO
     """
     try:
         # Wait for async FIO completions
@@ -319,7 +318,7 @@ def wait_sync_fio(file_io_devs, block_io_devs, async_file_io,
 def run_fio_all_volumes(pos, fio_cmd=None, fio_type="block", size='5g',
                         file_mount='xfs', nvme_devs=[], sleep_time=30):
     """
-
+    Common function to run FIO all nvme device.
     """
     try:
         mount_point = []
@@ -402,7 +401,7 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list, delay=2):
     
 def vol_connect_and_run_random_io(pos, subs_list, size='20g', time_based=False, run_time='2m'):
     """
-
+    Common function to connect to volumes are run random IO
     """
     try:
         ip_addr = pos.target_utils.helper.ip_addr[0]
@@ -431,7 +430,7 @@ def vol_connect_and_run_random_io(pos, subs_list, size='20g', time_based=False, 
 def pos_system_restore_stop(pos, array_info=True, array_unmount=True, array_delete=True,
                             vol_unmount=True, vol_delete=True, client_disconnect=False):
     """
-
+    Common cleanup function to stop POS
     """
     try:
         if client_disconnect:
@@ -469,7 +468,7 @@ def array_disk_remove_replace(pos, array_list, replace=False, verify_rebuild=Fal
                               verify_disk=False, rebuild_wait=True, delay=2,
                               disk_index=0, random_disk=True):
     """
-
+    Common function to disk remove and replace.
     """
     try:
         rebuild_array_list = []
@@ -520,7 +519,7 @@ def array_disk_remove_replace(pos, array_list, replace=False, verify_rebuild=Fal
 
 def array_add_spare_disk(pos, array_list, spare_disks=None, verify=True):
     """
-
+    Common function to add spare disks.
     """
     try:
         if not spare_disks:
