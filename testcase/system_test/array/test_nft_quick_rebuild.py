@@ -6,11 +6,11 @@ import random
 
 def create_array_and_volumes(pos,testcase,num_array=None):
     assert multi_array_data_setup(data_dict=pos.data_dict, num_array=num_array,
-                                  raid_types=TESTCASE_LIST[testcase]["ARRAYS"]["RAID_TYPES"],
-                                  num_data_disks=TESTCASE_LIST[testcase]["ARRAYS"]["NUM_DATA_DRIVES"],
-                                  num_spare_disk=TESTCASE_LIST[testcase]["ARRAYS"]["NUM_SPARE"],
-                                  auto_create=TESTCASE_LIST[testcase]["ARRAYS"]["AUTO_CREATE"],
-                                  array_mount=TESTCASE_LIST[testcase]["ARRAYS"]["ARRAY_MOUNT"]) == True
+                                  raid_types=TESTCASE_DICT[testcase]["ARRAYS"]["RAID_TYPES"],
+                                  num_data_disks=TESTCASE_DICT[testcase]["ARRAYS"]["NUM_DATA_DRIVES"],
+                                  num_spare_disk=TESTCASE_DICT[testcase]["ARRAYS"]["NUM_SPARE"],
+                                  auto_create=TESTCASE_DICT[testcase]["ARRAYS"]["AUTO_CREATE"],
+                                  array_mount=TESTCASE_DICT[testcase]["ARRAYS"]["ARRAY_MOUNT"]) == True
 
     assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
@@ -35,8 +35,8 @@ def trigger_quick_rebuild(pos,array):
 
     return True
 
-TESTCASE_LIST={}
-TESTCASE_LIST["SPS_4626"] = {"ARRAYS":
+TESTCASE_DICT={}
+TESTCASE_DICT["SPS_4626"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID5","RAID6"),
                                        "NUM_DATA_DRIVES":(4,4),
                                        "NUM_SPARE":(2,2),
@@ -44,7 +44,7 @@ TESTCASE_LIST["SPS_4626"] = {"ARRAYS":
                                        "ARRAY_MOUNT":("WT", "WT")},
                              "SITUATION":
                                  ("REBUILDING","REBUILDING")}
-TESTCASE_LIST["SPS_4627"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4627"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID10","RAID5"),
                                        "NUM_DATA_DRIVES":(4,4),
                                        "NUM_SPARE":(2,2),
@@ -52,7 +52,7 @@ TESTCASE_LIST["SPS_4627"] = {"ARRAYS":
                                        "ARRAY_MOUNT":("WT", "WT")},
                              "SITUATION":
                                  ("REBUILDING","REBUILDING")}
-TESTCASE_LIST["SPS_4628"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4628"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID6","RAID5"),
                                        "NUM_DATA_DRIVES":(4,4),
                                        "NUM_SPARE":(2,0),
@@ -60,7 +60,7 @@ TESTCASE_LIST["SPS_4628"] = {"ARRAYS":
                                        "ARRAY_MOUNT":("WT", "WT")},
                              "SITUATION":
                                  ("REBUILDING","DEGRADED")}
-TESTCASE_LIST["SPS_4629"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4629"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID10","RAID5"),
                                        "NUM_DATA_DRIVES":(4,4),
                                        "NUM_SPARE":(2,0),
@@ -96,14 +96,14 @@ def test_nft_quick_rebuild_while_io_running(array_fixture,testcase):
 
         assert pos.cli.info_array(array_name=arrays[0])[0] == True
 
-        assert pos.cli.array_info[arrays[0]]['situation'] ==  TESTCASE_LIST[testcase]["SITUATION"][0]
+        assert pos.cli.array_info[arrays[0]]['situation'] ==  TESTCASE_DICT[testcase]["SITUATION"][0]
 
         #Hot remove the data drive of second array
         assert array_disks_hot_remove(pos=pos, array_name=arrays[1], disk_remove_interval_list=[(0,)]) == True
 
         assert pos.cli.info_array(array_name=arrays[1])[0] == True
 
-        assert pos.cli.array_info[arrays[1]]['situation'] == TESTCASE_LIST[testcase]["SITUATION"][1]
+        assert pos.cli.array_info[arrays[1]]['situation'] == TESTCASE_DICT[testcase]["SITUATION"][1]
 
         #Wait for rebuild to complete
         assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=10) == True
@@ -120,7 +120,7 @@ def test_nft_quick_rebuild_while_io_running(array_fixture,testcase):
 
 
 
-TESTCASE_LIST["SPS_4638"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4638"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID6",),
                                   "NUM_DATA_DRIVES":(4,),
                                   "NUM_SPARE":(2,),
@@ -128,7 +128,7 @@ TESTCASE_LIST["SPS_4638"] = {"ARRAYS":
                                   "ARRAY_MOUNT":("WT",)},
                              "QUICK_REBUILD":2,
                              "POR":"SPOR"}
-TESTCASE_LIST["SPS_4641"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4641"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID10",),
                                   "NUM_DATA_DRIVES":(4,),
                                   "NUM_SPARE":(2,),
@@ -136,7 +136,7 @@ TESTCASE_LIST["SPS_4641"] = {"ARRAYS":
                                   "ARRAY_MOUNT":("WT",)},
                              "QUICK_REBUILD":2,
                              "POR":"SPOR"}
-TESTCASE_LIST["SPS_4642"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4642"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID6",),
                                   "NUM_DATA_DRIVES":(4,),
                                   "NUM_SPARE":(2,),
@@ -144,7 +144,7 @@ TESTCASE_LIST["SPS_4642"] = {"ARRAYS":
                                   "ARRAY_MOUNT":("WT",)},
                              "QUICK_REBUILD":2,
                              "POR":"NPOR"}
-TESTCASE_LIST["SPS_4643"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4643"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID10",),
                                   "NUM_DATA_DRIVES":(4,),
                                   "NUM_SPARE":(2,),
@@ -152,7 +152,7 @@ TESTCASE_LIST["SPS_4643"] = {"ARRAYS":
                                   "ARRAY_MOUNT":("WT",)},
                              "QUICK_REBUILD":2,
                              "POR":["NPOR"]}
-TESTCASE_LIST["SPS_4647"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4647"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID5",),
                                   "NUM_DATA_DRIVES":(4,),
                                   "NUM_SPARE":(3,),
@@ -160,7 +160,7 @@ TESTCASE_LIST["SPS_4647"] = {"ARRAYS":
                                   "ARRAY_MOUNT":("WT",)},
                              "QUICK_REBUILD":3,
                              "POR":["NPOR","SPOR"]}
-TESTCASE_LIST["SPS_4649"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4649"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID6",),
                                   "NUM_DATA_DRIVES":(4,),
                                   "NUM_SPARE":(3,),
@@ -168,14 +168,14 @@ TESTCASE_LIST["SPS_4649"] = {"ARRAYS":
                                   "ARRAY_MOUNT":("WT",)},
                              "QUICK_REBUILD":3,
                              "POR":["NPOR","SPOR"]}
-TESTCASE_LIST["SPS_4650"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4650"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID6",),
                                   "NUM_DATA_DRIVES":(4,),
                                   "NUM_SPARE":(2,),
                                   "AUTO_CREATE":(True,),
                                   "ARRAY_MOUNT":("WT",)},
                              "QUICK_REBUILD":2}
-TESTCASE_LIST["SPS_4651"] = {"ARRAYS":
+TESTCASE_DICT["SPS_4651"] = {"ARRAYS":
                                  {"RAID_TYPES":("RAID6","RAID5"),
                                   "NUM_DATA_DRIVES":(4,4),
                                   "NUM_SPARE":(2,2),
@@ -189,7 +189,7 @@ def test_nft_quick_rebuild_with_por(array_fixture,testcase):
     try:
         pos = array_fixture
 
-        assert create_array_and_volumes(pos=pos,testcase=testcase,num_array=len(TESTCASE_LIST[testcase]["ARRAYS"]["RAID_TYPES"])) == True
+        assert create_array_and_volumes(pos=pos,testcase=testcase,num_array=len(TESTCASE_DICT[testcase]["ARRAYS"]["RAID_TYPES"])) == True
 
         nvme_devs = nvme_connect(pos=pos)[1]
 
@@ -216,7 +216,7 @@ def test_nft_quick_rebuild_with_por(array_fixture,testcase):
                 assert pos.target_utils.array_rebuild_wait(array_name=array) == True
         else:
             #Do quick rebuild multiple iteration
-            for iter in range(TESTCASE_LIST[testcase]["QUICK_REBUILD"]):
+            for iter in range(TESTCASE_DICT[testcase]["QUICK_REBUILD"]):
 
                 assert trigger_quick_rebuild(pos=pos,array=array) == True
 
@@ -224,11 +224,11 @@ def test_nft_quick_rebuild_with_por(array_fixture,testcase):
 
             assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=10) == True
 
-            if "POR" in list(TESTCASE_LIST[testcase].keys()):
+            if "POR" in list(TESTCASE_DICT[testcase].keys()):
 
-                for por in TESTCASE_LIST[testcase]["POR"]:
+                for por in TESTCASE_DICT[testcase]["POR"]:
 
-                    if TESTCASE_LIST[testcase]["POR"] == "SPOR":
+                    if TESTCASE_DICT[testcase]["POR"] == "SPOR":
 
                         assert pos.target_utils.Spor(uram_backup=False,write_through=True) == True
 
