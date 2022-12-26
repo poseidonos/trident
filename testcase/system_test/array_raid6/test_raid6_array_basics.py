@@ -213,3 +213,4 @@ def test_raid6_array_vols_data_integrity(setup_cleanup_array_function, array_mou
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
