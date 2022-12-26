@@ -35,6 +35,7 @@ def array_ops(pos):
         # assert pos.cli.delete_array(array_name=array)[0] == False
         assert pos.target_utils.array_rebuild_wait(array_name=arrayname) == True
 
+    assert pos.cli.scan_device()[0] == True
     assert pos.cli.info_array(array_name=arrayname)[0] == True
 
     assert pos.cli.unmount_array(array_name=arrayname)[0] == True
@@ -167,16 +168,20 @@ def test_Create_Array_alldrives(array_fixture):
         pos = array_fixture
 
         assert pos.cli.list_device()[0] == True
-        assert (
-            pos.cli.create_array(
-                array_name="array1",
-                data=pos.cli.dev_type["SSD"],
-                write_buffer=pos.cli.dev_type["NVRAM"][0],
-                raid_type="RAID5",
-                spare=[],
-            )[0]
-            == True  # True if all drives are same NUMA
-        )
+
+        # Minimum Required Uram = Num Of Disk * 128MB + 512MB
+        # Uram size in calculated in MB
+        uram_size = (int(pos.data_dict["device"]["uram"][0]["bufer_size"])
+                    * int(pos.data_dict["device"]["uram"][0]["strip_size"]))
+        if ((len(pos.cli.dev_type["SSD"]) * 128 + 512) < uram_size):
+            pytest.skip("Minimum uram size requirement is not met")
+
+        assert pos.cli.create_array(
+                    array_name=pos.data_dict["array"]["pos_array"][0]["array_name"],
+                    data=pos.cli.dev_type["SSD"],
+                    write_buffer=pos.data_dict["device"]["uram"][0]["uram_name"],
+                    raid_type="RAID5", spare=[])[0] == True
+
     except Exception as e:
         logger.error("Test case failed due to {e}")
         assert 0
