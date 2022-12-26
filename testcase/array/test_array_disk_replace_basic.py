@@ -7,7 +7,7 @@ import logger
 logger = logger.get_logger(__name__)
 
 @pytest.mark.sanity
-def test_noraid_array_disk_replace(setup_cleanup_array_function):
+def test_noraid_array_disk_replace(array_fixture):
     """
     The purpose of this test is to create a NO-RAID array with 1 data drive.   
     Verification: POS CLI
@@ -15,14 +15,14 @@ def test_noraid_array_disk_replace(setup_cleanup_array_function):
     logger.info(
         f" ==================== Test : test_noraid_array_disk_replace ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         raid_type, data_disk = "no-raid", 1
 
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 0, "WT", False) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
         assert pos.cli.info_array(array_name=array_name)[0] == True
@@ -40,7 +40,7 @@ def test_noraid_array_disk_replace(setup_cleanup_array_function):
 
 @pytest.mark.sanity
 @pytest.mark.parametrize("raid_type", ["RAID10", "RAID5", "RAID6" ,"RAID0"])
-def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
+def test_no_spare_array_disk_replace(array_fixture, raid_type):
     """
     The purpose of this test is to create a array of RAID5/6/10 with minimum
     required data drive and 0 spare drive. Create Volume and Run IO.
@@ -50,7 +50,7 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
     logger.info(
         f" ==================== Test : test_no_spare_array_disk_replace[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         array_cap_volumes = [(4, 100), (8, 100), (32, 100)]
@@ -58,9 +58,9 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 0, "WT", False) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True
@@ -97,7 +97,7 @@ test_quick_rebuild = {
 
 @pytest.mark.sanity
 @pytest.mark.parametrize("test_param", test_quick_rebuild)
-def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
+def test_array_data_disk_replace(array_fixture, test_param):
     """
     The purpose of this test is to create a array of RAID5/RAID6/RAID10 with 
     minimum required data drive and 2 spare drive. Create volumes and Run IO.
@@ -108,7 +108,7 @@ def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
         f" ==================== Test : test_array_data_disk_replace[{test_param}] ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         raid_type, mount_type, auto_create, num_vols = test_quick_rebuild[test_param]
 
         data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
@@ -116,9 +116,9 @@ def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 2, mount_type, auto_create) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True

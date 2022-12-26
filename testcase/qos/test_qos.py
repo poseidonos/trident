@@ -1,8 +1,8 @@
 import pytest
-import logger
 import pos
 from common_libs import *
 
+import logger
 logger = logger.get_logger(__name__)
 
 

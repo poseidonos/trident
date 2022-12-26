@@ -698,76 +698,80 @@ class TargetUtils:
 
     def bringupArray(self, data_dict: dict) -> bool:
         """method to bringup array"""
-        self.static_dict = data_dict
-        if self.static_dict["array"]["phase"] == "true":
-            assert self.cli.reset_devel()[0] == True
-            assert self.cli.list_device()[0] == True
-            system_disks = self.cli.system_disks
+        try:
+            self.static_dict = data_dict
+            if self.static_dict["array"]["phase"] == "true":
+                assert self.cli.reset_devel()[0] == True
+                assert self.cli.list_device()[0] == True
+                system_disks = self.cli.system_disks
 
-            pos_array_list = self.static_dict["array"]["pos_array"]
-            nr_pos_array = self.static_dict["array"]["num_array"]
-            if nr_pos_array != len(pos_array_list):
-                logger.warning("JSON file data is inconsistent. POS bringup may fail.")
+                pos_array_list = self.static_dict["array"]["pos_array"]
+                nr_pos_array = self.static_dict["array"]["num_array"]
+                if nr_pos_array != len(pos_array_list):
+                    logger.warning("JSON file data is inconsistent. POS bringup may fail.")
 
-            for array_index in range(nr_pos_array):
-                array = pos_array_list[array_index]
-                array_name = array["array_name"]
-                nr_data_drives = array["data_device"]
-                nr_spare_drives = array["spare_device"]
+                for array_index in range(nr_pos_array):
+                    array = pos_array_list[array_index]
+                    array_name = array["array_name"]
+                    nr_data_drives = array["data_device"]
+                    nr_spare_drives = array["spare_device"]
 
-                if len(system_disks) < (nr_data_drives + nr_spare_drives):
-                    raise Exception(
-                        "Array '{}' insufficient disk count {}. Required minimum {}".format(
-                            array_name,
-                            len(system_disks),
-                            nr_data_drives + nr_spare_drives,
+                    if len(system_disks) < (nr_data_drives + nr_spare_drives):
+                        raise Exception(
+                            "Array '{}' insufficient disk count {}. Required minimum {}".format(
+                                array_name,
+                                len(system_disks),
+                                nr_data_drives + nr_spare_drives,
+                            )
                         )
-                    )
 
-                if array["auto_create"] == "false":
-                    data_disk_list = [
-                        system_disks.pop(0) for i in range(nr_data_drives)
-                    ]
-                    spare_disk_list = [
-                        system_disks.pop(0) for i in range(nr_spare_drives)
-                    ]
-                    assert (
-                        self.cli.create_array(
-                            write_buffer=array["uram"],
-                            data=data_disk_list,
-                            spare=spare_disk_list,
-                            raid_type=array["raid_type"],
-                            array_name=array_name,
-                        )[0]
-                        == True
-                    )
-                else:
-                    assert (
-                        self.cli.autocreate_array(
-                            array["uram"],
-                            nr_data_drives,
-                            array["raid_type"],
-                            array_name=array_name,
-                            num_spare=nr_spare_drives,
-                        )[0]
-                        == True
-                    )
+                    if array["auto_create"] == "false":
+                        data_disk_list = [
+                            system_disks.pop(0) for i in range(nr_data_drives)
+                        ]
+                        spare_disk_list = [
+                            system_disks.pop(0) for i in range(nr_spare_drives)
+                        ]
+                        assert (
+                            self.cli.create_array(
+                                write_buffer=array["uram"],
+                                data=data_disk_list,
+                                spare=spare_disk_list,
+                                raid_type=array["raid_type"],
+                                array_name=array_name,
+                            )[0]
+                            == True
+                        )
+                    else:
+                        assert (
+                            self.cli.autocreate_array(
+                                array["uram"],
+                                nr_data_drives,
+                                array["raid_type"],
+                                array_name=array_name,
+                                num_spare=nr_spare_drives,
+                            )[0]
+                            == True
+                        )
 
-                    assert self.cli.info_array(array_name=array_name)[0] == True
-                    d_dev = set(self.cli.array_info[array_name]["data_list"])
-                    s_dev = set(self.cli.array_info[array_name]["spare_list"])
-                    system_disks = list(set(system_disks) - d_dev.union(s_dev))
+                        assert self.cli.info_array(array_name=array_name)[0] == True
+                        d_dev = set(self.cli.array_info[array_name]["data_list"])
+                        s_dev = set(self.cli.array_info[array_name]["spare_list"])
+                        system_disks = list(set(system_disks) - d_dev.union(s_dev))
 
-                if array["mount"] == "true":
-                    write_back = True
-                    if array["write_back"] == "false":
-                        write_back = False
-                    assert (
-                        self.cli.mount_array(
-                            array_name=array_name, write_back=write_back
-                        )[0]
-                        == True
-                    )
+                    if array["mount"] == "true":
+                        write_back = True
+                        if array["write_back"] == "false":
+                            write_back = False
+                        assert (
+                            self.cli.mount_array(
+                                array_name=array_name, write_back=write_back
+                            )[0]
+                            == True
+                        )
+        except Exception as e:
+            logger.error("POS bring up failed due to {}".format(e))
+            return False
         return True
 
     def bringupVolume(self, data_dict: dict) -> bool:
@@ -1273,15 +1277,7 @@ class TargetUtils:
             # Create subsystem and Add listner
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in subsystem_list:
-                assert (
-                    self.cli.create_subsystem(
-                        ss,
-                        ns_count="1024",
-                        serial_number="POS000000000001",
-                        model_name="POS_VOLUME",
-                    )[0]
-                    == True
-                )
+                assert self.cli.create_subsystem(ss)[0] == True
                 assert (
                     self.cli.add_listner_subsystem(
                         nqn_name=ss, mellanox_interface=ip_addr, port="1158"
