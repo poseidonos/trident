@@ -42,12 +42,12 @@ def test_wt_array_Npor_Spor_nobackup(
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
         spare_disk_list = [system_disks.pop()]
 
-        array_name = "posarray1"
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert (
-            pos.cli.create_array(
-                write_buffer="uram0",
-                data=data_disk_list,
-                spare=None,
+                pos.cli.create_array(
+                    write_buffer="uram0",
+                    data=data_disk_list,
+                    spare=[],
                 raid_type=raid_type,
                 array_name=array_name,
             )[0]
@@ -64,7 +64,7 @@ def test_wt_array_Npor_Spor_nobackup(
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
         assert (
             pos.target_utils.mount_volume_multiple(
-                array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
+                array_name=array_name, volume_list=pos.cli.vols, nqn=ss_list[0]
             )
             == True
         )
@@ -78,7 +78,7 @@ def test_wt_array_Npor_Spor_nobackup(
         assert (
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=500",
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=50",
             )[0]
             == True
         )

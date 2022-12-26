@@ -1,9 +1,9 @@
 import pytest
 import time
 import random
-import logger
 from common_libs import *
 
+import logger
 logger = logger.get_logger(__name__)
 fio_cmd = "fio --name=Rand_RW  --runtime=43000 --ramp_time=60  --ioengine=sync  --iodepth=32 --rw=write --size=50g --bs=32kb --direct=1 --verify=md5"
 

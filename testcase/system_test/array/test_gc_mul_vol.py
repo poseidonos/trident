@@ -56,7 +56,7 @@ def test_gc_vol_create_delete():
             pos.target_utils.mount_volume_multiple(
                 array_name=array_name,
                 volume_list=pos.cli.vols,
-                nqn_list=ss_list,
+                nqn=ss_list[0],
             )
             == True
         )

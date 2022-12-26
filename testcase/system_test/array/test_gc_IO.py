@@ -16,7 +16,7 @@ def setup_module():
     global pos, data_dict
     pos = POS("pos_config.json")
     data_dict = pos.data_dict
-    data_dict["array"]["num_array"] = "false"
+    data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
     yield pos
