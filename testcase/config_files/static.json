@@ -1,11 +1,11 @@
 {
 "Project Info":{
-	"Project name": "POS-CLI"
+	"Project name": "Trident"
 	},
 
 "Test Cycle Info": {
-	"Validation Type": "regression",
-	"Release": "3Q",
-	"Version":"v0.12.0-rc4"}
+	"Validation Type": "Validation",
+	"Release": "Dec 2022",
+	"Version":"POS 0.12.0"}
 }
 
