@@ -545,9 +545,11 @@ class Cli:
             if flag == True:
                 array_state = out[1]["data"]["state"]
                 array_size = out[1]["data"]["capacity"]
+                array_used = out[1]["data"]["used"]
                 array_situation = out[1]["data"]["situation"]
                 rebuild_progress = out[1]["data"]["rebuildingProgress"]
                 uniqueId = out[1]['data']['uniqueId']
+                index = out[1]['data']['index']
                 for dev in out[1]["data"]["devicelist"]:
                     if dev["type"] == "DATA":
                         data_dev.append(dev["name"])
@@ -571,12 +573,14 @@ class Cli:
         self.array_info[array_name] = {
             "state": array_state,
             "size": array_size,
+            "used": array_used,
             "situation": array_situation,
             "rebuilding_progress": rebuild_progress,
             "data_list": data_dev,
             "spare_list": spare_dev,
             "buffer_list": buffer_dev,
-            'uniqueId' :uniqueId
+            'uniqueId' :uniqueId,
+            'index' : index
         }
         return (True, out)
 
@@ -981,7 +985,7 @@ class Cli:
             return False, jout
 
 
-    def set_property(self, publication_list_path = '/etc/pos/pos-prometheus.yml') -> (bool, dict()):
+    def set_property(self, publication_list_path = '/etc/pos/publication_list_default.yaml') -> (bool, dict()):
         try:
             cmd = f"set-property --publication-list-path {publication_list_path}"
             cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
@@ -992,6 +996,7 @@ class Cli:
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
+
     ###################################################QOS##############################
     def create_volume_policy_qos(
         self,
@@ -1103,6 +1108,7 @@ class Cli:
                 return True, [], {}
             for vol in out["data"]["volumes"]:
                 self.vol_dict[vol["name"]] = {
+                    "index": vol["index"],
                     "total": vol["total"],
                     "status": vol["status"],
                     "max_iops": vol["maxiops"],
@@ -1146,6 +1152,7 @@ class Cli:
                     "uuid": out[1]["data"]["uuid"],
                     "name": out[1]["data"]["name"],
                     "total_capacity": out[1]["data"]["total"],
+                    "remain": out[1]["data"]["remain"],
                     "status": out[1]["data"]["status"],
                     "max_iops": out[1]["data"]["maxiops"],
                     "min_iops": out[1]["data"]["miniops"],
@@ -1164,7 +1171,6 @@ class Cli:
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return (False, None)
-
         return (True, out)
 
     def create_volume(
