@@ -190,7 +190,7 @@ def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
 
 
 def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=100, 
-                                     array_list=None, mount_vols=True, subs_list=[]):
+                        vol_size=None, array_list=None, mount_vols=True, subs_list=[]):
     """
 
     """
@@ -207,8 +207,9 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
             assert pos.cli.info_array(array_name=array_name)[0] == True
 
             array_cap = int(pos.cli.array_info[array_name]["size"])
-            vol_size = (array_cap * (vol_utilize / 100) / num_volumes)
-            vol_size = f"{int(vol_size // (1024 * 1024))}mb"     # Size in mb
+            if not vol_size:
+                vol_size = (array_cap * (vol_utilize / 100) / num_volumes)
+                vol_size = f"{int(vol_size // (1024 * 1024))}mb"     # Size in mb
 
             exp_res = True
             if num_volumes > MAX_VOL_SUPPORTED or vol_utilize > 100:
