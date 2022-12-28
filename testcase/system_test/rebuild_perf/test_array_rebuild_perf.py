@@ -8,7 +8,7 @@ logger = logger.get_logger(__name__)
 
 
 
-test_rebuild_perf = {
+set_rebuild_perf_tests = {
     # Rebuild Perf, Block Size, Queue Depth, Work load
     "t0" : {"impact" : "low",     "bs" : "4k",   "qd" : 128, "rw" : "randwrite"},
     "t1" : {"impact" : "medium",  "bs" : "4k",   "qd" : 128, "rw" : "randwrite"},
@@ -26,8 +26,8 @@ test_rebuild_perf = {
 
 @pytest.mark.regression
 @pytest.mark.rebuild_perf
-@pytest.mark.parametrize("test_param", test_rebuild_perf)
-def test_set_rebuild_perf_impact(array_fixture, test_param):
+@pytest.mark.parametrize("test_param", set_rebuild_perf_tests)
+def test_set_rebuild_perf(array_fixture, test_param):
     """
     The purpose of this test is to create a RAID5 array. Create 2 volumes of 100 GB each. 
     Run IO of one of the type (randwrite, randread, write, read) in first volume. 
@@ -36,12 +36,12 @@ def test_set_rebuild_perf_impact(array_fixture, test_param):
     Verification: POS CLI
     """
     logger.info(
-        f" ==================== Test : test_set_rebuild_perf_impact[{test_param}] ================== "
+        f" ==================== Test : test_set_rebuild_perf[{test_param}] ================== "
     )
     try:
         pos = array_fixture
         raid_type, mount_type, auto_create = "RAID5", "WT", True
-        rpi_dict = test_rebuild_perf[test_param]
+        rpi_dict = set_rebuild_perf_tests[test_param]
         qd, bs, rw = rpi_dict["qd"], rpi_dict["bs"], rpi_dict["rw"]
         num_vols = 2
 
