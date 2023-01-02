@@ -4,13 +4,13 @@ logger = logger.get_logger(__name__)
 import random
 
 
-def create_array_and_volumes(pos,testcase,num_array=None):
+def create_array_and_volumes(pos, raid_types, data_disks, spare_disks, num_array=None):
     assert multi_array_data_setup(data_dict=pos.data_dict, num_array=num_array,
-                                  raid_types=TESTCASE_DICT[testcase]["ARRAYS"]["RAID_TYPES"],
-                                  num_data_disks=TESTCASE_DICT[testcase]["ARRAYS"]["NUM_DATA_DRIVES"],
-                                  num_spare_disk=TESTCASE_DICT[testcase]["ARRAYS"]["NUM_SPARE"],
-                                  auto_create=TESTCASE_DICT[testcase]["ARRAYS"]["AUTO_CREATE"],
-                                  array_mount=TESTCASE_DICT[testcase]["ARRAYS"]["ARRAY_MOUNT"]) == True
+                                  raid_types=raid_types,
+                                  num_data_disks=data_disks,
+                                  num_spare_disk=spare_disks,
+                                  auto_create=(True, True),
+                                  array_mount=("WT", "WT")) == True
 
     assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
@@ -36,46 +36,21 @@ def trigger_quick_rebuild(pos,array):
     return True
 
 TESTCASE_DICT={}
-TESTCASE_DICT["SPS_4626"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID5","RAID6"),
-                                       "NUM_DATA_DRIVES":(4,4),
-                                       "NUM_SPARE":(2,2),
-                                       "AUTO_CREATE":(True, True),
-                                       "ARRAY_MOUNT":("WT", "WT")},
-                             "SITUATION":
-                                 ("REBUILDING","REBUILDING")}
-TESTCASE_DICT["SPS_4627"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID10","RAID5"),
-                                       "NUM_DATA_DRIVES":(4,4),
-                                       "NUM_SPARE":(2,2),
-                                       "AUTO_CREATE":(True, True),
-                                       "ARRAY_MOUNT":("WT", "WT")},
-                             "SITUATION":
-                                 ("REBUILDING","REBUILDING")}
-TESTCASE_DICT["SPS_4628"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID6","RAID5"),
-                                       "NUM_DATA_DRIVES":(4,4),
-                                       "NUM_SPARE":(2,0),
-                                       "AUTO_CREATE":(True, True),
-                                       "ARRAY_MOUNT":("WT", "WT")},
-                             "SITUATION":
-                                 ("REBUILDING","DEGRADED")}
-TESTCASE_DICT["SPS_4629"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID10","RAID5"),
-                                       "NUM_DATA_DRIVES":(4,4),
-                                       "NUM_SPARE":(2,0),
-                                       "AUTO_CREATE":(True, True),
-                                       "ARRAY_MOUNT":("WT", "WT")},
-                             "SITUATION":
-                                 ("REBUILDING","DEGRADED")}
+TESTCASE_DICT["T0"] = {"raid_types":("RAID5","RAID6"), "spare_disks":(2,2), "situation": ("REBUILDING","REBUILDING")}
+TESTCASE_DICT["T1"] = {"raid_types":("RAID10","RAID5"), "spare_disks":(2,2), "situation":("REBUILDING","REBUILDING")}
+TESTCASE_DICT["T2"] = {"raid_types":("RAID6","RAID5"), "spare_disks":(2,0), "situation":("REBUILDING","DEGRADED")}
+TESTCASE_DICT["T3"] = {"raid_types":("RAID10","RAID5"), "spare_disks":(2,0), "situation":("REBUILDING","DEGRADED")}
 TESTCASES = [
-    "SPS_4626","SPS_4627","SPS_4628","SPS_4629"
+    "T0","T1","T2","T3"
 ]
 @pytest.mark.parametrize("testcase",TESTCASES)
 def test_nft_quick_rebuild_while_io_running(array_fixture,testcase):
     try:
         pos = array_fixture
-        assert create_array_and_volumes(pos=pos,testcase=testcase,num_array=2) == True
+        assert create_array_and_volumes(pos=pos, data_disks=(4, 4),
+                                        raid_types=TESTCASE_DICT[testcase]["raid_types"],
+                                        spare_disks=TESTCASE_DICT[testcase]["spare_disks"],
+                                        num_array=2) == True
 
         nvme_devs = nvme_connect(pos=pos)[1]
 
@@ -89,21 +64,15 @@ def test_nft_quick_rebuild_while_io_running(array_fixture,testcase):
         time.sleep(300)
 
         arrays = list(pos.cli.array_dict.keys())
-
         assert trigger_quick_rebuild(pos=pos,array=arrays[0]) == True
-
         assert pos.target_utils.check_rebuild_status(array_name=arrays[0]) == True
-
         assert pos.cli.info_array(array_name=arrays[0])[0] == True
-
-        assert pos.cli.array_info[arrays[0]]['situation'] ==  TESTCASE_DICT[testcase]["SITUATION"][0]
+        assert pos.cli.array_info[arrays[0]]['situation'] ==  TESTCASE_DICT[testcase]["situation"][0]
 
         #Hot remove the data drive of second array
         assert array_disks_hot_remove(pos=pos, array_name=arrays[1], disk_remove_interval_list=[(0,)]) == True
-
         assert pos.cli.info_array(array_name=arrays[1])[0] == True
-
-        assert pos.cli.array_info[arrays[1]]['situation'] == TESTCASE_DICT[testcase]["SITUATION"][1]
+        assert pos.cli.array_info[arrays[1]]['situation'] == TESTCASE_DICT[testcase]["situation"][1]
 
         #Wait for rebuild to complete
         assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=10) == True
@@ -120,124 +89,61 @@ def test_nft_quick_rebuild_while_io_running(array_fixture,testcase):
 
 
 
-TESTCASE_DICT["SPS_4638"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID6",),
-                                  "NUM_DATA_DRIVES":(4,),
-                                  "NUM_SPARE":(2,),
-                                  "AUTO_CREATE":(True,),
-                                  "ARRAY_MOUNT":("WT",)},
-                             "QUICK_REBUILD":2,
-                             "POR":"SPOR"}
-TESTCASE_DICT["SPS_4641"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID10",),
-                                  "NUM_DATA_DRIVES":(4,),
-                                  "NUM_SPARE":(2,),
-                                  "AUTO_CREATE":(True,),
-                                  "ARRAY_MOUNT":("WT",)},
-                             "QUICK_REBUILD":2,
-                             "POR":"SPOR"}
-TESTCASE_DICT["SPS_4642"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID6",),
-                                  "NUM_DATA_DRIVES":(4,),
-                                  "NUM_SPARE":(2,),
-                                  "AUTO_CREATE":(True,),
-                                  "ARRAY_MOUNT":("WT",)},
-                             "QUICK_REBUILD":2,
-                             "POR":"NPOR"}
-TESTCASE_DICT["SPS_4643"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID10",),
-                                  "NUM_DATA_DRIVES":(4,),
-                                  "NUM_SPARE":(2,),
-                                  "AUTO_CREATE":(True,),
-                                  "ARRAY_MOUNT":("WT",)},
-                             "QUICK_REBUILD":2,
-                             "POR":["NPOR"]}
-TESTCASE_DICT["SPS_4647"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID5",),
-                                  "NUM_DATA_DRIVES":(4,),
-                                  "NUM_SPARE":(3,),
-                                  "AUTO_CREATE":(True,),
-                                  "ARRAY_MOUNT":("WT",)},
-                             "QUICK_REBUILD":3,
-                             "POR":["NPOR","SPOR"]}
-TESTCASE_DICT["SPS_4649"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID6",),
-                                  "NUM_DATA_DRIVES":(4,),
-                                  "NUM_SPARE":(3,),
-                                  "AUTO_CREATE":(True,),
-                                  "ARRAY_MOUNT":("WT",)},
-                             "QUICK_REBUILD":3,
-                             "POR":["NPOR","SPOR"]}
-TESTCASE_DICT["SPS_4650"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID6",),
-                                  "NUM_DATA_DRIVES":(4,),
-                                  "NUM_SPARE":(2,),
-                                  "AUTO_CREATE":(True,),
-                                  "ARRAY_MOUNT":("WT",)},
-                             "QUICK_REBUILD":2}
-TESTCASE_DICT["SPS_4651"] = {"ARRAYS":
-                                 {"RAID_TYPES":("RAID6","RAID5"),
-                                  "NUM_DATA_DRIVES":(4,4),
-                                  "NUM_SPARE":(2,2),
-                                  "AUTO_CREATE":(True,True),
-                                  "ARRAY_MOUNT":("WT","WT")}}
+TESTCASE_DICT["T4"] = {"raid_types":("RAID6",),"spare_disks":(2,), "quick_rebuild":2, "por":["SPOR"]}
+TESTCASE_DICT["T5"] = {"raid_types":("RAID10",),"spare_disks":(2,), "quick_rebuild":2, "por":["SPOR"]}
+TESTCASE_DICT["T6"] = {"raid_types":("RAID6",),"spare_disks":(2,), "quick_rebuild":2, "por":["NPOR"]}
+TESTCASE_DICT["T7"] = {"raid_types":("RAID10",),"spare_disks":(2,), "quick_rebuild":2, "por":["NPOR"]}
+TESTCASE_DICT["T8"] = {"raid_types":("RAID5",),"spare_disks":(3,), "quick_rebuild":3, "por":["NPOR","SPOR"]}
+TESTCASE_DICT["T9"] = {"raid_types":("RAID6",),"spare_disks":(3,), "quick_rebuild":3, "por":["NPOR","SPOR"]}
+TESTCASE_DICT["T10"] = {"raid_types":("RAID6",),"spare_disks":(2,), "quick_rebuild":2}
+TESTCASE_DICT["T11"] = {"raid_types":("RAID6","RAID5"),"spare_disks":(2,2)}
 TESTCASES1 = [
-    "SPS_4638","SPS_4641","SPS_4642","SPS_4643","SPS_4647","SPS_4649","SPS_4650","SPS_4651"
+    "T4","T5","T6","T7","T8","T9","T10","T11"
 ]
 @pytest.mark.parametrize("testcase",TESTCASES1)
 def test_nft_quick_rebuild_with_por(array_fixture,testcase):
     try:
         pos = array_fixture
 
-        assert create_array_and_volumes(pos=pos,testcase=testcase,num_array=len(TESTCASE_DICT[testcase]["ARRAYS"]["RAID_TYPES"])) == True
+        assert create_array_and_volumes(pos=pos, data_disks=(4,4),raid_types=TESTCASE_DICT[testcase]["raid_types"],
+                                        spare_disks=TESTCASE_DICT[testcase]["spare_disks"],
+                                        num_array=len(TESTCASE_DICT[testcase]["raid_types"])) == True
 
+        #Initiate IO
         nvme_devs = nvme_connect(pos=pos)[1]
-
         fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=50 --verify=md5"
-
         out, async_io = pos.client.fio_generic_runner(nvme_devs,
                                                       fio_user_data=fio_cmd, run_async=True)
         assert out == True
 
         logger.info("*************** Sleep for 5 min ***************")
-        time.sleep(10)
+        time.sleep(300)
 
         array = list(pos.cli.array_dict.keys())[0]
-        if testcase == "SPS_4651":
-
+        if testcase == "T11":
             for array in list(pos.cli.array_dict.keys()):
-
                 assert trigger_quick_rebuild(pos=pos,array=array) == True
-
                 assert pos.target_utils.array_rebuild_wait(array_name=array) == True
-
                 assert array_disks_hot_remove(pos=pos, array_name=array, disk_remove_interval_list=[(100,)]) == True
-
                 assert pos.target_utils.array_rebuild_wait(array_name=array) == True
         else:
             #Do quick rebuild multiple iteration
-            for iter in range(TESTCASE_DICT[testcase]["QUICK_REBUILD"]):
-
+            for iter in range(TESTCASE_DICT[testcase]["quick_rebuild"]):
                 assert trigger_quick_rebuild(pos=pos,array=array) == True
-
                 assert pos.target_utils.array_rebuild_wait(array_name=array) == True
 
             assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=10) == True
 
+            #Triggering POR sequence(NPOR/SPOR)
             if "POR" in list(TESTCASE_DICT[testcase].keys()):
-
-                for por in TESTCASE_DICT[testcase]["POR"]:
-
+                for por in TESTCASE_DICT[testcase]["por"]:
                     if TESTCASE_DICT[testcase]["POR"] == "SPOR":
-
                         assert pos.target_utils.Spor(uram_backup=False,write_through=True) == True
-
                     else:
-
                         assert pos.target_utils.Npor() == True
 
+        #Run IO on the volumes
         out, async_io = pos.client.fio_generic_runner(nvme_devs,fio_user_data=fio_cmd, run_async=True)
-
         assert out == True
 
         assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=10) == True
