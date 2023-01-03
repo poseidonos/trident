@@ -1,33 +1,36 @@
-#   BSD LICENSE
-#   Copyright (c) 2021 Samsung Electronics Corporation
-#   All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or without
-#   modification, are permitted provided that the following conditions
-#   are met:
-#
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in
-#       the documentation and/or other materials provided with the
-#       distribution.
-#     * Neither the name of Samsung Electronics Corporation nor the names of
-#       its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-#   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+"""
+BSD LICENSE
+
+Copyright (c) 2021 Samsung Electronics Corporation
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+  * Neither the name of Samsung Electronics Corporation nor the names of
+    its contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+
 import time
 import random
 import logger
@@ -38,10 +41,12 @@ logger = logger.get_logger(__name__)
 
 class _Array(POS):
     def __init__(
-        self, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
+        self,pos, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
     ):
-        super().__init__()
-
+        #super().__init__()
+        self.cli = pos.cli
+        self.target_utils = pos.target_utils
+        self.client = pos.client    
         self.data_dict = data_dict
         self.name = array_name
         self.state = {"current": None, "next": None}
@@ -671,423 +676,404 @@ class _Array(POS):
                     )
                 )
                 return False
-        a
+
+    def get_buffer_data(self):
+        assert self.cli.list_device()[0] == True
+        assert self.cli.list_array()[0] == True
+        array_list = list(self.cli.array_dict.keys())
+        if len(array_list) == 0:
+            logger.info("No array Exist all buffer can be overridden")
+            self.buffer_data = self.cli.dev_type["NVRAM"]
+        elif len(array_list) == len(self.cli.dev_type["NVRAM"]):
+            logger.warning("No free NVRAM")
+            self.buffer_data = self.cli.dev_type["NVRAM"]
+        else:
+            used_bufer = []
+            for array in array_list:
+                assert self.cli.info_array(array_name=array)[0] == True
+                used_bufer.append(self.cli.array_info[array]["buffer_list"][0])
+
+            free_buf = [
+                buf for buf in self.cli.dev_type["NVRAM"] if buf not in used_bufer
+            ]
+            self.buffer_data = free_buf
+
+        return True
+
+    def check_mbr_device(self, device=None):
+        """
+        Method to check if device can be included in this array
+        device: str (ex. unvme-ns-0)
+        """
+        assert self.cli.list_device()[0] == True
+        target_bdf = self.cli.NVMe_BDF[device]["addr"]
+        logger.info("check mbr device: {}({})".format(device, target_bdf))
+        for array_obj in self.list_array_obj:
+            if array_obj.name == self.name:
+                continue
+            if target_bdf in array_obj.mbr_device:
+                logger.info(
+                    "{} device has mbr from other array: {}({})".format(
+                        device, array_obj.name, array_obj.mbr_device
+                    )
+                )
+                return False
+        return True
+
+    def select_system_device(self, dev_num=None):
+        device_list = list()
+        assert self.cli.list_device()[0] == True
+        sys_devices = self.cli.system_disks
+        for num in range(dev_num):
+            device = random.choice(sys_devices)
+            device_list.append(device)
+            sys_devices.remove(device)
+        assert self.cli.list_device()[0] == True
+        return device_list
+
+    def func0_wait_for_rebuild(self):
+        logger.info(
+            "[Func0] wait for rebuild complete (Expected result : {})".format(
+                self.func["expected"]
+            )
+        )
+        array_status = self.situation["next"]
+        if array_status is None:
+            return True
+        else:
+            count = 0
+            while True:
+                time.sleep(2)
+                out = self.cli.info_array(array_name=self.name)[0]
+                if out is False:
+                    return False
+                if self.cli.array_info[self.name]["situation"].lower() == array_status:
+                    return True
+                count = count + 1
+                if count > 30 * 60 * 3:
+                    return False
+
+    def func1_hot_swap(self):
+        logger.info(
+            "[Func1] hot swap device (Expected result : {})".format(
+                self.func["expected"]
+            )
+        )
+
+        dev_name = None
+
+        assert self.cli.list_device()[0] == True
+        assert self.cli.list_array()[0] == True
+        array_list = list(self.cli.array_dict.keys())
+
+        if len(array_list) == 0:
+            assert self.cli.list_device()[0] == True
+
+            bdf = self.cli.NVMe_BDF[random.choice(self.cli.system_disks)]["addr"]
+            dev_name = "".join(
+                [
+                    name
+                    for name, value in self.cli.NVMe_BDF.items()
+                    if value["addr"] == bdf
+                ]
+            )
+        else:
+            detach_type = self.func["param"]["detach_type"]
+            if len(self.device[detach_type]) == 0:
+                logger.info("There is no device to detach")
+                return True
+            else:
+                if detach_type == "data":
+                    if self.situation["current"] == "rebuilding":
+                        self.device["data"].remove(self.device["rebuild"])
+                    # self.device['data'] = [dev for dev in self.device['data'] if '[REMOVED]' not in dev]
+                    if len(self.device["data"]) == 0:
+                        logger.info("no devices Present in Array to remove")
+                        return True
+                    else:
+                        dev_name = random.choice(self.device["data"])
+
+                elif detach_type == "spare":
+                    dev_name = random.choice(self.device["spare"])
+                elif detach_type == "rebuild":
+                    dev_name = self.device["rebuild"]
+                    if len(self.device["spare"]) > 0:
+                        self.device["rebuild"] = "".join(self.device["spare"][-1])
+                    else:
+                        self.device["rebuild"] = None
+                else:
+                    dev_name = random.choice(self.device["data"] + self.device["spare"])
+                bdf = self.cli.NVMe_BDF[dev_name]["addr"]
+
+                if self.state["current"] in ["offline", "stop"]:
+                    self.mbr_device.append(bdf)
+        assert self.target_utils.device_hot_remove([dev_name]) == self.func["expected"]
+        assert self.target_utils.pci_rescan() == self.func["expected"]
+
+        return True
+
+    def func2_add_spare_dev(self):
+        logger.info(
+            "[Func2] add device as spare device (Expected result : {})".format(
+                self.func["expected"]
+            )
+        )
+        assert self.cli.list_device()[0] == True
+        if len(self.cli.system_disks) == 0:
+            logger.info("There is no system device to add as spare device")
+            return True
+        else:
+            if (
+                "normal" == self.situation["current"]
+                and self.data_dict["array"]["num_array"] > 1
+            ):
+                logger.info("Skip the add spare because array has full data device")
+                return True
+            elif (
+                "rebuilding" == self.situation["current"]
+                and self.data_dict["array"]["num_array"] > 1
+            ):
+                logger.info("Skip the add spare because array has full data device")
+                return True
+            target_dev = random.choice(self.cli.system_disks)
+            out = self.check_mbr_device(device=target_dev)
+            if out is True:
+                if (
+                    self.situation["current"] == "degraded"
+                    and self.func["expected"] == True
+                ):
+                    self.device["rebuild"] = target_dev
+            else:
+                logger.info("Expected result is changed to False due to mbr device")
+                self.state["next"] = self.state["current"]
+                self.situation["next"] = self.situation["current"]
+                self.func["expected"] = False
+            logger.info(self.name)
+            status = self.cli.addspare_array(
+                device_name=target_dev, array_name=self.name
+            )
+            
+            assert status[0] == self.func["expected"]
+
+            if self.func["expected"] == True:
+                assert self.cli.info_array(array_name=self.name)[0] == True
+                if target_dev in self.cli.array_info[self.name]["spare_list"]:
+                    logger.info("Successfully check if device is added")
+                    return True
+                else:
+                    if target_dev in self.cli.array_info[self.name]["data_list"]:
+                        assert self.cli.info_array(array_name=self.name)[0] == True
+                        if (
+                            self.cli.array_info[self.name]["situation"].lower()
+                            == "rebuilding"
+                        ):
+                            logger.info("Successfully check if device is added")
+                            return True
+                return False
+
+            return True
+
+    def func3_create_array(self):
+        logger.info(
+            "[Func3] create array with {} devices with Expected result : {})".format(
+                str(self.total_data_array), self.func["expected"]
+            )
+        )
+        assert self.cli.list_device()[0] == True
+
+        if len(self.cli.system_disks) < self.totalDrivesArray:
+            buffer_dev = ["uram{}".format(self.name[-1:])][0]
+            data_dev = ["unvme-ns-0", "unvme-ns-1", "unvme-ns-2", "unvme-ns-3"]
+            spare_dev = []
+
+            assert (
+                self.cli.create_array(
+                    write_buffer=buffer_dev,
+                    data=data_dev,
+                    spare=spare_dev,
+                    array_name=self.name,
+                    raid_type="RAID5",
+                )[0]
+                == self.func["expected"]
+            )
+        else:
+            index = int(self.name[-1:])
+
+            sysdev_list = self.select_system_device(dev_num=self.totalDrivesArray)
+            array_dict = self.data_dict["array"]["pos_array"]
+            for array in array_dict:
+                if self.name == array["array_name"]:
+                    data_dev = sysdev_list[0 : array["data_device"]]
+                    spare_dev = sysdev_list[
+                        array["data_device"] : array["data_device"]
+                        + array["data_device"]
+                    ]
+            device_list = data_dev + spare_dev
+            self.get_buffer_data()
+            buffer_dev = self.buffer_data
+            for target_dev in device_list:
+                out = self.check_mbr_device(device=target_dev)
+
+                if out is False:
+                    logger.info("Expected result is changed to False due to mbr device")
+                    self.state["next"] = self.state["current"]
+                    self.situation["next"] = self.situation["current"]
+                    self.func["expected"] = False
+
+            assert (
+                self.cli.create_array(
+                    write_buffer=buffer_dev[0],
+                    data=data_dev,
+                    spare=spare_dev,
+                    array_name=self.name,
+                    raid_type="RAID5",
+                )[0]
+                == self.func["expected"]
+            )
+        return True
+
+    def func4_delete_array(self):
+        logger.info(
+            "[Func4] delete array (Expected result : {})".format(self.func["expected"])
+        )
+        assert self.cli.delete_array(array_name=self.name)[0] == self.func["expected"]
+        assert self.target_utils.get_subsystems_list() == True
+        if self.func["expected"] == True:
+            self.subsystem = self.target_utils.ss_temp_list
+            if len(self.subsystem) > 1:
+                for subsystem in self.subsystem:
+                    if self.name in subsystem:
+                        self.client.nvme_list()
+                        if len(self.client.nvme_list_out) != 0:
+                            self.client.nvme_disconnect(nqn=[subsystem])
+                    assert (
+                        self.cli.delete_subsystem(nqn_name=subsystem)[0]
+                        == self.func["expected"]
+                    )
+            self.subsystem = list()
+            self.mbr_device = list()
+            self.device["rebuild"] = None
+        return True
+
+    def func5_mount_system(self):
+        logger.info(
+            "[Func5] mount array and set config for normal state (Expected result : {})".format(
+                self.func["expected"]
+            )
+        )
+        assert self.cli.mount_array(array_name=self.name)[0] == self.func["expected"]
+        self.target_utils.helper.get_mellanox_interface_ip()
+        assert self.target_utils.get_subsystems_list() == True
+        if self.func["expected"] == True:
+            assert self.cli.list_volume(array_name=self.name)[0] == True
+            base_name = "nqn.2022-10." + self.name
+
+            self.target_utils.create_subsystems_multiple(
+                ss_count=1,
+                base_name=base_name,
+            ) == True
+            self.target_utils.get_subsystems_list()
+            self.subsystem = [
+                ss for ss in self.target_utils.ss_temp_list if self.name in ss
+            ]
+            for ss in self.subsystem:
+                self.cli.add_listner_subsystem(
+                    ss, self.target_utils.helper.ip_addr[0], "1158"
+                )
+            if len(self.cli.vols) != 0:
+                assert (
+                    self.target_utils.mount_volume_multiple(
+                        array_name=self.name,
+                        volume_list=self.cli.vols,
+                        nqn=self.subsystem[0],
+                    )
+                    == True
+                )
+
+            else:
+                for index in range(len(self.data_dict["volume"]["pos_volumes"])):
+                    if (
+                        self.data_dict["volume"]["pos_volumes"][index]["array_name"]
+                        == self.name
+                    ):
+                        numvol = self.data_dict["volume"]["pos_volumes"][index][
+                            "num_vol"
+                        ]
+                        size = self.data_dict["volume"]["pos_volumes"][index]["size"]
+                assert (
+                    self.target_utils.create_volume_multiple(
+                        array_name=self.name,
+                        num_vol=numvol,
+                        size=size,
+                    )
+                    == True
+                )
+                assert self.cli.list_volume(self.name)[0] == True
+                assert self.target_utils.mount_volume_multiple(
+                    array_name=self.name,
+                    volume_list=self.cli.vols,
+                    nqn=self.subsystem[0],
+                )
+
+            self.target_utils.get_subsystems_list()
+            self.subsystem = self.target_utils.ss_temp_list
+            for nqn_name in self.subsystem:
+                assert (
+                    self.client.nvme_connect(
+                        nqn_name, self.target_utils.helper.ip_addr[0], "1158"
+                    )
+                    == True
+                )
+            assert self.client.nvme_list() == True
+            self.mbr_device = list()
+            if self.func["param"]["pre_write"] == False:
+                assert self.client.nvme_list() == True
+
+                assert (
+                    self.client.fio_generic_runner(
+                        self.client.nvme_list_out,
+                        fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0",
+                    )[0]
+                    == True
+                )
+                self.func["param"]["pre_write"] = True
+        return True
+
+    def func6_unmount_array(self):
+        logger.info(
+            "[Func6] unmount array (Expected result : {})".format(self.func["expected"])
+        )
+        if self.func["expected"] == True:
+            self.client.nvme_disconnect(self.subsystem) == True
+        out = self.cli.unmount_array(array_name=self.name)[0]
+        if out != self.func["expected"]:
+            if self.situation["current"] == "rebuilding":
+                assert self.cli.info_array(array_name=self.name)[0] == True
+                cur_state = self.cli.array_info[self.name]["state"].lower()
+                cur_situation = self.cli.array_info[self.name]["situation"].lower()
+                if cur_situation == "default":
+                    self.func["expected"] = True
+                    self.state["next"] = cur_state
+                    self.situation["next"] = cur_situation
+                    self.client.nvme_disconnect(self.subsystem) == True
+                    return True
+            return False
+        else:
+            return True
 
     def run_func(self, list_array_obj=None):
         """
         Method to run specific functions
         """
-
-        def get_buffer_data():
-            assert self.cli.list_device()[0] == True
-            assert self.cli.list_array()[0] == True
-            array_list = list(self.cli.array_dict.keys())
-            if len(array_list) == 0:
-                logger.info("No array Exist all buffer can be overridden")
-                self.buffer_data = self.cli.dev_type["NVRAM"]
-            elif len(array_list) == len(self.cli.dev_type["NVRAM"]):
-                logger.warning("No free NVRAM")
-                self.buffer_data = self.cli.dev_type["NVRAM"]
-            else:
-                used_bufer = []
-                for array in array_list:
-                    assert self.cli.info_array(array_name=array)[0] == True
-                    used_bufer.append(self.cli.array_info[array]["buffer_list"][0])
-
-                free_buf = [
-                    buf for buf in self.cli.dev_type["NVRAM"] if buf not in used_bufer
-                ]
-                self.buffer_data = free_buf
-
-            return True
-
-        def check_mbr_device(device=None):
-            """
-            Method to check if device can be included in this array
-            device: str (ex. unvme-ns-0)
-            """
-            assert self.cli.list_device()[0] == True
-            target_bdf = self.cli.NVMe_BDF[device]["addr"]
-            logger.info("check mbr device: {}({})".format(device, target_bdf))
-            for array_obj in list_array_obj:
-                if array_obj.name == self.name:
-                    continue
-                if target_bdf in array_obj.mbr_device:
-                    logger.info(
-                        "{} device has mbr from other array: {}({})".format(
-                            device, array_obj.name, array_obj.mbr_device
-                        )
-                    )
-                    return False
-            return True
-
-        def select_system_device(dev_num=None):
-            device_list = list()
-            assert self.cli.list_device()[0] == True
-            sys_devices = self.cli.system_disks
-            for num in range(dev_num):
-                device = random.choice(sys_devices)
-                device_list.append(device)
-                sys_devices.remove(device)
-            assert self.cli.list_device()[0] == True
-            return device_list
-
-        def func0_wait_for_rebuild():
-            logger.info(
-                "[Func0] wait for rebuild complete (Expected result : {})".format(
-                    self.func["expected"]
-                )
-            )
-            array_status = self.situation["next"]
-            if array_status is None:
-                return True
-            else:
-                count = 0
-                while True:
-                    time.sleep(2)
-                    out = self.cli.info_array(array_name=self.name)[0]
-                    if out is False:
-                        return False
-                    if (
-                        self.cli.array_info[self.name]["situation"].lower()
-                        == array_status
-                    ):
-                        return True
-                    count = count + 1
-                    if count > 30 * 60 * 3:
-                        return False
-
-        def func1_hot_swap():
-            logger.info(
-                "[Func1] hot swap device (Expected result : {})".format(
-                    self.func["expected"]
-                )
-            )
-
-            dev_name = None
-
-            assert self.cli.list_device()[0] == True
-            assert self.cli.list_array()[0] == True
-            array_list = list(self.cli.array_dict.keys())
-
-            if len(array_list) == 0:
-                assert self.cli.list_device()[0] == True
-
-                bdf = self.cli.NVMe_BDF[random.choice(self.cli.system_disks)]["addr"]
-                dev_name = "".join(
-                    [
-                        name
-                        for name, value in self.cli.NVMe_BDF.items()
-                        if value["addr"] == bdf
-                    ]
-                )
-            else:
-                detach_type = self.func["param"]["detach_type"]
-                if len(self.device[detach_type]) == 0:
-                    logger.info("There is no device to detach")
-                    return True
-                else:
-                    if detach_type == "data":
-                        if self.situation["current"] == "rebuilding":
-                            self.device["data"].remove(self.device["rebuild"])
-                        # self.device['data'] = [dev for dev in self.device['data'] if '[REMOVED]' not in dev]
-                        if len(self.device["data"]) == 0:
-                            logger.info("no devices Present in Array to remove")
-                            return True
-                        else:
-                            dev_name = random.choice(self.device["data"])
-
-                    elif detach_type == "spare":
-                        dev_name = random.choice(self.device["spare"])
-                    elif detach_type == "rebuild":
-                        dev_name = self.device["rebuild"]
-                        if len(self.device["spare"]) > 0:
-                            self.device["rebuild"] = "".join(self.device["spare"][-1])
-                        else:
-                            self.device["rebuild"] = None
-                    else:
-                        dev_name = random.choice(
-                            self.device["data"] + self.device["spare"]
-                        )
-                    bdf = self.cli.NVMe_BDF[dev_name]["addr"]
-
-                    if self.state["current"] in ["offline", "stop"]:
-                        self.mbr_device.append(bdf)
-            assert (
-                self.target_utils.device_hot_remove([dev_name]) == self.func["expected"]
-            )
-            assert self.target_utils.pci_rescan() == self.func["expected"]
-
-            return True
-
-        def func2_add_spare_dev():
-            logger.info(
-                "[Func2] add device as spare device (Expected result : {})".format(
-                    self.func["expected"]
-                )
-            )
-            assert self.cli.list_device()[0] == True
-            if len(self.cli.system_disks) == 0:
-                logger.info("There is no system device to add as spare device")
-                return True
-            else:
-                if (
-                    "normal" == self.situation["current"]
-                    and self.data_dict["array"]["num_array"] > 1
-                ):
-                    logger.info("Skip the add spare because array has full data device")
-                    return True
-                elif (
-                    "rebuilding" == self.situation["current"]
-                    and self.data_dict["array"]["num_array"] > 1
-                ):
-                    logger.info("Skip the add spare because array has full data device")
-                    return True
-                target_dev = random.choice(self.cli.system_disks)
-                out = check_mbr_device(device=target_dev)
-                if out is True:
-                    if (
-                        self.situation["current"] == "degraded"
-                        and self.func["expected"] == True
-                    ):
-                        self.device["rebuild"] = target_dev
-                else:
-                    logger.info("Expected result is changed to False due to mbr device")
-                    self.state["next"] = self.state["current"]
-                    self.situation["next"] = self.situation["current"]
-                    self.func["expected"] = False
-                assert (
-                    self.cli.addspare_array(
-                        device_name=target_dev, array_name=self.name
-                    )[0]
-                    == self.func["expected"]
-                )
-
-                if self.func["expected"] == True:
-                    assert self.cli.info_array(array_name=self.name)[0] == True
-                    if target_dev in self.cli.array_info[self.name]["spare_list"]:
-                        logger.info("Successfully check if device is added")
-                        return True
-                    else:
-                        if target_dev in self.cli.array_info[self.name]["data_list"]:
-                            assert self.cli.info_array(array_name=self.name)[0] == True
-                            if (
-                                self.cli.array_info[self.name]["situation"].lower()
-                                == "rebuilding"
-                            ):
-                                logger.info("Successfully check if device is added")
-                                return True
-                    return False
-            return True
-
-        def func3_create_array():
-            logger.info(
-                "[Func3] create array with {} devices with Expected result : {})".format(
-                    str(self.total_data_array), self.func["expected"]
-                )
-            )
-            assert self.cli.list_device()[0] == True
-
-            if len(self.cli.system_disks) < self.totalDrivesArray:
-                buffer_dev = ["uram{}".format(self.name[-1:])][0]
-                data_dev = ["unvme-ns-0", "unvme-ns-1", "unvme-ns-2", "unvme-ns-3"]
-                spare_dev = []
-
-                assert (
-                    self.cli.create_array(
-                        write_buffer=buffer_dev,
-                        data=data_dev,
-                        spare=spare_dev,
-                        array_name=self.name,
-                        raid_type="RAID5",
-                    )[0]
-                    == self.func["expected"]
-                )
-            else:
-                index = int(self.name[-1:])
-
-                sysdev_list = select_system_device(dev_num=self.totalDrivesArray)
-                array_dict = self.data_dict["array"]["pos_array"]
-                for array in array_dict:
-                    if self.name == array["array_name"]:
-                        data_dev = sysdev_list[0 : array["data_device"]]
-                        spare_dev = sysdev_list[
-                            array["data_device"] : array["data_device"]
-                            + array["data_device"]
-                        ]
-                device_list = data_dev + spare_dev
-                get_buffer_data()
-                buffer_dev = self.buffer_data
-                for target_dev in device_list:
-                    out = check_mbr_device(device=target_dev)
-
-                    if out is False:
-                        logger.info(
-                            "Expected result is changed to False due to mbr device"
-                        )
-                        self.state["next"] = self.state["current"]
-                        self.situation["next"] = self.situation["current"]
-                        self.func["expected"] = False
-
-                assert (
-                    self.cli.create_array(
-                        write_buffer=buffer_dev[0],
-                        data=data_dev,
-                        spare=spare_dev,
-                        array_name=self.name,
-                        raid_type="RAID5",
-                    )[0]
-                    == self.func["expected"]
-                )
-            return True
-
-        def func4_delete_array():
-            logger.info(
-                "[Func4] delete array (Expected result : {})".format(
-                    self.func["expected"]
-                )
-            )
-            assert (
-                self.cli.delete_array(array_name=self.name)[0] == self.func["expected"]
-            )
-            assert self.target_utils.get_subsystems_list() == True
-            if self.func["expected"] == True:
-                self.subsystem = self.target_utils.ss_temp_list
-                if len(self.subsystem) > 1:
-                    for subsystem in self.subsystem:
-                        if self.name in subsystem:
-                            self.client.nvme_list()
-                            if len(self.client.nvme_list_out) != 0:
-                                self.client.nvme_disconnect(nqn=[subsystem])
-                        assert (
-                            self.cli.delete_subsystem(nqn_name=subsystem)[0]
-                            == self.func["expected"]
-                        )
-                self.subsystem = list()
-                self.mbr_device = list()
-                self.device["rebuild"] = None
-            return True
-
-        def func5_mount_system():
-            logger.info(
-                "[Func5] mount array and set config for normal state (Expected result : {})".format(
-                    self.func["expected"]
-                )
-            )
-            assert (
-                self.cli.mount_array(array_name=self.name)[0] == self.func["expected"]
-            )
-            self.target_utils.helper.get_mellanox_interface_ip()
-            assert self.target_utils.get_subsystems_list() == True
-            if self.func["expected"] == True:
-                assert self.cli.list_volume(array_name=self.name)[0] == True
-                base_name = self.data_dict["subsystem"]["base_nqn_name"] + self.name
-
-                self.target_utils.create_subsystems_multiple(
-                    ss_count=self.data_dict["subsystem"]["nr_subsystems"],
-                    base_name=base_name,
-                ) == True
-                self.target_utils.get_subsystems_list()
-                self.subsystem = [
-                    ss for ss in self.target_utils.ss_temp_list if self.name in ss
-                ]
-                for ss in self.subsystem:
-                    self.cli.add_listner_subsystem(
-                        ss, self.target_utils.helper.ip_addr[0], "1158"
-                    )
-                if len(self.cli.vols) != 0:
-                    assert (
-                        self.target_utils.mount_volume_multiple(
-                            array_name=self.name,
-                            volume_list=self.cli.vols,
-                            nqn_list=self.subsystem,
-                        )
-                        == True
-                    )
-
-                else:
-                    for index in range(len(self.data_dict["volume"]["pos_volumes"])):
-                        if (
-                            self.data_dict["volume"]["pos_volumes"][index]["array_name"]
-                            == self.name
-                        ):
-                            numvol = self.data_dict["volume"]["pos_volumes"][index][
-                                "num_vol"
-                            ]
-                            size = self.data_dict["volume"]["pos_volumes"][index][
-                                "size"
-                            ]
-                    assert (
-                        self.target_utils.create_volume_multiple(
-                            array_name=self.name,
-                            num_vol=numvol,
-                            size=size,
-                        )
-                        == True
-                    )
-                    assert self.cli.list_volume(self.name)[0] == True
-                    assert self.target_utils.mount_volume_multiple(
-                        array_name=self.name,
-                        volume_list=self.cli.vols,
-                        nqn_list=self.subsystem,
-                    )
-
-                self.target_utils.get_subsystems_list()
-                self.subsystem = self.target_utils.ss_temp_list
-                for nqn_name in self.subsystem:
-                    assert (
-                        self.client.nvme_connect(
-                            nqn_name, self.target_utils.helper.ip_addr[0], "1158"
-                        )
-                        == True
-                    )
-                assert self.client.nvme_list() == True
-                self.mbr_device = list()
-                if self.func["param"]["pre_write"] == False:
-                    assert self.client.nvme_list() == True
-
-                    assert (
-                        self.client.fio_generic_runner(
-                            self.client.nvme_list_out,
-                            fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0",
-                        )[0]
-                        == True
-                    )
-                    self.func["param"]["pre_write"] = True
-            return True
-
-        def func6_unmount_array():
-            logger.info(
-                "[Func6] unmount array (Expected result : {})".format(
-                    self.func["expected"]
-                )
-            )
-            if self.func["expected"] == True:
-                self.client.nvme_disconnect(self.subsystem) == True
-            out = self.cli.unmount_array(array_name=self.name)[0]
-            if out != self.func["expected"]:
-                if self.situation["current"] == "rebuilding":
-                    assert self.cli.info_array(array_name=self.name)[0] == True
-                    cur_state = self.cli.array_info[self.name]["state"].lower()
-                    cur_situation = self.cli.array_info[self.name]["situation"].lower()
-                    if cur_situation == "default":
-                        self.func["expected"] = True
-                        self.state["next"] = cur_state
-                        self.situation["next"] = cur_situation
-                        self.client.nvme_disconnect(self.subsystem) == True
-                        return True
-                return False
-            else:
-                return True
-
+        self.list_array_obj = list_array_obj
         dict_func = {
-            "wait_for_rebuild": func0_wait_for_rebuild,
-            "hot_swap": func1_hot_swap,
-            "add_spare": func2_add_spare_dev,
-            "create_array": func3_create_array,
-            "delete_array": func4_delete_array,
-            "mount_system": func5_mount_system,
-            "unmount_array": func6_unmount_array,
+            "wait_for_rebuild": self.func0_wait_for_rebuild,
+            "hot_swap": self.func1_hot_swap,
+            "add_spare": self.func2_add_spare_dev,
+            "create_array": self.func3_create_array,
+            "delete_array": self.func4_delete_array,
+            "mount_system": self.func5_mount_system,
+            "unmount_array": self.func6_unmount_array,
         }
         assert dict_func[self.func["name"]]() == True
         return True

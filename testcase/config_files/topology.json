@@ -7,55 +7,55 @@
             "server":
             [
                 {
-                    "ip":"127.0.0.1",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
                     "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "Data_Ip": "127.0.0.0.1"
                 }
             ]
         },
         "initiator":
         {
-            "number": 6,
+            "number": 1,
             "client":
             [
                 {
-                    "ip":"127.0.0.1",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
                     "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "Data_Ip": "127.0.0.0.1"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
                     "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "Data_Ip": "127.0.0.0.1"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
                     "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "Data_Ip": "127.0.0.0.1"
+		},{
+                    "ip":"127.0.0.0.1",
+                    "username":"root",
+                    "password":"password",
+                    "Data_Ip": "127.0.0.0.1"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
                     "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "Data_Ip": "127.0.0.0.1"
                 },{
-                    "ip":"127.0.0.1",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
                     "password":"password",
-                    "Data_Ip": "127.0.0.1"
-                },{
-                    "ip":"127.0.0.1",
-                    "username":"root",
-                    "password":"password",
-                    "Data_Ip": "127.0.0.1"
+                    "Data_Ip": "127.0.0.0.1"
                 }
 
 	    ]
         },
 	"paths": 
 	{
-		"pos_path": "path of compiled POS source code " 
+		"pos_path": "path of compiled POS source code" 
 	}
     }
 }

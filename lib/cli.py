@@ -1,34 +1,35 @@
-#
-#    BSD LICENSE
-#    Copyright (c) 2021 Samsung Electronics Corporation
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions
-#    are met:
-#
-#      * Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#      * Redistributions in binary form must reproduce the above copyright
-#        notice, this list of conditions and the following disclaimer in
-#        the documentation and/or other materials provided with the
-#        distribution.
-#      * Neither the name of Samsung Electronics Corporation nor the names of
-#        its contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-#    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+"""
+BSD LICENSE
+
+Copyright (c) 2021 Samsung Electronics Corporation
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+  * Neither the name of Samsung Electronics Corporation nor the names of
+    its contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
 
 import time
 import logger
@@ -51,25 +52,31 @@ class Cli:
     Args:
         con (object) : target ssh obj
         data_dict (dict) : pos_config details from testcase/config_files/`.json
-         pos_path (str) : path for pos source
+         
         array_name (str) : name of the POS array
     """
 
     def __init__(
-        self, con, data_dict: dict, pos_path: str, array_name: str = "POSARRAY1"
+        self, con, data_dict: dict, array_name: str = "array1",pos_as_service: str = "true"
     ):
         self.ssh_obj = con
-        self.helper = helper.Helper(con)
+        self.helper = helper.Helper(con, pos_as_service = pos_as_service)
         self.data_dict = data_dict
-        self.pos_path = pos_path
         self.array_name = array_name
-        self.new_cli_path = "/bin/poseidonos-cli"  ##path of POS cli
         self.array_info = {}
         self.cli_history = []
         self.lock = Lock()
-
+        self.pos_as_service = pos_as_service
+        self.helper.get_pos_path()
+        if self.pos_as_service == "false":
+            self.cli_path =  f'{self.helper.pos_path}/bin/poseidonos-cli'
+        else:
+            self.cli_path = "poseidonos-cli"
+        
+        
+            
     def run_cli_command(
-        self, command: str, command_type: str = "request", timeout=30
+        self, command: str, command_type: str = "request", timeout: int=100
     ) -> (bool, dict()):
         """
         Method to Execute CLI commands and return Response
@@ -81,15 +88,17 @@ class Cli:
         """
 
         try:
+            
             retry_cnt = 1
-            cmd = "{}{} {} {} --json-res".format(
-                self.pos_path, self.new_cli_path, command_type, command
-            )
+            cmd = "{} {} {} --json-res".format(self.cli_path,
+                 command_type, command )
+           
+
             start_time = time.time()
             run_end_time = start_time + timeout
 
             while time.time() < run_end_time:
-                out = self.ssh_obj.execute(cmd, get_pty=True)
+                listout = self.ssh_obj.execute(cmd, get_pty=True)
 
                 elapsed_time_secs = time.time() - start_time
                 logger.info(
@@ -97,7 +106,10 @@ class Cli:
                         timedelta(seconds=elapsed_time_secs)
                     )
                 )
-                out = "".join(out)
+                
+                out = "".join(listout)
+                if "volume mount" in cmd:
+                    out = listout[1] if len(listout) > 1 else "".join(listout)
                 if "cannot connect to the PoseidonOS server" in out:
                     logger.warning(
                         "POS is not running! Please start POS and try again!"
@@ -112,27 +124,26 @@ class Cli:
                 elif "Receiving error" in out:
                     logger.error("POS crashed in between! please check POS logs")
                     return False, out
-                else:
-
-                    if "volume mount" in cmd:
-                        return True, out
-                parse_out = self.parse_out(out, cmd)
-                self.add_cli_history(parse_out)
-
-                if parse_out["status_code"] == 0:
-                    return True, parse_out
-                elif parse_out["status_code"] == 1030:
-                    logger.info(
-                        "Poseidonos is in Busy state, status code is {}. \
-                        Command retry count is {}".format(
-                            parse_out["status_code"], retry_cnt
-                        )
-                    )
+                elif (
+                    "PoseidonOS may be processing a command. Please try after a while."
+                    in out
+                ):
                     retry_cnt += 1
                     time.sleep(5)
+                    logger.warn(
+                        "PoseidonOS may be processing a command. Please try after a while"
+                    )
                     continue
                 else:
-                    return False, parse_out
+                    parse_out = self.parse_out(out, cmd)
+                    self.add_cli_history(parse_out)
+                    break
+
+            if parse_out["status_code"] == 0:
+                return True, parse_out
+
+            else:
+                return False, parse_out
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
             return False, None
@@ -152,6 +163,7 @@ class Cli:
     def parse_out(self, jsonout, command):
 
         out = json.loads(jsonout)
+        
         command = command
         if "param" in out.keys():
             param = out["Request"]["param"]
@@ -196,41 +208,60 @@ class Cli:
                 pass
 
     #####################################################system################################
-    def start_system(self) -> (bool, dict()):
+    def pos_service(self,operation:str) -> (bool,list):
+        """method to start/stop poseidon service
+           operation (str) : start/stop"""
+        try:
+            cmd = f'systemctl {operation} poseidonos.service'
+            out = self.ssh_obj.execute(cmd, get_pty=True)
+           
+                    
+            return True, out
+        except Exception as e:
+            logger.error("failed to start POS as a service")
+            return False, out
+    
+    def pos_exporter(self,operation:str) -> (bool,list):
+        """method to start/stop poseidon service
+           operation (str) : start/stop"""
+        try:
+            cmd = f'systemctl {operation} pos-exporter.service'
+            out = self.ssh_obj.execute(cmd, get_pty=True)
+                    
+            return True, out
+        except Exception as e:
+            logger.error("failed to start POS as a service")
+            return False, out
+        
+
+
+    def start_system(self, timeout = 60) -> (bool, dict()):
         """
         Method to start pos
+        mode = cli if to use system start else mode = service
         """
         try:
-            out = ""
-            """
-            max_running_time = 30 * 60 #30min
-            start_time = time.time()
-            self.out = self.ssh_obj.run_async("nohup {}/bin/{} >> {}/script/pos.log".format(self.pos_path, "poseidonos", self.pos_path))
-            while True:
-                logger.info("waiting for POS logs")
-                time.sleep(5)
-                if self.out.is_complete() is False:
-                    logger.info("Time-consuming : {}".format(time.time() - start_time))
-                    return True, out
-                cur_time = time.time()
-                running_time = cur_time - start_time
-                if running_time > max_running_time:
-                    return False, out
-
-            """
-            # to use the CLI to start the
-            cli_error, jout = self.run_cli_command("start", command_type="system")
-            if cli_error == True:
-                if jout["status_code"] == 0:
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+            jout = {}
+            if self.pos_as_service == "false":
+                cli_error, jout = self.run_cli_command("start", command_type="system")
+                if cli_error == True:
+                     return True, jout
             else:
-                raise Exception("CLI Error")
-            # """
+                assert self.pos_service(operation="start")[0] == True
+                start_time = time.time()
+                run_end_time = start_time + timeout
 
+                while time.time() < run_end_time:
+                    if self.helper.check_pos_exit() == True:
+                        logger.warning("waiting for POS to be UP and running")
+                        time.sleep(5)
+                    else:
+                        break
+
+            
+                return True, jout
         except Exception as e:
-            logger.error("failed due to {}".format(e))
+            logger.error(f"failed due to {e}")
             return False, jout
 
     def stop_system(
@@ -282,7 +313,7 @@ class Cli:
                     logger.error(f"POS PID is still active after {count} seconds.")
                     return False, out
             else:
-                out = self.ssh_obj.execute(command="pkill -9 pos")
+                out = self.ssh_obj.execute(command="pkill -11 pos")
         except Exception as e:
             logger.error("failed due to {}".format(e))
             # self.stop_system(grace_shutdown=False)
@@ -299,12 +330,8 @@ class Cli:
             cmd = "set-property --rebuild-impact {}".format(rebuild_impact)
             cli_error, jout = self.run_cli_command(cmd, command_type="system")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
-            else:
-                raise Exception("CLI Error")
+                return True, jout
+
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
@@ -317,12 +344,11 @@ class Cli:
             cmd = "info"
             cli_error, jout = self.run_cli_command(cmd, command_type="system")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
+
             else:
-                raise Exception("CLI Error")
+                raise Exception(jout["description"])
+
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
@@ -336,17 +362,19 @@ class Cli:
             self.array_dict = {}
             cmd = "list"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
-
-            if cli_error == False and int(jout["status_code"]) == 1224:
+            
+            if cli_error == False and int(jout["status_code"]) == 1225:
+                logger.info(jout["description"])
+                return True, jout
+            elif cli_error == False and int(jout["status_code"]) == 1226:
                 logger.info(jout["description"])
                 return True, jout
             if cli_error == True:
                 out = jout["output"]["Response"]
-                if "There is no array" in out["result"]["data"]["arrayList"]:
+                if jout["data"] is None:
                     logger.info("No arrays present in the config")
                     return True, out
                 else:
-
                     for i in out["result"]["data"]["arrayList"]:
                         a_name = i["name"]
                         a_status = i["status"]
@@ -388,7 +416,11 @@ class Cli:
                 write_buffer, data, self.array_name
             )
 
-            if spare and raid_type != "no-raid":
+            if (
+                len(spare) > 0
+                and raid_type.lower() != "no-raid"
+                and raid_type.lower() != "raid0"
+            ):
                 spare = spare[0] if len(spare) == 0 else ",".join(spare)
                 cmd += f" --spare {spare}"
             if raid_type != "no-raid":
@@ -397,10 +429,7 @@ class Cli:
                 cmd += " --no-raid"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -408,7 +437,7 @@ class Cli:
             return False, jout
 
     def mount_array(
-        self, array_name: str = None, write_back: bool = True
+        self, array_name: str = None, write_back: bool = False
     ) -> (bool, dict()):
         """
         Method to mount array
@@ -425,10 +454,7 @@ class Cli:
                 cmd += " --enable-write-through"
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -448,10 +474,7 @@ class Cli:
             cmd = "unmount -a {} --force".format(self.array_name)
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -466,10 +489,7 @@ class Cli:
             cmd = "resetmbr"
             cli_error, jout = self.run_cli_command(cmd, command_type="devel")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -489,10 +509,7 @@ class Cli:
             cmd = "delete -a {} --force".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -527,7 +544,8 @@ class Cli:
                 array_state = out[1]["data"]["state"]
                 array_size = out[1]["data"]["capacity"]
                 array_situation = out[1]["data"]["situation"]
-                rebuild_progress = out[1]["data"]["rebuilding_progress"]
+                rebuild_progress = out[1]["data"]["rebuildingProgress"]
+                uniqueId = out[1]['data']['uniqueId']
                 for dev in out[1]["data"]["devicelist"]:
                     if dev["type"] == "DATA":
                         data_dev.append(dev["name"])
@@ -556,6 +574,7 @@ class Cli:
             "data_list": data_dev,
             "spare_list": spare_dev,
             "buffer_list": buffer_dev,
+            'uniqueId' :uniqueId
         }
         return (True, out)
 
@@ -570,22 +589,17 @@ class Cli:
             array_name (str) : name of the array
         """
         try:
-            if array_name != None:
-                self.array_name = array_name
-            cmd = "addspare -s {} -a {}".format(device_name, self.array_name)
-            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            if array_name == None:
+                array_name = self.array_name
+            cmd = "addspare -s {} -a {}".format(device_name, array_name)
+            cli_error, jout = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                status_code = out["status_code"]
-                if status_code == 0:
-
-                    return True, out
-                else:
-                    raise Exception(out["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
-            logger.error("command execution failed with exception {}".format(e))
-            return False, out
+            logger.error("failed due to {}".format(e))
+            return False, jout
 
     def rmspare_array(self, device_name: str, array_name: str = None) -> (bool, dict()):
         """
@@ -601,11 +615,7 @@ class Cli:
             cmd = "rmspare -s {} -a {}".format(device_name, array_name)
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                status_code = out["status_code"]
-                if status_code == 0:
-                    return True, out
-                else:
-                    raise Exception(out["description"])
+                return True, out
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -633,6 +643,7 @@ class Cli:
         try:
             if array_name != None:
                 self.array_name = array_name
+
             cmd = "autocreate --array-name {} --buffer {} --num-data-devs {}".format(
                 self.array_name, buffer_name, num_data
             )
@@ -646,12 +657,44 @@ class Cli:
 
             cli_error, out = self.run_cli_command(cmd, command_type="array")
             if cli_error == True:
-                status_code = out["status_code"]
-                if status_code == 0:
-                    logger.info(out["description"])
-                    return True, out
-                else:
-                    raise Exception(out["description"])
+                return True, out
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False, out
+
+    def replace_drive_array(self, device_name: str, array_name: str) -> (bool, dict()):
+        """
+        Method to replace data drive with spare drive
+
+        Args:
+            device_name (str) : name of the data device
+            array_name (str) : name of the array
+        """
+        try:
+            cmd = "replace -d {} -a {}".format(device_name, array_name)
+            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                return True, out
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False, out
+
+    def rebuild_array(self, array_name: str) -> (bool, dict()):
+        """
+        Method to start the array rebuild
+
+        Args:
+            array_name (str) : name of the array
+        """
+        try:
+            cmd = "rebuild -a {}".format(array_name)
+            cli_error, out = self.run_cli_command(cmd, command_type="array")
+            if cli_error == True:
+                return True, out
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -669,10 +712,7 @@ class Cli:
             cmd = "scan"
             cli_error, jout = self.run_cli_command(cmd, command_type="device")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -707,10 +747,7 @@ class Cli:
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="device")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -731,53 +768,64 @@ class Cli:
             self.dev_type = {"NVRAM": [], "SSD": []}
 
             if cli_error == True:
-                if out["status_code"] == 0:
-                    if out["description"].lower() == "no any device exists":
-                        logger.info("No devices listed")
-                        return True, out, devices, self.device_map, self.dev_type
-                    if "data" in out:
-                        dev = out["data"]["devicelist"]
-                        for device in dev:
-                            devices.append(device["name"])
+
+                if out["description"].lower() == "no any device exists":
+                    logger.info("No devices listed")
+                    return True, out, devices, self.device_map, self.dev_type
+                if "data" in out:
+                    dev = out["data"]["devicelist"]
+                    for device in dev:
+                        devices.append(device["name"])
+                        if device["type"] == "NVRAM":
                             dev_map = {
                                 "name": device["name"],
-                                "addr": device["addr"],
-                                "mn": device["mn"],
-                                "sn": device["sn"],
+                                "addr": device["name"],
+                                "mn": device["modelNumber"],
+                                "sn": device["serialNumber"],
                                 "size": device["size"],
                                 "type": device["type"],
                                 "class": device["class"],
                                 "numa": device["numa"],
                             }
-                            if dev_map["type"] in self.dev_type.keys():
-                                self.dev_type[dev_map["type"]].append(dev_map["name"])
-                                self.device_map.update({device["name"]: dev_map})
+                        else:
+                            dev_map = {
+                                "name": device["name"],
+                                "addr": device["address"],
+                                "mn": device["modelNumber"],
+                                "sn": device["serialNumber"],
+                                "size": device["size"],
+                                "type": device["type"],
+                                "class": device["class"],
+                                "numa": device["numa"],
+                        }
+                        if dev_map["type"] in self.dev_type.keys():
+                            self.dev_type[dev_map["type"]].append(dev_map["name"])
+                            self.device_map.update({device["name"]: dev_map})
 
-                        self.NVMe_BDF = self.device_map
+                self.NVMe_BDF = self.device_map
 
-                        self.system_disks = [
-                            item
-                            for item in self.device_map
-                            if self.device_map[item]["class"].lower() == "system"
-                            and self.device_map[item]["type"].lower() == "ssd"
-                        ]
+                self.system_disks = [
+                    item
+                    for item in self.device_map
+                    if self.device_map[item]["class"].lower() == "system"
+                    and self.device_map[item]["type"].lower() == "ssd"
+                ]
 
-                        self.array_disks = [
-                            item
-                            for item in self.device_map
-                            if self.device_map[item]["class"].lower() == "array"
-                            and self.device_map[item]["type"].lower() == "ssd"
-                        ]
+                self.array_disks = [
+                    item
+                    for item in self.device_map
+                    if self.device_map[item]["class"].lower() == "array"
+                    and self.device_map[item]["type"].lower() == "ssd"
+                ]
 
-                        return (True, out)
-                else:
-                    raise Exception(
-                        "list dev command failed with status code {}".format(
-                            out["status_code"]
-                        )
-                    )
+                return (True, out)
             else:
-                raise Exception("list dev command failed with error {}".format(out))
+                raise Exception(
+                    "list dev command failed with status code {}".format(
+                        out["status_code"]
+                    )
+                )
+
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False, None, None, None, None
@@ -793,10 +841,7 @@ class Cli:
             cmd = "smart -d {}".format(devicename)
             cli_error, jout = self.run_cli_command(cmd, command_type="device")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -814,10 +859,7 @@ class Cli:
             cmd = "smart-log -d {}".format(devicename)
             cli_error, jout = self.run_cli_command(cmd, command_type="device")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -835,10 +877,7 @@ class Cli:
             cmd = "set-level --level {}".format(level)
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -855,10 +894,7 @@ class Cli:
             cmd = "get-level"
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -874,10 +910,7 @@ class Cli:
             cmd = "apply-filter"
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -893,10 +926,7 @@ class Cli:
             cmd = "info"
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -914,10 +944,7 @@ class Cli:
             cmd = "start"
             cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -933,16 +960,36 @@ class Cli:
             cmd = "stop"
             cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+    def get_property(self) -> (bool, dict()):
+        try:
+            cmd = "get-property"
+            cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
+            if cli_error == True:
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
             logger.error("failed due to {}".format(e))
             return False, jout
 
+
+    def set_property(self, publication_list_path = '/etc/pos/pos-prometheus.yml') -> (bool, dict()):
+        try:
+            cmd = f"set-property --publication-list-path {publication_list_path}"
+            cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
+            if cli_error == True:
+                return True, jout
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
     ###################################################QOS##############################
     def create_volume_policy_qos(
         self,
@@ -981,10 +1028,7 @@ class Cli:
 
             cli_error, jout = self.run_cli_command(cmd, command_type="qos")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1004,10 +1048,7 @@ class Cli:
             cmd = "reset -v {} -a {}".format(volumename, arrayname)
             cli_error, jout = self.run_cli_command(cmd, command_type="qos")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1026,10 +1067,7 @@ class Cli:
             cmd = "list -v {} -a {}".format(volumename, arrayname)
             cli_error, jout = self.run_cli_command(cmd, command_type="qos")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1154,10 +1192,7 @@ class Cli:
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1178,10 +1213,7 @@ class Cli:
             cmd = "delete -a {} -v {} --force ".format(self.array_name, volumename)
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1232,10 +1264,7 @@ class Cli:
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1256,10 +1285,7 @@ class Cli:
             cmd = "unmount -v {} -a {} --force".format(volumename, self.array_name)
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1288,10 +1314,7 @@ class Cli:
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="volume")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1315,10 +1338,10 @@ class Cli:
             model_name (str) : Model number of subsystem
         """
         try:
-            subsystem = self.data_dict["subsystem"]
-            ns_count = ns_count or subsystem["ns_count"]
-            serial_number = serial_number or subsystem["serial_number"]
-            model_name = model_name or subsystem["model_name"]
+            subsystem = self.data_dict["subsystem"]["pos_subsystems"]
+            ns_count = ns_count or subsystem[0]["ns_count"]
+            serial_number = serial_number or subsystem[0]["serial_number"]
+            model_name = model_name or subsystem[0]["model_name"]
 
             cmd = "create --subnqn {} --serial-number {} --model-number {} \
                     --max-namespaces {} --allow-any-host".format(
@@ -1326,10 +1349,7 @@ class Cli:
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="subsystem")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1372,10 +1392,7 @@ class Cli:
             )
             cli_error, jout = self.run_cli_command(cmd, command_type="subsystem")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    return cli_error, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1399,14 +1416,14 @@ class Cli:
             command = "create-transport --trtype {} --buf-cache-size {} --num-shared-buf {} ".format(
                 transport_type.upper(), buf_cache_size, num_shared_buf
             )
-            out = self.run_cli_command(command, command_type="subsystem")
-
-            if out[0] == True:
-                if out[1]["status_code"] == 0:
-                    return True, out
+            cli_error, jout = self.run_cli_command(command, command_type="subsystem")
+            if cli_error == True:
+                return True, jout
+            else:
+                raise Exception("CLI Error")
         except Exception as e:
             logger.error(e)
-            return False, out
+            return False, jout
 
     def delete_subsystem(self, nqn_name: str, force: bool = True) -> (bool, dict()):
         """method to delete subsystem
@@ -1420,11 +1437,7 @@ class Cli:
             command = f"delete --subnqn {nqn_name} {force}"
             cli_error, jout = self.run_cli_command(command, "subsystem")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    logger.info(jout["description"])
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
 
@@ -1445,11 +1458,7 @@ class Cli:
             cmd = "do_gc --array {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    logger.info(jout["description"])
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1501,11 +1510,7 @@ class Cli:
             )
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    logger.info(jout["description"])
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1549,11 +1554,7 @@ class Cli:
             cmd = "flush -a {}".format(array_name)
             cli_error, jout = self.run_cli_command(cmd, "wbt")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    logger.info(jout["description"])
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
         except Exception as e:
@@ -1733,27 +1734,6 @@ class Cli:
             logger.error("command execution failed because of  {}".format(e))
             return False, None
 
-    def core_dump(self):
-        """
-        Method to collect core dump by giving different options depending on whether poseidonos is running
-        """
-        try:
-
-            if self.helper.check_pos_exit() == False:
-                dump_type = "triggercrash"
-            else:
-                dump_type = "crashed"
-
-            command = "{}/tool/dump/trigger_core_dump.sh {}".format(
-                self.pos_path, dump_type
-            )
-            out = self.ssh_obj.execute(command)
-            logger.info("core dump file creation: {}".format(out))
-            return out
-        except Exception as e:
-            logger.error("Command Execution failed because of {}".format(e))
-            return False
-
     def updateeventwrr_devel(self, name: str, weight: str) -> (bool, dict):
 
         try:
@@ -1761,11 +1741,7 @@ class Cli:
             command = f"update-event-wrr --name {name} --weight {weight}"
             cli_error, jout = self.run_cli_command(command, "devel")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    logger.info(jout["description"])
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
 
@@ -1780,11 +1756,7 @@ class Cli:
             command = "reset-event-wrr"
             cli_error, jout = self.run_cli_command(command, "devel")
             if cli_error == True:
-                if jout["status_code"] == 0:
-                    logger.info(jout["description"])
-                    return True, jout
-                else:
-                    raise Exception(jout["description"])
+                return True, jout
             else:
                 raise Exception("CLI Error")
 

@@ -38,7 +38,7 @@ Test suite provides core, intermediate APIs and following set of test cases:
 * SPDK/DPDK: 20.10 / 20.08
 
 #### Trident 
-* Python 3.6.9
+* Python 3.8
 * Pytest (Ubuntu 18.04 repo)
 * Paramiko (Python3 module)
 
@@ -79,6 +79,9 @@ proc.py|Process related API
 utils.py|APIs related to various operations such as creating/mounting file-systems, NVMe commands, threading and many more.
 target_utils.py|Target side API wrappers
 helper.py| methods contains API wrappers that can be used on both target and the host
+hetero_setup.py|APIs to support and configure NVMe disk to create hetero setup
+pos_config.py|APIs to update and reset the pos.conf during test execution
+prometheus.py|APIs to access prometheus DB
 
 ### Docs: 
 To generate API documentation of libraries, Doxygen tool is to be used. It can be done by installing doxygen: 
@@ -96,11 +99,12 @@ Each test driver file implements methods which work as one or more test cases.
 File or Folder|Description
 --------------|-----------
 conftest.py|Defined common fixtures to setup test infra(pytest infra). 
-array|All array management TCs
+array| All array management TCs
 volume| All volume management TCs
 user-io| All GC/flush test cases
 subsystem | All Subsystem managment TCs
 config_files| This directory has topology.json which holds setup parameters such as target/initiator IP addresses etc
+telemetery| This directory is there to test telemetery feature
 
 ### Utils: 
 This directory contains setup_tool.py, a tool to check user setup has SSDs supported by POS, all IPs are on same network and basic POS functionalities are working.
@@ -148,26 +152,29 @@ Example 2 Volume Management
 
 The Below Test provides a sample Scenario which requests the POS cli to create a 257th volume which is intended to fail as POS only supports 256 Vols per array
  ```
-  
-@pytest.mark.sanity()
-def test_volumesanity257vols():
-    try:
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-            assert pos.cli.reset_devel()[0] == True
-            assert pos.target_utils.pci_rescan() == True
-        assert pos.cli.list_device()[0] == True
-        assert pos.cli.create_array(array_name="array1", data=pos.cli.dev_type['SSD'][0:5], write_buffer= pos.cli.dev_type['NVRAM'][0], raid_type= "RAID5", spare = [])[0] == True
-        assert pos.cli.mount_array(array_name="array1")[0] == True
-        for i in range(256):
-            vname = f'array1_vol{str(i)}'
-            assert pos.cli.create_volume(volumename=vname, array_name="array1",size = "1gb")[0] == True
-        assert pos.cli.create_volume(volumename="invalidvol", array_name="array1",size = "1gb")[0] == False
-        
-    except Exception as e:
-        logger.info(f"Test failed due to {e}")
-        assert 0
 
+@pytest.mark.sanity()
+def test_volumesanity257vols(array_fixture):
+    array_name = "array1"
+    try:
+        pos = array_fixture
+        pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 256
+        pos.data_dict["array"]["num_array"] = 1
+
+        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        # negative test
+        assert (
+            pos.cli.create_volume(
+                volumename="invalidvol", array_name=array_name, size="1gb"
+            )[0]
+            == False
+        )
+
+    except Exception as e:
+        logger.error(f" ======= Test FAILED due to {e} ========")
+        assert 0
+  
 ```
 
 # Contributing

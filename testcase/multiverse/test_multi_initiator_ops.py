@@ -42,13 +42,13 @@ from concurrent.futures import (
 )
 
 from pos import POS
-import logger as logger
 import composable.vol_management as volmgmt
 import composable.io_management as iomgmt
 import composable.system_management as sysmgmt
 import composable.composable_core as libcore
 from composable.composable_core import _Data as data_mgmt
 
+import logger as logger
 logger = logger.get_logger(__name__)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 

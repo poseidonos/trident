@@ -5,3 +5,7 @@ logs/*
 *.pyc
 */.cache/
 testcase/system_test/*
+testcase/config_files/topology.json
+.scap/
+output/
+sam_cli.cfg
