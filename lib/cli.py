@@ -227,7 +227,7 @@ class Cli:
         try:
             cmd = f'systemctl {operation} pos-exporter.service'
             out = self.ssh_obj.execute(cmd, get_pty=True)
-                    
+            logger.info(out)
             return True, out
         except Exception as e:
             logger.error("failed to start POS as a service")
@@ -862,9 +862,12 @@ class Cli:
 
         """
         try:
+            self.smart_log_dict = {}
             cmd = "smart-log -d {}".format(devicename)
             cli_error, jout = self.run_cli_command(cmd, command_type="device")
             if cli_error == True:
+                self.smart_log_dict[devicename] = jout['data']
+                logger.info(self.smart_log_dict)
                 return True, jout
             else:
                 raise Exception("CLI Error")
@@ -872,7 +875,7 @@ class Cli:
             logger.error("failed due to {}".format(e))
             return False, jout
 
-    ################################################logger##############################
+    ##############################logger##############################
     def set_log_level_logger(self, level: str) -> (bool, dict()):
         """
         method to set the log level
@@ -893,9 +896,7 @@ class Cli:
     def get_log_level_logger(self) -> (bool, dict()):
         """
         method to get the log level
-
         """
-
         try:
             cmd = "get-level"
             cli_error, jout = self.run_cli_command(cmd, command_type="logger")

@@ -45,12 +45,12 @@ array_states = {
     '0' : 'NOT_EXIST',
     '1' : 'EXIST_NORMAL',
     '2' : 'EXIST_DEGRADED',
-    '3' : 'BROKEN',
+    '3' : 'FAULT',
     '4' : 'TRY_MOUNT',
     '5' : 'TRY_UNMOUNT',
     '6' : 'NORMAL',
     '7' : 'DEGRADED',
-    '8' : 'REBUILD'
+    '8' : 'REBUILDING'
 
 }
 volume_states = {
@@ -68,7 +68,9 @@ class Prometheus(Cli):
         self.prometheus_path = paths.pos_prometheus
         self.ssh_obj = con
         if self.check_pos_exporter() == False:
+            logger.info("Starting the pos-exporter as it is not runing")
             assert self.pos_exporter(operation = "start")[0] == True
+            assert self.check_pos_exporter() == True,"POS exporter is not running!"
         assert self.update_config() == True
         url = f'http://{self.ssh_obj.hostname}:2113'
         self.prom = PrometheusConnect(url=url)
@@ -82,8 +84,9 @@ class Prometheus(Cli):
         self.result = {'temperature' : '',}
         
     def check_pos_exporter(self) -> str:
-        cmd = 'systemctl is-active  poseidonos.service'
+        cmd = 'systemctl is-active pos-exporter.service'
         out = self.ssh_obj.execute(cmd, get_pty=True)
+        logger.info(out)
         if "active" in out[0]:
             logger.info("POS-Exporter IS RUNNING")
             return True
@@ -155,7 +158,6 @@ class Prometheus(Cli):
 
     def get_volume_state(self,array_name,volume_name):
         """Method to get the volume state"""
-        logger.info(self.prom.get_current_metric_value(metric_name='volume_state'))
         return [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='volume_state') if array_name == item['metric']['array_name'] and volume_name == item['metric']['volume_name']][0]
 
 
@@ -165,6 +167,8 @@ class Prometheus(Cli):
 
     def get_volume_capacity_used(self,array_id,volume_id):
         '''Method to get volume used'''
+        logger.info(self.prom.get_current_metric_value(metric_name='volume_usage_blk_cnt'))
+        logger.info([item['value'][1] for item in self.prom.get_current_metric_value(metric_name='volume_usage_blk_cnt') if volume_id == item['metric']['volume_id']])
         return [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='volume_usage_blk_cnt') if volume_id == item['metric']['volume_id']][0]
 
     def get_uptime_sec(self) -> bool:
@@ -178,6 +182,7 @@ class Prometheus(Cli):
         power_on_hour_upper = [
             item['value'][1] for item in self.prom.get_current_metric_value(metric_name='power_on_hour_upper') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.devicePowerOnHour[device_name] = {"upper" : power_on_hour_upper, "lower" : power_on_hour_lower}
+        logger.info(self.devicePowerOnHour[device_name])
         return True
 
     def get_power_on_cycle(self, device_name) -> bool:
@@ -185,6 +190,7 @@ class Prometheus(Cli):
         power_lower = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='power_cycle_lower') if device_name == item['metric']['nvme_ctrl_id']][0]
         power_upper = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='power_cycle_upper') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.devicePowerCycle[device_name] = {"upper" : power_upper, "lower" : power_lower}
+        logger.info(self.devicePowerCycle[device_name])
         return True
 
     def get_controller_busy_time(self, device_name) -> bool:
@@ -192,6 +198,7 @@ class Prometheus(Cli):
         busy_lower = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='controller_busy_time_lower') if device_name == item['metric']['nvme_ctrl_id']][0]
         busy_upper = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='controller_busy_time_upper') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.deviceControllerBusyTime[device_name] = {"upper" : busy_upper, "lower" : busy_lower}
+        logger.info(self.deviceControllerBusyTime[device_name])
         return True
 
     def get_unsafe_shutdowns(self, device_name) -> bool:
@@ -199,37 +206,42 @@ class Prometheus(Cli):
         power_lower = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='unsafe_shutdowns_lower') if device_name == item['metric']['nvme_ctrl_id']][0]
         power_upper = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='unsafe_shutdowns_upper') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.deviceUnsafeShutdowns[device_name] = {"upper" : power_upper, "lower" : power_lower}
+        logger.info(self.deviceUnsafeShutdowns[device_name])
         return True
     
     def get_temperature(self, device_name) -> bool:
         """method to get unsafeshutdownscycle"""
-        self.result['temperature'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='temperature') if device_name == item['metric']['nvme_ctrl_id']][0]
+        self.result['currentTemperature'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='temperature') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.telemetryDeviceInfo[device_name] = self.result
+        logger.info(self.result)
         return True
 
     def get_avaliable_spare(self, device_name) -> bool:
         """method to get avaliable spare infor"""
-        self.result['spare_info'] =    [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='available_spare') if device_name == item['metric']['nvme_ctrl_id']][0] 
+        self.result['availableSpare'] =    [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='available_spare') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.telemetryDeviceInfo[device_name] = self.result
+        logger.info(self.result)
         return True
 
     def get_avaliable_sparethreshold(self, device_name) -> bool:
         """method to get avaliable spare infor"""
-        self.result['spare_threshold'] =    [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='available_spare_threshold') if device_name == item['metric']['nvme_ctrl_id']][0] 
+        self.result['availableSpareThreshold'] =    [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='available_spare_threshold') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.telemetryDeviceInfo[device_name] = self.result
+        logger.info(self.result)
         return True
     
     def get_percentage_used(self, device_name) -> bool:
         """method to get percentage used in device"""
-        self.result['percentusage'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='percentage_used') if device_name == item['metric']['nvme_ctrl_id']][0] 
+        self.result['lifePercentageUsed'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='percentage_used') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.telemetryDeviceInfo[device_name] = self.result
+        logger.info(self.result)
         return True
 
     def get_critical_tempraturetime(self, device_name) -> bool:
         """method to get critical temperature time"""
-        logger.info([item['value'][1] for item in self.prom.get_current_metric_value(metric_name='critical_temperature_time')])
-        self.result['critical_temperature'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='critical_temperature_time') if device_name == item['metric']['nvme_ctrl_id']][0]
+        self.result['criticalTemperatureTime'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='critical_temperature_time') if device_name == item['metric']['nvme_ctrl_id']][0]
         self.telemetryDeviceInfo[device_name] = self.result
+        logger.info(self.result)
         return True
     
     def get_smart_stats(self, device_name) -> bool:
@@ -253,4 +265,3 @@ class Prometheus(Cli):
             data = self.prom.get_current_metric_value(metric_name=metric)
             logger.info(data)
         return True
-
