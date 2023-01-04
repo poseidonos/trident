@@ -1,0 +1,16 @@
+{
+    "elk_log_stage": {
+        "enable": "true"
+    },
+    "copy_pos_log": {
+        "test_fail": "true",
+        "test_pass": "false" 
+    },
+    "dump_pos_core": {
+        "enable": "false"
+    },
+    "pos_as_a_service" : {
+        "enable" : "false"
+    }
+
+}

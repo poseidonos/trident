@@ -1,40 +1,45 @@
-#
-#   BSD LICENSE
-#   Copyright (c) 2021 Samsung Electronics Corporation
-#   All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or without
-#   modification, are permitted provided that the following conditions
-#   are met:
-#
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in
-#        the documentation and/or other materials provided with the
-#        distribution.
-#      * Neither the name of Samsung Electronics Corporation nor the names of
-#        its contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-#    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+"""
+BSD LICENSE
 
+Copyright (c) 2021 Samsung Electronics Corporation
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+  * Neither the name of Samsung Electronics Corporation nor the names of
+    its contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+
+import array
+from datetime import datetime
 import time
 import re
+import traceback
 import helper
 import logger
 from cli import Cli
+from hetero_setup import TargetHeteroSetup
 
 logger = logger.get_logger(__name__)
 
@@ -45,19 +50,23 @@ class TargetUtils:
     Args:
         ssh_obj : ssh obj of the Target
         data_dict (dict) : path for POS config
-        pos_path : path of pos source
+        
         array_name (str) : name of the POS array | (default = POS_ARRAY1)
 
     """
 
-    def __init__(self, ssh_obj, data_dict: dict, pos_path: str):
+    def __init__(self, ssh_obj, cli_obj: object, data_dict: dict, pos_as_service = "true"):
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
-        self.cli = Cli(ssh_obj, self.static_dict, pos_path)
+        self.pos_as_service = pos_as_service
+        
+        self.cli = cli_obj
         # self.array = array_name
-        self.helper = helper.Helper(ssh_obj)
+        self.helper = helper.Helper(ssh_obj, pos_as_service= self.pos_as_service)
+        self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_as_service=self.pos_as_service)
         self.udev_rule = False
         self.total_required = 0
+        assert self.helper.get_mellanox_interface_ip()[0] == True
 
     def generate_nqn_name(self, default_nqn_name: str = "nqn.2022-10.pos") -> str:
         """
@@ -82,7 +91,7 @@ class TargetUtils:
             temp.remove("nqn.2014-08.org.nvmexpress.discovery")
             count = []
             for subsystem in temp:
-                c = int(re.findall("[0-9]+", subsystem)[2])
+                c = int(re.findall("[0-9]+", subsystem)[3])
                 count.append(c)
             next_count = max(count) + 1
             new_ss_name = "{}:subsystem{}".format(default_nqn_name, next_count)
@@ -235,7 +244,11 @@ class TargetUtils:
             logger.error("command execution failed with exception {}".format(e))
             return False, None
         return True, bdf_out
-
+    def re_scan(self):
+        """method to do pci scan with out POS"""
+        re_scan_cmd = "echo 1 > /sys/bus/pci/rescan "
+        self.ssh_obj.execute(re_scan_cmd)
+        return True
     def pci_rescan(self):
         """
         Method to pci rescan
@@ -251,8 +264,7 @@ class TargetUtils:
                 )
             )
 
-            re_scan_cmd = "echo 1 > /sys/bus/pci/rescan "
-            self.ssh_obj.execute(re_scan_cmd)
+            assert self.re_scan() == True
 
             logger.info("scanning the devices after rescan")
             time.sleep(5)  # Adding 5 sec sleep for the sys to get back in normal state
@@ -304,7 +316,60 @@ class TargetUtils:
             logger.info("command execution failed with exception  {}".format(e))
             return False
 
-    def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = True) -> bool:
+    def get_hetero_device(
+        self,
+        data_device_config: dict,
+        spare_device_config: dict = None,
+        scan_device=False,
+        list_device=True,
+    ) -> bool:
+        """
+        Method to create array using hetero devices
+        data_device_config: {dev_size: num_dev; '20GiB': 1}
+        Returns:
+            bool
+        """
+        if scan_device:
+            if not self.cli.scan_device():
+                logger.error("Failed to get the device list")
+                return False
+
+        if list_device:
+            if not self.cli.list_device():
+                logger.error("Failed to get the device list")
+                return False
+
+        scan_device = self.cli.NVMe_BDF
+
+        res, devices = self.helper.select_hetro_devices(
+            devices=scan_device,
+            data_dev_select=data_device_config,
+            spare_dev_select=spare_device_config,
+        )
+
+        if res == False:
+            logger.error("Failed to select required hetero data device")
+            return False
+
+        total_data_dev = sum(data_device_config.values())
+
+        if total_data_dev != len(devices["data_dev_list"]):
+            logger.info(f"Selected data devices: {devices['data_dev_list']}")
+            logger.error("Failed to select required hetero data device")
+            return False
+
+        if spare_device_config:
+            total_spare_dev = sum(spare_device_config.values())
+            if total_spare_dev != len(devices["spare_dev_list"]):
+                logger.info(f"Selected spare devices: {devices['spare_dev_list']}")
+                logger.error("Failed to select required hetero spare device")
+                return False
+
+        self.data_drives = devices["data_dev_list"]
+        self.spare_drives = devices["spare_dev_list"]
+        return True
+
+    def spor_prep(self, wbt_flush: bool = False, uram_backup: bool = False) -> bool:
         """
         Method to spor preparation
         wbt_flush : If true, Issue the wbt flush command
@@ -320,9 +385,10 @@ class TargetUtils:
             assert self.cli.stop_system(grace_shutdown=False)[0] == True
 
             if uram_backup:
+                self.helper.get_pos_path()
                 self.ssh_obj.execute(
                     "{}/script/backup_latest_hugepages_for_uram.sh".format(
-                        self.cli.pos_path
+                        self.helper.pos_path
                     ),
                     get_pty=True,
                 )
@@ -333,7 +399,7 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def check_rebuild_status(self, array_name: str = None) -> bool:
+    def check_rebuild_status(self, array_name: str = None, rebuild_progress=100) -> bool:
         """
         Method to check rebuild status
         Args:
@@ -347,15 +413,20 @@ class TargetUtils:
 
             if self.cli.info_array(array_name=array_name)[0]:
                 situation = self.cli.array_info[array_name]["situation"]
-                progress = self.cli.array_info[array_name]["rebuilding_progress"]
+                progress = int(self.cli.array_info[array_name]["rebuilding_progress"])
                 state = self.cli.array_info[array_name]["state"]
 
-                if situation == "REBUILDING":
+                if situation == "REBUILDING" and progress < rebuild_progress:
                     logger.info(
-                        f" {array_name} REBUILDING in Progress... [{progress}%]"
+                        f"{array_name} REBUILDING in Progress... [{progress}%]"
                     )
+                elif situation == "REBUILDING":
+                    logger.info(
+                        f"{array_name} REBUILDING completed [{rebuild_progress}%]"
+                    )
+                    return False
                 else:
-                    logger.info(f" {array_name}  REBUILDING is Stoped/Not Started!")
+                    logger.info(f"{array_name} REBUILDING is Stoped/Not Started!")
                     logger.info(f"Situation: {situation}, State: {state}")
                     return False
             else:
@@ -367,7 +438,7 @@ class TargetUtils:
         return True
 
     def array_rebuild_wait(
-        self, array_name: str = None, wait_time: int = 5, loop_count: int = 20
+        self, array_name: str = None, wait_time: int = 5, loop_count: int = 20, rebuild_percent=100
     ) -> bool:
         """
         Method to check rebuild status
@@ -381,17 +452,60 @@ class TargetUtils:
                 array_name = self.array
             counter = 0
             while counter <= loop_count:
-                if not self.check_rebuild_status(array_name):
+                if not self.check_rebuild_status(array_name, 
+                                                 rebuild_progress=rebuild_percent):
                     # The rebuild is not in progress
                     break
                 time.sleep(wait_time)
 
             if counter > loop_count:
-                if not self.check_rebuild_status(array_name):
+                if not self.check_rebuild_status(array_name,
+                                                 rebuild_progress=rebuild_percent):
                     logger.info(f"Rebuilding wait time completed... {array_name}")
                     return False
             else:
                 logger.info(f"Rebuilding completed for the array {array_name}")
+
+            # Increment the counter
+            counter += 1
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return False
+        return True
+
+    def array_rebuild_wait_multiple(
+        self, array_list: list, wait_time: int = 5, loop_count: int = 20
+    ) -> bool:
+        """
+        Method to check rebuild status of multiple array
+        Args:
+            array_list (list):  List of name of the arrays
+        Returns:
+            bool
+        """
+        try:
+            counter = 0
+            rebuild_complete_array = []
+            while counter <= loop_count:
+                for array_name in array_list:
+                    if not self.check_rebuild_status(array_name):
+                        array_list.remove(array_name)
+                        rebuild_complete_array.append(array_name)
+                        # The rebuild is not in progress
+                if not array_list:
+                    break
+                time.sleep(wait_time)
+
+            if counter > loop_count:
+                res = True
+                for array_name in array_list:
+                    if not self.check_rebuild_status(array_name):
+                        logger.info(f"Rebuilding wait time completed... {array_name}")
+                        res = False
+                if not res:
+                    return False
+            else:
+                logger.info(f"Rebuilding completed for the arrays {rebuild_complete_array}")
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
             return False
@@ -403,8 +517,8 @@ class TargetUtils:
         num_vol: int,
         vol_name: str = "PoS_VoL",
         size: str = "100GB",
-        maxiops: int = 100000,
-        bw: int = 1000,
+        maxiops: int = 0,
+        bw: int = 0,
     ) -> bool:
         """
         method to create_multiple_volumes
@@ -419,54 +533,50 @@ class TargetUtils:
         Returns:
             bool
         """
-
-        if size == None:
-            assert self.cli.info_array(array_name)[0] == True
-            temp = self.helper.convert_size(
-                int(self.cli.array_info[array_name]["size"])
-            )
-            if "TB" in temp:
-                size_params = int(float(temp[0]) * 1000)
-                size_per_vol = int(size_params / num_vol)
-                d_size = str(size_per_vol) + "GB"
-        else:
-            d_size = size
-        for i in range(num_vol):
-            volume_name = f"{array_name}_{vol_name}_{str(i)}"
-            assert (
-                self.cli.create_volume(
-                    volume_name, d_size, array_name, iops=maxiops, bw=bw
-                )[0]
-                == True
-            )
+        try:
+            if size == None or size == "None":
+                assert self.cli.info_array(array_name)[0] == True
+                temp = self.helper.convert_size(
+                    int(self.cli.array_info[array_name]["size"])
+                )
+                if "TB" in temp:
+                    size_params = int(float(temp[0]) * 1000)
+                    size_per_vol = int(size_params / num_vol)
+                    d_size = str(size_per_vol) + "GB"
+            else:
+                d_size = size
+            for i in range(num_vol):
+                volume_name = f"{array_name}_{vol_name}_{str(i)}"
+                assert (
+                    self.cli.create_volume(
+                        volume_name, d_size, array_name, iops=maxiops, bw=bw
+                    )[0]
+                    == True
+                )
+        except Exception as e:
+            logger.error(f"Create volume '{volume_name}' failed due to {e}")
+            return False
         return True
 
     def mount_volume_multiple(
-        self, array_name: str, volume_list: list, nqn_list: list
+        self, array_name: str, volume_list: list, nqn: str
     ) -> bool:
         """
         mount volumes to the SS
         Args:
             array_name (str) : name of the array
             volume_list (list) : list of the volumes to be mounted
-            nqn_list (list) : list of Subsystems to be mounted
+            nqn : subsystems to be mounted
         Returns:
             bool
         """
-        num_ss = len(nqn_list)
-        num_vol = len(volume_list)
-        logger.info("nqn {} and vols {} ".format(str(nqn_list), str(volume_list)))
 
-        temp, num = 0, 0
-        for num in range(num_vol):
-            ss = nqn_list[temp] if len(nqn_list) > 1 else nqn_list[0]
-            logger.info("ss {} and temp {} ".format(ss, str(temp)))
-            assert self.cli.mount_volume(volume_list[num], array_name, ss)[0] == True
-
-            if temp == num_ss - 1:
-                temp = 0
-            else:
-                temp += 1
+        try:
+            for vol in volume_list:
+                assert self.cli.mount_volume(volumename=vol, array_name=array_name,nqn = nqn)[0] == True
+        except Exception as e:
+            logger.error(f"Mount volume'{vol}' failed due to {e}")
+            return False
         return True
 
     def create_subsystems_multiple(
@@ -557,75 +667,81 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def pos_bring_up(self, data_dict: dict = None) -> bool:
-        """
-        method to perform the pos_bringup_sequence ../testcase/config_files/pos_config.json
-        Returns:
-            bool
-        """
-        try:
-            if data_dict:
-                self.static_dict = data_dict
-            static_dict = self.static_dict
-            assert self.helper.get_mellanox_interface_ip()[0] == True
-            logger.info(self.static_dict)
-            ###system config
+    def bringupSystem(self, data_dict: dict) -> bool:
+        """method to bringup system phase"""
+        ##TODO set pos path
+        #self.setup_core_dump()
+        #self.setup_max_map_count()
+        #self.udev_install()
+        
+        self.static_dict = data_dict
+        ###system config
+        if self.static_dict["system"]["phase"] == "true":
+            assert self.cli.start_system()[0] == True
+            assert self.cli.create_transport_subsystem()[0] == True
+        return True
 
-            if static_dict["system"]["phase"] == "true":
-                assert self.cli.start_system()[0] == True
-                assert self.cli.create_transport_subsystem()[0] == True
+    def bringupDevice(self, data_dict: dict) -> bool:
+        """method to bringup device"""
+        self.static_dict = data_dict
+        if self.static_dict["device"]["phase"] == "true":
+            device_list = self.static_dict["device"]["uram"]
+            for uram in device_list:
+                assert (
+                    self.cli.create_device(
+                        uram_name=uram["uram_name"],
+                        bufer_size=uram["bufer_size"],
+                        strip_size=uram["strip_size"],
+                        numa=uram["numa_node"],
+                    )[0]
+                    == True
+                )
 
-            if static_dict["device"]["phase"] == "true":
-                device_list = static_dict["device"]["uram"]
-                for uram in device_list:
-                    assert (
-                        self.cli.create_device(
-                            uram_name=uram["uram_name"],
-                            bufer_size=uram["bufer_size"],
-                            strip_size=uram["strip_size"],
-                            numa=uram["numa_node"],
-                        )[0]
-                        == True
-                    )
+            assert self.cli.scan_device()[0] == True
+            assert self.cli.list_device()[0] == True
+        return True
 
-                assert self.cli.scan_device()[0] == True
-                assert self.cli.list_device()[0] == True
-
-            if static_dict["subsystem"]["phase"] == "true":
-                ss = static_dict["subsystem"]
+    def bringupSubsystem(self, data_dict: dict) -> bool:
+        """method to bringup subsystem"""
+        self.static_dict = data_dict
+        if self.static_dict["subsystem"]["phase"] == "true":
+            ss = self.static_dict["subsystem"]
+            for ssinfo in ss["pos_subsystems"]:
                 assert (
                     self.create_subsystems_multiple(
-                        ss["nr_subsystems"],
-                        base_name=ss["base_nqn_name"],
-                        ns_count=ss["ns_count"],
-                        serial_number=ss["serial_number"],
-                        model_name=ss["model_name"],
+                        ssinfo["nr_subsystems"],
+                        base_name=ssinfo["base_nqn_name"],
+                        ns_count=ssinfo["ns_count"],
+                        serial_number=ssinfo["serial_number"],
+                        model_name=ssinfo["model_name"],
                     )
                     == True
                 )
 
-                assert self.get_subsystems_list() == True
+            assert self.get_subsystems_list() == True
 
-                for subsystem in self.ss_temp_list:
-                    assert (
-                        self.cli.add_listner_subsystem(
-                            subsystem, self.helper.ip_addr[0], "1158"
-                        )[0]
-                        == True
-                    )
+            for subsystem in self.ss_temp_list:
+                assert (
+                    self.cli.add_listner_subsystem(
+                        subsystem, self.helper.ip_addr[0], "1158"
+                    )[0]
+                    == True
+                )
+        return True
 
-            ####### array_config
-            if static_dict["array"]["phase"] == "true":
+    def bringupArray(self, data_dict: dict) -> bool:
+        """method to bringup array"""
+        try:
+            self.static_dict = data_dict
+            if self.static_dict["array"]["phase"] == "true":
                 assert self.cli.reset_devel()[0] == True
                 assert self.cli.list_device()[0] == True
                 system_disks = self.cli.system_disks
 
-                pos_array_list = static_dict["array"]["pos_array"]
-                nr_pos_array = static_dict["array"]["num_array"]
+                pos_array_list = self.static_dict["array"]["pos_array"]
+                nr_pos_array = self.static_dict["array"]["num_array"]
                 if nr_pos_array != len(pos_array_list):
-                    logger.warning(
-                        "JSON file data is inconsistent. POS bringup may fail."
-                    )
+                    logger.warning("JSON file data is inconsistent. POS bringup may fail.")
 
                 for array_index in range(nr_pos_array):
                     array = pos_array_list[array_index]
@@ -646,7 +762,9 @@ class TargetUtils:
                         data_disk_list = [
                             system_disks.pop(0) for i in range(nr_data_drives)
                         ]
-                        spare_disk_list = [system_disks.pop()]
+                        spare_disk_list = [
+                            system_disks.pop(0) for i in range(nr_spare_drives)
+                        ]
                         assert (
                             self.cli.create_array(
                                 write_buffer=array["uram"],
@@ -684,49 +802,86 @@ class TargetUtils:
                             )[0]
                             == True
                         )
+        except Exception as e:
+            logger.error("POS bring up failed due to {}".format(e))
+            return False
+        return True
 
-            ##### volume config
-            if static_dict["volume"]["phase"] == "true":
-                assert self.cli.list_array()[0] == True
-                if len(list(self.cli.array_dict.keys())) == 2:
-                    volumes = static_dict["volume"]["pos_volumes"]
-                else:
-                    volumes = [static_dict["volume"]["pos_volumes"][0]]
-                for vol in volumes:
-                    array_name = vol["array_name"]
-                    assert self.cli.list_volume(array_name)
-                    old_vols = self.cli.vols
-                    assert (
-                        self.create_volume_multiple(
-                            array_name,
-                            vol["num_vol"],
-                            vol_name=vol["vol_name_pre"],
-                            size=vol["size"],
-                        )
-                        == True
+    def bringupVolume(self, data_dict: dict) -> bool:
+        self.static_dict = data_dict
+        if self.static_dict["volume"]["phase"] == "true":
+            assert self.cli.list_array()[0] == True
+            if len(list(self.cli.array_dict.keys())) == 2:
+                volumes = self.static_dict["volume"]["pos_volumes"]
+            else:
+                volumes = [self.static_dict["volume"]["pos_volumes"][0]]
+            for vol in volumes:
+                array_name = vol["array_name"]
+                assert self.cli.list_volume(array_name)
+                old_vols = self.cli.vols
+                assert (
+                    self.create_volume_multiple(
+                        array_name,
+                        vol["num_vol"],
+                        vol_name=vol["vol_name_pre"],
+                        size=vol["size"],
                     )
+                    == True
+                )
 
-                    assert self.cli.list_volume(array_name)
-                    cur_vols = self.cli.vols
-                    new_vols = list(set(cur_vols) - set(old_vols))
+                if vol["mount"]["phase"]:
+                    assert self.cli.list_volume(array_name)[0] == True
+                    assert self.get_subsystems_list() == True
+                    subsystem_range = vol["mount"]["subsystem_range"]
 
-                    if vol["mount"]["phase"]:
-                        subsystem_range = vol["mount"]["subsystem_range"]
-                        nqn_pre = vol["mount"]["nqn_pre"]
-                        start, end = map(int, subsystem_range.split("-"))
-                        nqn_list = [f"{nqn_pre}{s}" for s in range(start, end + 1)]
-
-                        """
-                        nqn_list = []
-                        for s in range(start, end + 1):
-                            for subs in self.ss_temp_list:
-                                if f"subsystem{s}" in subs:
-                                    nqn_list.append(subs)
-                        """
+                    numss, numvol = map(int, subsystem_range.split("-"))
+                    nqn_list = [nqn for nqn in self.ss_temp_list if array_name in nqn]
+                    logger.info(f"Number of volumes per Subsystem is {str(numvol)}")
+                    if len(nqn_list) == 1:
                         assert (
-                            self.mount_volume_multiple(array_name, new_vols, nqn_list)
+                            self.mount_volume_multiple(
+                                array_name=array_name,
+                                volume_list=self.cli.vols,
+                                nqn=nqn_list[0],
+                            )
                             == True
                         )
+                    else:
+                        mountcount = 0
+                        nqn_index = 0
+                        while mountcount < len(self.cli.vols):
+                            nqnname = nqn_list[nqn_index]
+                            volname = self.cli.vols[mountcount]
+                            assert (
+                                self.cli.mount_volume(
+                                    volumename=volname,
+                                    array_name=array_name,
+                                    nqn=nqnname,
+                                )[0]
+                                == True
+                            )
+                            mountcount += 1
+                            if mountcount % numvol == 0:
+                                nqn_index += 1
+        return True
+
+    def pos_bring_up(self, data_dict: dict = None) -> bool:
+        """
+        method to perform the pos_bringup_sequence ../testcase/config_files/pos_config.json
+        Returns:
+            bool
+        """
+        try:
+            if data_dict:
+                self.static_dict = data_dict
+            logger.info(self.static_dict)
+
+            assert self.bringupSystem(data_dict=self.static_dict) == True
+            assert self.bringupDevice(data_dict=self.static_dict) == True
+            assert self.bringupSubsystem(data_dict=self.static_dict) == True
+            assert self.bringupArray(data_dict=self.static_dict) == True
+            assert self.bringupVolume(data_dict=self.static_dict) == True
+
             return True
         except Exception as e:
             logger.error("POS bring up failed due to {}".format(e))
@@ -1008,31 +1163,33 @@ class TargetUtils:
                                     )
 
             assert self.cli.stop_system()[0] == True
-            assert self.cli.start_system()[0] == True
-            uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
-            for uram in uram_list:
-                assert (
-                    self.cli.create_device(
-                        uram_name=uram, bufer_size="8388608", strip_size="512"
-                    )[0]
-                    == True
-                )
-            assert self.cli.scan_device()[0] == True
-            assert self.cli.list_array()[0] == True
-            array_list = list(self.cli.array_dict.keys())
-            if len(array_list) == 0:
-                logger.info("No Array Present in the config")
-                return False
-            else:
-                for array in array_list:
-                    assert self.cli.mount_array(array_name=array)[0] == True
-                    assert self.cli.list_volume(array_name=array)[0] == True
-                    if len(self.cli.vols) == 0:
-                        logger.info("No volumes found")
+            assert self.bringupPOR(array_list) == True
             return True
         except Exception as e:
             logger.error(f"NPOR failed due to {e}")
+            traceback.print_exc()
             return False
+
+    def bringupPOR(self, array_list) -> bool:
+
+        assert self.cli.start_system()[0] == True
+        uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
+        for uram in uram_list:
+            assert self.cli.create_device(uram_name=uram)[0] == True
+
+        assert self.cli.scan_device()[0] == True
+        assert self.cli.list_array()[0] == True
+        array_list = list(self.cli.array_dict.keys())
+        if len(array_list) == 0:
+            logger.info("No POSArray ")
+            return False
+        else:
+            for array in array_list:
+                assert self.cli.mount_array(array_name=array)[0] == True
+                assert self.cli.list_volume(array_name=array)[0] == True
+                if len(self.cli.vols) == 0:
+                    logger.info("No volumes found")
+        return True
 
     def Npor(self) -> bool:
         """method to perform NPOR
@@ -1047,7 +1204,15 @@ class TargetUtils:
 
             assert self.cli.create_transport_subsystem()[0] == True
             for ss in self.ss_temp_list:
-                assert self.cli.create_subsystem(ss)[0] == True
+                assert (
+                    self.cli.create_subsystem(
+                        ss,
+                        ns_count="512",
+                        serial_number="POS000000000001",
+                        model_name="POS_VOLUME",
+                    )[0]
+                    == True
+                )
                 assert (
                     self.cli.add_listner_subsystem(
                         nqn_name=ss, mellanox_interface=ip_addr, port="1158"
@@ -1063,18 +1228,42 @@ class TargetUtils:
                     if len(self.cli.vols) == 0:
                         logger.info("No volumes found")
                     else:
-                        for vol in self.cli.vols:
-                            # ss_list = [ss for ss in self.ss_temp_list if array in ss]
-                            # TODO skip mount volumes those were not mounted.
-                            assert self.cli.mount_volume(vol, array)[0] == True
+                        ss_list = [ss for ss in self.ss_temp_list if array in ss]
+                        if len(ss_list) == 1:
+                            assert (
+                                self.mount_volume_multiple(
+                                    array_name=array,
+                                    volume_list=self.cli.vols,
+                                    nqn=ss_list[0],
+                                )
+                                == True
+                            )
+                        else:
+                            mountcount = 0
+                            nqn_index = 0
+                            while mountcount < len(self.cli.vols):
+                                nqnname = ss_list[nqn_index]
+                                volname = self.cli.vols[mountcount]
+                                assert (
+                                    self.cli.mount_volume(
+                                        volumename=volname,
+                                        array_name=array,
+                                        nqn=nqnname,
+                                    )[0]
+                                    == True
+                                )
+                                mountcount += 1
+                                if mountcount % 2 == 0:
+                                    nqn_index += 1
             else:
                 logger.info("No array found")
             return True
         except Exception as e:
             logger.error(f"NPOR and recovery failed due to {e}")
+            traceback.print_exc()
             return False
 
-    def Spor(self, uram_backup=True) -> bool:
+    def Spor(self, uram_backup=True, write_through=False) -> bool:
         """
         Method to spor
         uram_backup : If true, run script to take uram backup
@@ -1131,16 +1320,22 @@ class TargetUtils:
 
             # Restore Array and Volumes
             for array in array_list:
-                assert self.cli.mount_array(array_name=array)[0] == True
+                assert (
+                    self.cli.mount_array(array_name=array, write_back=write_through)[0]
+                    == True
+                )
                 assert self.cli.list_volume(array_name=array)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
-                for vol in self.cli.vols:
+                else:
                     # TODO skip mount volumes those were not mounted.
-                    assert self.cli.mount_volume(vol, array)[0] == True
+                    ss_list = [ss for ss in subsystem_list if array in ss]
+                    assert self.mount_volume_multiple(array,
+                                     self.cli.vols, ss_list[0]) == True
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")
+            traceback.print_exc()
             return False
 
     def deleteAllVolumes(self, arrayname):
@@ -1148,7 +1343,7 @@ class TargetUtils:
         try:
             assert self.cli.list_array()[0] == True
             if arrayname in list(self.cli.array_dict.keys()):
-                assert self.cli.list_volume()[0] == True
+                assert self.cli.list_volume(array_name=arrayname)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
                     return True
@@ -1175,4 +1370,72 @@ class TargetUtils:
 
         except Exception as e:
             logger.error(e)
+            return False
+    ##TODO update pos path
+    
+    def dump_core(self):
+        """
+        Method to collect core dump by giving different options depending on
+        whether poseidonos is running or already creashed.
+        """
+        try:
+            if self.helper.check_pos_exit() == False:
+                out = self.ssh_obj.execute("pkill -11 poseidonos")
+              
+            if self.pos_as_service != "true":
+                self.cli_path = self.helper.get_pos_path()
+            else:
+                self.cli_path = "/usr/local/bin"
+            command = "{}/tool/dump/trigger_core_dump.sh crashed".format(
+                  self.cli_path )
+              
+            out = self.ssh_obj.execute(command)
+            logger.info("core dump file created: {}".format(out))
+           
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+    def copy_core(self, unique_key, dir="/root"):
+        """
+        Method to rename the core dump file using unique key and issue key
+        """
+        try:
+            core_files_dir = "/etc/pos/core/"
+
+            # Zip all core files
+            cmd = f"zip -r {dir}/core_{unique_key}.zip {core_files_dir}"
+            out = self.ssh_obj.execute(cmd)
+            if type(out) == list:
+                out = " ".join(out)
+                if "zip: command not found" in out:
+                    logger.warning("ZIP is not installed in system. Skipped core copy")
+                else:
+                    logger.info(f"Copied core dump file {out}.")
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+    
+    def copy_pos_log(self, unique_key, dir="/root"):
+        """
+        Method to rename the core dump file using unique key and issue key
+        """
+        try:
+            pos_log_dir = "/var/log/pos/"
+
+            # Zip all log files
+            cmd = f"zip -r {dir}/logs_{unique_key}.zip {pos_log_dir}"
+
+            out = self.ssh_obj.execute(cmd)
+            if type(out) == list:
+                out = " ".join(out)
+                if "zip: command not found" in out:
+                    logger.warning("ZIP is not installed in system. Skipped logs copy")
+                else:
+                    logger.info(f"POS log files copied {out}.")
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
             return False

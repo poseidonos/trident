@@ -9,7 +9,7 @@
         "validation":
         {
             "totalphase":8,
-            "totaltime":259200,
+            "totaltime":10000000,
             "testcase":
             [
                 { "lib":"io_management", "name":"test_io_sanity_iteration_io_verify_random_pattern"},

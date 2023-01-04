@@ -1,34 +1,35 @@
-#
-#   BSD LICENSE
-#   Copyright (c) 2021 Samsung Electronics Corporation
-#   All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or without
-#   modification, are permitted provided that the following conditions
-#   are met:
-#
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in
-#        the documentation and/or other materials provided with the
-#        distribution.
-#      * Neither the name of Samsung Electronics Corporation nor the names of
-#        its contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-#    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+"""
+BSD LICENSE
+
+Copyright (c) 2021 Samsung Electronics Corporation
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+  * Neither the name of Samsung Electronics Corporation nor the names of
+    its contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
 
 import logger
 import time
@@ -37,11 +38,10 @@ import datetime
 import random
 import json
 import traceback
-from node import SSHclient
 import helper
+import threadable_node 
 
 logger = logger.get_logger(__name__)
-import node
 
 
 class Client:
@@ -49,20 +49,17 @@ class Client:
     The Client objects contains methods for host application
 
     Args:
-        ip: "ip of the host",
-        username: "username of the host",
-        password: "password of the host",
+        ssh_obj : client paramiko object
         client_cleanup : " flag to clean up client" (Default: True)
     """
 
-    def __init__(
-        self, ip: str, username: str, password: str, client_cleanup: bool = True
-    ):
-
-        ssh_obj = SSHclient(ip, username, password)
-        self.helper = helper.Helper(ssh_obj)
+    def __init__(self, ssh_obj, client_cleanup: bool = True):
+        
         self.ssh_obj = ssh_obj
+        self.helper = helper.Helper(ssh_obj)
         self.client_clean = client_cleanup
+        self.mount_point = {}
+        logger.info(f"creating client object on {ssh_obj.hostname}")
         if self.client_clean == True:
             self.client_cleanup()
 
@@ -482,13 +479,13 @@ class Client:
         iops: iops
         clat: nsec
         """
+        logger.info("am here")
         cmd = f"cat {self.fio_out_json}"
         str_out = self.ssh_obj.execute(cmd)
         printout = "".join(str_out)
         logger.info(printout)
         self.fio_par_out = {}
         str_out = "".join(str_out).replace("\n", "")
-        """
         jout = json.loads(str_out)
 
         self.fio_par_out["read"] = {
@@ -501,7 +498,6 @@ class Client:
             "iops": jout["jobs"][0]["write"]["iops"],
             "clat": jout["jobs"][0]["write"]["clat_ns"],
         }
-        """
         return True
 
     def fio_verify_qos(self, qos_data: dict, fio_out: dict, num_dev: int) -> bool:
@@ -516,8 +512,8 @@ class Client:
         logger.info(f"Compare fio output '{fio_out}' and qos values '{qos_data}'")
 
         bs, kiops = 4096, 1000
-        qos_max_bw = qos_data["max_iops"]
-        qos_max_iops = qos_data["max_bw"]
+        qos_max_bw = qos_data["max_bw"]
+        qos_max_iops = qos_data["max_iops"]
         fio_bw = fio_out["bw"]
         fio_iops = fio_out["iops"]
 
@@ -534,6 +530,7 @@ class Client:
             if avg_fio_bw < qos_max_bw and avg_fio_bw > qos_max_bw * 0.95:
                 result = True
         else:
+            qos_max_iops = qos_max_iops * kiops
             logger.info(
                 "avg fio iops: {} ({}/{} - total iops/num of device). qos max iops {}".format(
                     avg_fio_iops, fio_iops, num_dev, qos_max_iops
@@ -610,7 +607,7 @@ class Client:
         Returns:
             bool, list of dir
         """
-        out = {}
+
         logger.info("device_list={}".format(device_list))
         if len(device_list) == 0:
             raise Exception("No devices Passed")
@@ -654,7 +651,7 @@ class Client:
                         else:
                             for mount_pts_devices in verify:
                                 if fs_mount in mount_pts_devices:
-                                    out[device] = fs_mount
+                                    self.mount_point[device] = fs_mount
                     except Exception as e:
                         logger.error(
                             "Mounting {} to {} failed due to {}".format(
@@ -666,9 +663,9 @@ class Client:
             except Exception as e:
                 logger.error("command execution failed with exception {}".format(e))
                 return (False, None)
-            return (True, list(out.values()))
+            return (True, list(self.mount_point.values()))
 
-    def unmount_FS(self, fs_mount_pt: str) -> bool:
+    def unmount_FS(self, fs_mount_pt: list) -> bool:
         """
         method to unmount file system
 
@@ -787,7 +784,8 @@ class Client:
             logger.error("No controllers found")
             return (False, None)
         else:
-            out.remove("/dev/nvme-fabrics\n")
+            if "/dev/nvme-fabrics\n" in out:
+                out.remove("/dev/nvme-fabrics\n")
         temp, final = [], []
         for device in out:
             ctrlr = re.findall("/dev/nvme[0-9]+", device)
@@ -823,17 +821,18 @@ class Client:
             count = 0
             while True:
                 out = self.ctrlr_list()
+                cmd_list = []
                 if out[1] is not None:
                     if len(nqn) != 0:
                         logger.info("Disconnecting Subsystem")
                         for nqn_name in nqn:
-                            cmd = f"nvme disconnect -n {nqn_name}"
-                            self.ssh_obj.execute(cmd)
+                            cmd_list.append(f"nvme disconnect -n {nqn_name}")
+                            
                     else:
                         for ctrlr in out[1]:
-                            cmd = "nvme disconnect -d {}".format(ctrlr)
-                            out = self.ssh_obj.execute(cmd, get_pty=True)
-
+                            cmd_list.append("nvme disconnect -d {}".format(ctrlr))
+                           
+                threadable_node.sync_parallel_run(self.ssh_obj,cmd_list=cmd_list)
                 self.nvme_list()
                 if len(self.nvme_list_out) == 0:
                     logger.info("Nvme disconnect passed")
@@ -968,9 +967,9 @@ class Client:
                     logger.info(
                         "number of partitions in {} : {}".format(Device_name, len(out))
                     )
-                    reg = "{}p\d+".format(dev_name)
+                    reg = r"{}p\d+".format(dev_name)
                 else:
-                    reg = "nvme\d+n\d+"
+                    reg = r"nvme\d+n\d+"
 
                 for i in out:
                     regx = re.search(reg, i)
