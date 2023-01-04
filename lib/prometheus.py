@@ -315,12 +315,14 @@ class Prometheus(Cli):
         assert self.get_unrecoverable_MediaErrors(device_name=device_name) == True
         return True
 
-    def publish_IO_metrics(self) -> bool:
-        """method to publish IO METRIC data"""
-        metric_data = ['read_bps_device', 'read_iops_device', 'write_bps_device', 'write_iops_device']
-        # TODO verify the publshed data
-        logger.info("currently only data is published as no verification point is set")
-        for metric in metric_data:
-            data = self.prom.get_current_metric_value(metric_name=metric)
-            logger.info(data)
+    def publish_io_metrics(self):
+        self.metric_data = {}
+        io_metrics = ["read_iops_device","read_bps_device","write_iops_device","write_bps_device",'read_iops_network',"read_bps_network",
+                      "write_iops_network","write_bps_network","read_avg_lat_volume","read_iops_volume", "read_bps_volume",
+                      "write_avg_lat_volume", "write_iops_volume",  "write_bps_volume"]
+        for metric in io_metrics:
+            data = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name=metric)]
+            if len(data):
+                self.metric_data[metric] = data
         return True
+
