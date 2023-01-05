@@ -29,12 +29,12 @@ def teardown_function():
         logger.info("No array found in the config")
     else:
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             # assert pos.cli.wbt_flush(array_name=array)[0] == True ## for code coverage
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
     assert pos.target_utils.pci_rescan() == True
     logger.info("==========================================")
 

@@ -19,7 +19,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
     yield pos
 
 
@@ -31,10 +31,10 @@ def teardown_function():
 
     assert pos.cli.list_array()[0] == True
     for array in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -64,8 +64,8 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
         ss_list = pos.target_utils.ss_temp_list[:num_arrays]
 
         for id in range(num_arrays):
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_scan()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             # Verify the minimum disk requirement
             if len(pos.cli.system_disks) < (num_arrays - id) * num_devs:
@@ -87,13 +87,13 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.mount_array(array_name=array_name, 
+            assert pos.cli.array_unmount(array_name=array_name, 
                                        write_back=True)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_info[array_name].get("size"))
             num_vols = 2
@@ -101,11 +101,11 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
 
             for vol_id in range(num_vols):
                 vol_name = f"{array_name}_pos_vol{vol_id}"
-                assert pos.cli.create_volume(vol_name, vol_size, 
+                assert pos.cli.volume_create(vol_name, vol_size, 
                                                 array_name=array_name)[0] == True
 
                 nqn=ss_list[id]
-                assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == True
+                assert pos.cli.volume_mount(vol_name, array_name, nqn)[0] == True
 
             # Connect client
             assert pos.client.nvme_connect(nqn, 

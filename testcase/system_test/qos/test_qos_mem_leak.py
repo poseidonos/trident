@@ -35,11 +35,11 @@ def teardown_function():
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
-        assert pos.cli.list_volume(array_name=array)[0] == True
+        assert pos.cli.volume_list(array_name=array)[0] == True
         for vol_name in pos.cli.vols:
             if pos.cli.vol_dict[vol_name]["status"] == "Mounted":
-                assert pos.cli.unmount_volume(vol_name, array_name=array)[0] == True
-            assert pos.cli.delete_volume(vol_name, array_name=array)[0] == True
+                assert pos.cli.volume_unmount(vol_name, array_name=array)[0] == True
+            assert pos.cli.volume_delete(vol_name, array_name=array)[0] == True
     logger.info("==========================================")
 
 
@@ -59,11 +59,11 @@ loop_action = [
 
 def set_reset_qos():
     for array_name in array_list:
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         for vol_name in pos.cli.vols:
-            assert pos.cli.reset_volume_policy_qos(vol_name, array_name)[0] == True
+            assert pos.cli.qos_reset_volume_policy(vol_name, array_name)[0] == True
             assert (
-                pos.cli.create_volume_policy_qos(
+                pos.cli.qos_create_volume_policy(
                     vol_name, array_name, maxiops="10", maxbw="10"
                 )[0]
                 == True
@@ -72,9 +72,9 @@ def set_reset_qos():
 
 def mount_unmount_vol():
     for id, array_name in enumerate(array_list):
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         for vol_name in pos.cli.vols:
-            assert pos.cli.unmount_volume(vol_name, array_name=array_name)[0] == True
+            assert pos.cli.volume_unmount(vol_name, array_name=array_name)[0] == True
         nqn = ss_list[id]
         assert (
             pos.target_utils.mount_volume_multiple(array_name, pos.cli.vols, nqn=nqn)
@@ -94,9 +94,9 @@ def nvme_connect_disconnect():
 
 def create_delete_vol():
     for array_name in array_list:
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         for vol_name in pos.cli.vols:
-            assert pos.cli.delete_volume(vol_name, array_name)[0] == True
+            assert pos.cli.volume_delete(vol_name, array_name)[0] == True
 
         assert (
             pos.target_utils.create_volume_multiple(
@@ -111,7 +111,7 @@ def mount_unmount_array():
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
 
     for array_name in array_list:
-        assert pos.cli.mount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
 
 dict_func = {
@@ -138,12 +138,12 @@ def test_qos_mem_leak(action):
                 )
                 == True
             )
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
 
             # Set the QOS values
             for vol_name in pos.cli.vols:
                 assert (
-                    pos.cli.create_volume_policy_qos(
+                    pos.cli.qos_create_volume_policy(
                         vol_name, array_name, maxiops="10", maxbw="10"
                     )[0]
                     == True

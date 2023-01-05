@@ -18,7 +18,7 @@ def test_create_raid6_array(setup_cleanup_array_function, array_mount):
     )
     pos = setup_cleanup_array_function
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
         array_disks = [(4, 0), (4, 1), (4, 2), (8, 2), (16, 2), (28,2), (30, 0), (3, 0), (2, 2)]
@@ -57,7 +57,7 @@ def test_auto_create_raid6_array(setup_cleanup_array_function, array_mount):
     )
     pos = setup_cleanup_array_function
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
         array_disks = [(4, 0), (4, 1), (4, 2), (3, 2), (2, 2)]
@@ -76,7 +76,7 @@ def test_auto_create_raid6_array(setup_cleanup_array_function, array_mount):
 
             if exp_res:
                 array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 assert array_unmount_and_delete(pos) == True
         logger.info(
@@ -99,7 +99,7 @@ def test_array_cap_with_volumes(setup_cleanup_array_function, array_mount):
     )
     pos = setup_cleanup_array_function
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < RAID6_MIN_DISKS:
             pytest.skip("Less number of data disk")
 
@@ -112,7 +112,7 @@ def test_array_cap_with_volumes(setup_cleanup_array_function, array_mount):
         assert pos.cli.list_array()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subsyste_list = pos.target_utils.ss_temp_list
 
         array_cap_volumes = [(1, 50), (1, 100), (1, 105), (50, 105), (256, 100), (257, 100)]
@@ -144,7 +144,7 @@ def test_array_mount_unmount(setup_cleanup_array_function, raid_type, num_disk, 
     )
     pos = setup_cleanup_array_function
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < num_disk:
             pytest.skip("Less number of data disk")
 
@@ -161,7 +161,7 @@ def test_array_mount_unmount(setup_cleanup_array_function, raid_type, num_disk, 
             write_back = True if array_mount == "WB" else False
             array_name = array_list[0]
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
-            assert pos.cli.mount_array(array_name=array_name, 
+            assert pos.cli.array_unmount(array_name=array_name, 
                                        write_back=write_back)[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -188,7 +188,7 @@ def test_raid6_array_vols_data_integrity(setup_cleanup_array_function, array_mou
     pos = setup_cleanup_array_function
     try:
         num_data_disk, num_spare_disk = RAID6_MIN_DISKS, 2
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < (num_data_disk + num_spare_disk):
             pytest.skip("Less number of system disk")
 

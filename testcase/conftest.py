@@ -22,17 +22,22 @@ from cce_tool import CodeCoverage
 global pos, method_name
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+# Read Trident config files 
 trident_config_file = f"{dir_path}/config_files/trident_config.json"
 with open(trident_config_file) as f:
     trident_config_data = json.load(f)
 
+# Read static Json for config related info
 with open("{}/config_files/static.json".format(dir_path)) as f:
     static_dict = json.load(f)
+
+# Read Topology json fo
 login = []
 with open("{}/config_files/topology.json".format(dir_path)) as f:
     config_dict = json.load(f)
 login = config_dict["login"]["initiator"]["client"]
 login.append(config_dict["login"]["target"]["server"][0])
+
 with open("{}/config_files/trident_mapping.json".format(dir_path)) as f:
     mapping_dict = json.load(f)
 
@@ -94,7 +99,7 @@ def setup_clenup_array_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
 
     yield pos
 
@@ -118,7 +123,7 @@ def setup_cleanup_array_function(setup_clenup_array_module):
     data_dict["device"]["phase"] = "false"
     data_dict["array"]["phase"] = "true"
 
-    assert pos.cli.list_device()[0] == True
+    assert pos.cli.device_list()[0] == True
     logger.info(f"System Disk : {pos.cli.system_disks}")
 
     yield pos
@@ -132,10 +137,10 @@ def setup_cleanup_array_function(setup_clenup_array_module):
 
     assert pos.cli.list_array()[0] == True
     for array in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -157,7 +162,7 @@ def setup_cleanup():
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
 
     # Reset the Disk MBR
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
 
     yield pos
 
@@ -189,7 +194,7 @@ def array_setup_cleanup():
     data_dict["device"]["phase"] = "false"
     data_dict["array"]["phase"] = "true"
 
-    assert pos.cli.list_device()[0] == True
+    assert pos.cli.device_list()[0] == True
     logger.info(f"System Disk : {pos.cli.system_disks}")
     yield pos
 
@@ -199,10 +204,10 @@ def array_setup_cleanup():
 
     assert pos.cli.list_array()[0] == True
     for array in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -269,14 +274,14 @@ def array_cleanup():
             logger.info("No array found in the config")
         else:
             for array in array_list:
-                assert pos.cli.info_array(array_name=array)[0] == True
+                assert pos.cli.array_info(array_name=array)[0] == True
                 if pos.cli.array_dict[array].lower() == "mounted":
                     assert volume_cleanup(array) == True
                     assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
         return True
 def volume_cleanup(array_name):
-    assert pos.cli.list_volume(array_name = array_name)[0] == True
+    assert pos.cli.volume_list(array_name = array_name)[0] == True
     if len(pos.cli.vols) > 0:
         assert pos.target_utils.deleteAllVolumes(arrayname = array_name) == True
     return True
@@ -471,7 +476,7 @@ def pytest_sessionfinish(session):
     try:
         if pos:
             if pos.target_utils.helper.check_pos_exit() == False:
-                pos.cli.stop_system(grace_shutdown = False)
+                pos.cli.system_stop(grace_shutdown = False)
             pos._clearall_objects()
     except NameError:
         return "Exiting"

@@ -21,7 +21,7 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
         num_vols = 2
         num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         arrays_num_disks = (RAID6_MIN_DISKS, num_disk)
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):
             pytest.skip("Less number of data disk")
 
@@ -30,7 +30,7 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
                                       (False, False)) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True
@@ -41,9 +41,9 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
 
         maxiops, maxbw = 10, 10
         for array in array_list:
-            assert pos.cli.list_volume(array_name=array)[0] == True
+            assert pos.cli.volume_list(array_name=array)[0] == True
             for volname in pos.cli.vols:
-                assert pos.cli.create_volume_policy_qos(arrayname=array, 
+                assert pos.cli.qos_create_volume_policy(arrayname=array, 
                     volumename=volname, maxiops=maxiops, maxbw=maxbw)[0] == True
 
         ip_addr = pos.target_utils.helper.ip_addr[0]
@@ -89,7 +89,7 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
     try:
         num_vols = 2
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):
             pytest.skip("Less number of data disk")
 
@@ -98,7 +98,7 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
                                       (False, False)) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -159,7 +159,7 @@ def test_raid6_arrays_gc(setup_cleanup_array_function, gc_operation):
     try:
         num_vols = 2
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):
             pytest.skip("Less number of data disk")
 
@@ -168,7 +168,7 @@ def test_raid6_arrays_gc(setup_cleanup_array_function, gc_operation):
                                       (False, False)) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols, 

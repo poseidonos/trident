@@ -158,14 +158,14 @@ def subsystem_module(target, client, data_set, config_dict, action, phase=None):
             data_set.subsystem[basename][-1].port = port
             # data_set.subsystem[basename][-1].transport = transport_protocol
             assert (
-                target.cli.create_subsystem(
+                target.cli.subsystem_create(
                     nqn_name=nqn_name, ns_count="256", model_name=model_number, serial_number = "POS000000000001"
                 )[0]
                 == True
             )
             assert target.target_utils.get_subsystems_list() == True
             assert (
-                target.cli.add_listner_subsystem(
+                target.cli.subsystem_add_listner(
                     nqn_name=nqn_name, mellanox_interface=ip, port=port
                 )[0]
                 == True
@@ -173,7 +173,7 @@ def subsystem_module(target, client, data_set, config_dict, action, phase=None):
 
         def delete(basename):
             nqn_name = data_set.remove_subsystem(basename)
-            assert target.cli.delete_subsystem(nqn_name=nqn_name)[0] == True
+            assert target.cli.subsystem_delete(nqn_name=nqn_name)[0] == True
 
         def connect(basename):
             nqn_name = data_set.get_subsystem(basename)
@@ -254,7 +254,7 @@ def volume_module(target, data_set, config_dict, action, phase=None):
             for idx in range(int(number)):
                 vol = data_set.add_volume(basename)
                 assert (
-                    target.cli.create_volume(
+                    target.cli.volume_create(
                         volumename=vol,
                         size=size,
                         array_name=array_name,
@@ -268,7 +268,7 @@ def volume_module(target, data_set, config_dict, action, phase=None):
             for idx in range(int(number)):
                 vol = data_set.remove_volume(basename)
                 assert (
-                    target.cli.delete_volume(volumename=vol, array_name=array_name)[0]
+                    target.cli.volume_delete(volumename=vol, array_name=array_name)[0]
                     == True
                 )
 
@@ -277,7 +277,7 @@ def volume_module(target, data_set, config_dict, action, phase=None):
             vol_list = data_set.get_volume(basename, number)
             for vol in vol_list:
                 assert (
-                    target.cli.mount_volume(
+                    target.cli.volume_mount(
                         volumename=vol, array_name=array_name, nqn=nqnname
                     )[0]
                     == True
@@ -290,7 +290,7 @@ def volume_module(target, data_set, config_dict, action, phase=None):
             vol_list = data_set.get_volume(basename, number)
             for vol in vol_list:
                 assert (
-                    target.cli.unmount_volume(volumename=vol, array_name=array_name)[0]
+                    target.cli.volume_unmount(volumename=vol, array_name=array_name)[0]
                     == True
                 )
             data_set.set_volume_state(basename=basename, number=number, state="unmount")
@@ -302,7 +302,7 @@ def volume_module(target, data_set, config_dict, action, phase=None):
                 iops = random.randint(10, 18446744073709551)
                 bw = random.randint(10, 17592186044415)
                 assert (
-                    target.cli.create_volume_policy_qos(
+                    target.cli.qos_create_volume_policy(
                         volumename=vol,
                         arrayname=array_name,
                         maxiops=iops,
@@ -343,7 +343,7 @@ def volume_module(target, data_set, config_dict, action, phase=None):
 def npor_recover(target, data_set):
     try:
         assert target.target_utils.npor_and_save_state() == True
-        assert target.cli.create_transport_subsystem()[0] == True
+        assert target.cli.subsystem_create_transport()[0] == True
 
         logger.info("Post NPOR get_all_subsystem")
 
@@ -358,13 +358,13 @@ def npor_recover(target, data_set):
             ip = subsystem.address
             port = subsystem.port
             assert (
-                target.cli.create_subsystem(
+                target.cli.subsystem_create(
                     nqn_name=name, ns_count="256", model_name=model, serial_number = "POS000000000001"
                 )[0]
                 == True
             )
             assert (
-                target.cli.add_listner_subsystem(
+                target.cli.subsystem_add_listner(
                     nqn_name=name, mellanox_interface=ip, port=port
                 )[0]
                 == True
@@ -380,7 +380,7 @@ def npor_recover(target, data_set):
             if nqn_name == None:
                 assert 0
             assert (
-                target.cli.mount_volume(
+                target.cli.volume_mount(
                     volumename=vol.name, array_name=array_name, nqn=nqn_name
                 )[0]
                 == True

@@ -30,10 +30,10 @@ def test_wt_array_Npor_Spor_nobackup(
         pos = setup_cleanup_array_function
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives + 1):
             pytest.skip(
@@ -44,7 +44,7 @@ def test_wt_array_Npor_Spor_nobackup(
 
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert (
-                pos.cli.create_array(
+                pos.cli.array_create(
                     write_buffer="uram0",
                     data=data_disk_list,
                     spare=[],
@@ -54,13 +54,13 @@ def test_wt_array_Npor_Spor_nobackup(
             == True
         )
 
-        assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
         assert (
-            pos.cli.create_volume("pos_vol_1", array_name=array_name, size="2000gb")[0]
+            pos.cli.volume_create("pos_vol_1", array_name=array_name, size="2000gb")[0]
             == True
         )
         assert pos.target_utils.get_subsystems_list() == True
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
         assert (
             pos.target_utils.mount_volume_multiple(

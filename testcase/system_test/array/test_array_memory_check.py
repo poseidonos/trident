@@ -17,7 +17,7 @@ def test_memory_check():
         pos.data_dict["array"]["num_array"] = 1
         while True:
             assert pos.target_utils.pos_bring_up() == True
-            assert pos.cli.stop_system()[0] == True
+            assert pos.cli.system_stop()[0] == True
             if time.time() > end_time:
                 logger.info("Test script passed")
                 break
@@ -32,7 +32,7 @@ def test_memory_noraid():
         pos = POS()
         pos.data_dict["array"]["num_array"] = 1
         assert pos.target_utils.pos_bring_up() == True
-        assert pos.cli.stop_system()[0] == True
+        assert pos.cli.system_stop()[0] == True
     except Exception as e:
         pos.exit_handler()
         assert 0

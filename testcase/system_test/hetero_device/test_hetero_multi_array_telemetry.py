@@ -28,10 +28,10 @@ def teardown_function():
 
     assert pos.cli.list_array()[0] == True
     for array in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -55,7 +55,7 @@ def test_hetero_multi_array_telemetry(array_raid, num_devs):
         " ==================== Test : test_hetero_multi_array_telemetry ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
         repeat_ops=5
         num_array = 2
@@ -65,8 +65,8 @@ def test_hetero_multi_array_telemetry(array_raid, num_devs):
         for counter in range(repeat_ops):
             logger.info(f"Start of {counter+1}/{repeat_ops} Execution!")
             for id in range(num_array):
-                assert pos.cli.scan_device()[0] == True
-                assert pos.cli.list_device()[0] == True
+                assert pos.cli.device_scan()[0] == True
+                assert pos.cli.device_list()[0] == True
 
                 # Verify the minimum disk requirement
                 if len(pos.cli.system_disks) < (num_array - id) * num_devs:
@@ -89,12 +89,12 @@ def test_hetero_multi_array_telemetry(array_raid, num_devs):
                 data_drives = pos.target_utils.data_drives
                 spare_drives = pos.target_utils.spare_drives
 
-                assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                             spare=spare_drives, raid_type=raid_type,
                                             array_name=array_name)[0] == True
 
-                assert pos.cli.mount_array(array_name=array_name)[0] == True
-                assert pos.cli.info_array(array_name=array_name)[0] == True 
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True 
 
                 array_size = int(pos.cli.array_info[array_name].get("size"))
                 vol_size = f"{int((array_size / num_vols) / (1024 * 1024))}mb"
@@ -104,7 +104,7 @@ def test_hetero_multi_array_telemetry(array_raid, num_devs):
                         vol_name=vol_name, size=vol_size, maxiops=0, bw=0) == True
 
                 nqn=ss_list[id]
-                assert pos.cli.list_volume(array_name=array_name)[0] == True
+                assert pos.cli.volume_list(array_name=array_name)[0] == True
                 assert pos.target_utils.mount_volume_multiple(array_name=array_name,
                                 volume_list=pos.cli.vols, nqn_list=[nqn]) == True
 
@@ -112,7 +112,7 @@ def test_hetero_multi_array_telemetry(array_raid, num_devs):
                 assert pos.client.nvme_connect(nqn, 
                         pos.target_utils.helper.ip_addr[0], "1158") == True
 
-            assert pos.cli.start_telemetry()[0] == True
+            assert pos.cli.telemetry_start()[0] == True
 
             assert pos.client.nvme_list() == True
             run_time = 5  # FIO for 5 minutes
@@ -125,12 +125,12 @@ def test_hetero_multi_array_telemetry(array_raid, num_devs):
             assert pos.client.fio_generic_runner(pos.client.nvme_list_out,
                                     fio_user_data=fio_cmd, IO_mode=io_mode)
 
-            assert pos.cli.stop_telemetry()[0] == True
+            assert pos.cli.telemetry_stop()[0] == True
 
             assert pos.cli.list_array()[0] == True
             for array in pos.cli.array_dict.keys():
                 assert pos.cli.unmount_array(array_name=array)[0] == True
-                assert pos.cli.delete_array(array_name=array)[0] == True
+                assert pos.cli.array_delete(array_name=array)[0] == True
 
             logger.info(f"End of {counter+1}/{repeat_ops} Execution!")
 

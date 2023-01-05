@@ -26,9 +26,9 @@ def setup_module():
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
 
-    assert pos.cli.list_volume(array_name=array_name)[0] == True
+    assert pos.cli.volume_list(array_name=array_name)[0] == True
     for vol_name in pos.cli.vols:
-        assert pos.cli.delete_volume(vol_name, array_name)[0] == True
+        assert pos.cli.volume_delete(vol_name, array_name)[0] == True
 
     logger.info("==========================================")
 
@@ -50,7 +50,7 @@ def test_gc_vol_create_delete():
             == True
         )
         assert pos.target_utils.get_subsystems_list() == True
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
         assert (
             pos.target_utils.mount_volume_multiple(
@@ -60,15 +60,15 @@ def test_gc_vol_create_delete():
             )
             == True
         )
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         assert (
-            pos.cli.unmount_volume(array_name=array_name, volumename=pos.cli.vols[-1])[
+            pos.cli.volume_unmount(array_name=array_name, volumename=pos.cli.vols[-1])[
                 0
             ]
             == True
         )
         assert (
-            pos.cli.delete_volume(volumename=pos.cli.vols[-1], array_name=array_name)[0]
+            pos.cli.volume_delete(volumename=pos.cli.vols[-1], array_name=array_name)[0]
             == True
         )
         for ss in pos.target_utils.ss_temp_list:

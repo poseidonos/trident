@@ -36,7 +36,7 @@ def teardown_function():
         logger.info("No array found in the config")
     else:
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
@@ -60,7 +60,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
         " ==================== Test : test_hetero_multi_array_512_vols_1024_subs_FIO ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
         assert pos.target_utils.get_subsystems_list() == True
 
         repeat = 10
@@ -75,8 +75,8 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
             nqn_array_list = [nqn_list[:num_vols], nqn_list[num_vols:2*num_vols]]
     
             for id in range(num_array):
-                assert pos.cli.scan_device()[0] == True
-                assert pos.cli.list_device()[0] == True
+                assert pos.cli.device_scan()[0] == True
+                assert pos.cli.device_list()[0] == True
 
                 # Verify the minimum disk requirement
                 if len(pos.cli.system_disks) < (num_array - id) * num_disk:
@@ -98,12 +98,12 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
                 data_drives = pos.target_utils.data_drives
                 spare_drives = pos.target_utils.spare_drives
 
-                assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                             spare=spare_drives, raid_type=raid_type,
                                             array_name=array_name)[0] == True
 
-                assert pos.cli.mount_array(array_name=array_name)[0] == True
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 array_size = int(pos.cli.array_info[array_name].get("size"))
                 vol_size = f"{int(array_size / (1024 * 1024) / num_vols)}mb"  # Volume Size in MB
@@ -163,13 +163,13 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
             assert pos.cli.list_array()[0] == True
             array_list = pos.cli.array_dict.keys()
             for array in array_list:
-                assert pos.cli.list_volume(array_name=array)[0] == True
+                assert pos.cli.volume_list(array_name=array)[0] == True
                 for vol in pos.cli.vols[::-1]:
-                    assert pos.cli.unmount_volume(vol, array_name=array)[0] == True
-                    assert pos.cli.delete_volume(vol, array_name=array)[0] == True
+                    assert pos.cli.volume_unmount(vol, array_name=array)[0] == True
+                    assert pos.cli.volume_delete(vol, array_name=array)[0] == True
 
                 assert pos.cli.unmount_array(array_name=array)[0] == True
-                assert pos.cli.delete_array(array_name=array)[0] == True
+                assert pos.cli.array_delete(array_name=array)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

@@ -25,11 +25,11 @@ def test_noraid_array_disk_replace(array_fixture):
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         data_disk_list = pos.cli.array_info[array_name]["data_list"]
 
         # The command is expected to fail.
-        assert pos.cli.replace_drive_array(data_disk_list[0], array_name)[0] == False
+        assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -72,11 +72,11 @@ def test_no_spare_array_disk_replace(array_fixture, raid_type):
         assert vol_connect_and_run_random_io(pos, subs_list, size='10g') ==  True
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             data_disk_list = pos.cli.array_info[array_name]["data_list"]
 
         # The command is expected to fail.
-        status = pos.cli.replace_drive_array(data_disk_list[0], array_name)
+        status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
         assert status[0] == False
 
         if raid_type =="RAID0":

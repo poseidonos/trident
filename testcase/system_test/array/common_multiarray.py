@@ -20,11 +20,11 @@ def volume_create_and_mount_multiple(
             array_list = list(pos.cli.array_dict.keys())
 
         if not subs_list:
-            assert pos.cli.list_subsystem()[0] == True
+            assert pos.cli.subsystem_list()[0] == True
             subs_list = pos.target_utils.ss_temp_list
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_cap = int(pos.cli.array_info[array_name]["size"])
             vol_size = array_cap * (vol_utilize / 100) / num_volumes
@@ -42,7 +42,7 @@ def volume_create_and_mount_multiple(
                 == exp_res
             )
 
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             if mount_vols:
                 ss_list = [ss for ss in subs_list if array_name in ss]
                 assert (
@@ -60,7 +60,7 @@ def volume_create_and_mount_multiple(
 def volume_create_and_mount_multiple_with_io(pos, num_volumes, fio_cmd=None):
     try:
         assert volume_create_and_mount_multiple(pos, num_volumes) == True
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
         ip_addr = pos.target_utils.helper.ip_addr[0]
         for nqn in subs_list:

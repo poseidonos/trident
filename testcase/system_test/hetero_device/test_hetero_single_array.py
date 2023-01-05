@@ -16,7 +16,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
     yield pos
 
 
@@ -28,10 +28,10 @@ def teardown_function():
 
     assert pos.cli.list_array()[0] == True
     for array in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -50,8 +50,8 @@ def test_hetero_single_array_mount():
         " ==================== Test : test_hetero_single_array_mount ================== "
     )
     try:
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         if len(pos.cli.system_disks) < 3:
             pytest.skip(f"Insufficient disk count {len(pos.cli.system_disks)}. "\
@@ -69,7 +69,7 @@ def test_hetero_single_array_mount():
         data_drives = pos.target_utils.data_drives
         spare_drives = pos.target_utils.spare_drives
 
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+        assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                     spare=spare_drives, raid_type="RAID5",
                                     array_name=array_name)[0] == True
 

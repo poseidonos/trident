@@ -51,10 +51,10 @@ def test_hetero_degraded_array_create_delete_vols(array_fixture):
         for array_name in pos.cli.array_dict.keys():
             vol_size = "1G"
             vol_name = f"{array_name}_pos_vol"
-            assert pos.cli.create_volume(vol_name, vol_size, 
+            assert pos.cli.volume_create(vol_name, vol_size, 
                                         array_name=array_name)[0] == True
             
-            assert pos.cli.delete_volume(vol_name, array_name)[0] == True
+            assert pos.cli.volume_delete(vol_name, array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -90,7 +90,7 @@ def test_hetero_degraded_array_unmount(array_fixture):
 
         # Get the array info for both array
         for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -108,8 +108,8 @@ def array_create_and_list(pos):
         for array_index in range(2):
             data_disk_req = {'mix': 2, 'any': 1}
             assert create_hetero_array(pos, "RAID5", data_disk_req, 
-                                       array_index=array_index, mount_array="WT", 
-                                       info_array=True) == True
+                                       array_index=array_index, array_unmount="WT", 
+                                       array_info=True) == True
  
         assert pos.cli.list_array()[0] == True
     except Exception as e:

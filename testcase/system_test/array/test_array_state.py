@@ -19,12 +19,12 @@ def test_stop_arrray_state(array_fixture, num_drives):
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         assert pos.cli.list_array()[0] == True
         array_name = list(pos.cli.array_dict.keys())[0]
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         data_list = pos.cli.array_info[array_name]["data_list"]
         spare_list = pos.cli.array_info[array_name]["spare_list"]
 
         assert pos.target_utils.device_hot_remove(data_list[:num_drives]) == True
-        assert pos.cli.info_array(array_name)[0] == True
+        assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_info[array_name]
         logger.info(array_status["state"])
         if (pos.cli.array_info[array_name]["state"] == "NORMAL") and (
@@ -47,7 +47,7 @@ def test_stop_arrray_state(array_fixture, num_drives):
             pos.cli.array_info[array_name]["situation"] == "DEGRADED"
         ):
             assert (
-                pos.cli.addspare_array(
+                pos.cli.array_addspare(
                     array_name=array_name, device_name=spare_list[0]
                 )[0]
                 == True

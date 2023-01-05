@@ -63,7 +63,7 @@ def test_io_sanity_iteration_io_verify_random_pattern(
             == True
         )
         logger.info("Lock status : release {}".format(target.cli.lock.release()))
-        assert target.cli.list_volume(target.cli.array_name)[0] == True
+        assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -195,7 +195,7 @@ def test_io_sanity_set_get_threashold_io_gc(
             == True
         )
         logger.info("Lock status : release {}".format(target.cli.lock.release()))
-        assert target.cli.list_volume(target.cli.array_name)[0] == True
+        assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -253,7 +253,7 @@ def test_io_sanity_set_get_threashold_io_gc(
                     == True
                 )
 
-            assert target.cli.info_array(target.cli.array_name)[0] == True
+            assert target.cli.array_info(target.cli.array_name)[0] == True
             num_data_disks = len(
                 target.cli.array_info[target.cli.array_name]["data_list"]
             )

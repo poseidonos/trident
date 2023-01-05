@@ -30,12 +30,12 @@ def setup_module():
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
 
-    assert pos.cli.list_volume(array_name=array_name)[0] == True
+    assert pos.cli.volume_list(array_name=array_name)[0] == True
     for vol_name in pos.cli.vols:
-        assert pos.cli.reset_volume_policy_qos(vol_name, array_name)[0] == True
+        assert pos.cli.qos_reset_volume_policy(vol_name, array_name)[0] == True
         if pos.cli.vol_dict[vol_name]["status"] != "Unmounted":
-            assert pos.cli.unmount_volume(vol_name, array_name)[0] == True
-        assert pos.cli.delete_volume(vol_name, array_name)[0] == True
+            assert pos.cli.volume_unmount(vol_name, array_name)[0] == True
+        assert pos.cli.volume_delete(vol_name, array_name)[0] == True
 
     logger.info("==========================================")
 
@@ -67,11 +67,11 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
         f" ========== Test : test_qos_io_throttle[{max_iops}-{max_bw}-{io_type}] ============ "
     )
     try:
-        assert pos.cli.create_volume(vol_name, "12GB", array_name)[0] == True
+        assert pos.cli.volume_create(vol_name, "12GB", array_name)[0] == True
         exp_res = False if max_iops == '15.0' else True
 
         assert (
-            pos.cli.create_volume_policy_qos(vol_name, array_name, max_iops, max_bw)[0]
+            pos.cli.qos_create_volume_policy(vol_name, array_name, max_iops, max_bw)[0]
             == exp_res
         )
 
@@ -84,7 +84,7 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
             if nqn:
                 break
 
-        assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == True
+        assert pos.cli.volume_mount(vol_name, array_name, nqn)[0] == True
 
         assert (
             pos.client.nvme_connect(nqn, pos.target_utils.helper.ip_addr[0], "1158")

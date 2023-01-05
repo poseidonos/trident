@@ -25,11 +25,11 @@ def test_noraid_array_disk_replace(setup_cleanup_array_function):
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         data_disk_list = pos.cli.array_info[array_name]["data_list"]
 
         # The command is expected to fail.
-        assert pos.cli.replace_drive_array(data_disk_list[0], array_name)[0] == False
+        assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -59,7 +59,7 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True
@@ -71,11 +71,11 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
         assert vol_connect_and_run_random_io(pos, subs_list, size='10g') ==  True
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             data_disk_list = pos.cli.array_info[array_name]["data_list"]
 
         # The command is expected to fail.
-        status = pos.cli.replace_drive_array(data_disk_list[0], array_name)
+        status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
         assert status[0] == False
 
         if raid_type =="RAID0":
@@ -118,7 +118,7 @@ def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True
@@ -178,7 +178,7 @@ def test_array_vol_disk_replace_all_spare(setup_cleanup_array_function, raid_typ
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True
@@ -249,7 +249,7 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True
@@ -287,17 +287,17 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
         array_list = list(pos.cli.array_dict.keys())
 
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             data_disk_list = pos.cli.array_info[array]["data_list"]
             random.shuffle(data_disk_list)
             
             # Quick Rebuild Will be started 
-            assert pos.cli.replace_drive_array(data_disk_list[0], array)[0] == True
+            assert pos.cli.array_replace_disk(data_disk_list[0], array)[0] == True
 
             assert pos.target_utils.check_rebuild_status(array_name=array) == True
 
             # Trying Data Disk Replacment during Quick Rebuild
-            assert pos.cli.replace_drive_array(data_disk_list[1], array)[0] == False
+            assert pos.cli.array_replace_disk(data_disk_list[1], array)[0] == False
             logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
             
             # Waiting for completion of Rebuild 
@@ -334,7 +334,7 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True
@@ -366,7 +366,7 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
         array_list = list(pos.cli.array_dict.keys())
 
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             data_disk_list = pos.cli.array_info[array]["data_list"]
             random.shuffle(data_disk_list)
             
@@ -377,7 +377,7 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
 
         
             # Trying Data Disk Replacment during  Rebuild
-            assert pos.cli.replace_drive_array(data_disk_list[1], array)[0] == False
+            assert pos.cli.array_replace_disk(data_disk_list[1], array)[0] == False
             logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
             
             # Waiting for completion of Rebuild 

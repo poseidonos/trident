@@ -45,7 +45,7 @@ def test_wt_multi_array_FIO_SPOR_NPOR(setup_cleanup_array_function, array1, arra
         assert wt_test_multi_array_setup(array_list) == True
 
         for id, array_name in enumerate((array_name1, array_name2)):
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             array_size = int(pos.cli.array_info[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
 
@@ -56,7 +56,7 @@ def test_wt_multi_array_FIO_SPOR_NPOR(setup_cleanup_array_function, array1, arra
                 == True
             )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             ss_temp_list = pos.target_utils.ss_temp_list
             ss_list = [ss for ss in ss_temp_list if f"subsystem{id + 1}" in ss]
             assert (

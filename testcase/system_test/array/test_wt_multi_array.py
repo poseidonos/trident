@@ -21,9 +21,9 @@ def test_wt_multi_array_256vols(
         pos = setup_cleanup_array_function
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives + 1):
             pytest.skip(
@@ -33,7 +33,7 @@ def test_wt_multi_array_256vols(
         array_list = ["posarray1", "posarray2"]
         for index, array in enumerate(array_list):
             data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-            res = pos.cli.create_array(
+            res = pos.cli.array_create(
                 write_buffer=f"uram{str(index)}",
                 array_name=array,
                 data=data_disk_list,
@@ -41,7 +41,7 @@ def test_wt_multi_array_256vols(
                 raid_type=raid_type,
             )
             assert res[0] == True
-            assert pos.cli.mount_array(array_name=array, write_back=False)[0] == True
+            assert pos.cli.array_unmount(array_name=array, write_back=False)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
                     array_name=array, num_vol=256, size="10gb", vol_name="vol"
@@ -49,7 +49,7 @@ def test_wt_multi_array_256vols(
                 == True
             )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name=array)[0] == True
+            assert pos.cli.volume_list(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem" in ss]
             assert (
                 pos.target_utils.mount_volume_multiple(

@@ -34,10 +34,10 @@ def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
     assert pos.cli.list_array()[0] == True
     for array_name in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         if pos.cli.array_dict[array_name].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
-        assert pos.cli.delete_array(array_name=array_name)[0] == True
+        assert pos.cli.array_delete(array_name=array_name)[0] == True
 
     logger.info("==========================================")
 
@@ -53,7 +53,7 @@ def test_array_after_disk_remove():
         " ==================== Test : test_array_after_disk_remove ================== "
     )
     try:
-        assert pos.cli.list_device()
+        assert pos.cli.device_list()
         hot_remove_disks = pos.cli.system_disks.pop(0)
 
         assert pos.target_utils.device_hot_remove([hot_remove_disks])

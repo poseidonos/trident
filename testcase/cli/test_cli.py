@@ -8,16 +8,16 @@ logger = logger.get_logger(__name__)
 
 def device(pos):
     logger.info(" ================= DEVICE =================")
-    assert pos.cli.list_device()[0] == True
-    # assert pos.cli.smart_device(pos.cli.dev_type['SSD'][0])[0] == True
-    assert pos.cli.smart_log_device(pos.cli.dev_type["SSD"][0])[0] == True
+    assert pos.cli.device_list()[0] == True
+    # assert pos.cli.device_smart(pos.cli.dev_type['SSD'][0])[0] == True
+    assert pos.cli.device_smart_log(pos.cli.dev_type["SSD"][0])[0] == True
 
 
 def qos(pos):
     logger.info(" ================= qos ===================")
-    assert pos.cli.list_volume(array_name="array1")[0] == True
+    assert pos.cli.volume_list(array_name="array1")[0] == True
     assert (
-        pos.cli.create_volume_policy_qos(
+        pos.cli.qos_create_volume_policy(
             volumename=pos.cli.vols[0],
             arrayname="array1",
             maxiops="1000000000000",
@@ -26,13 +26,13 @@ def qos(pos):
         == True
     )
     assert (
-        pos.cli.list_volume_policy_qos(volumename=pos.cli.vols[0], arrayname="array1")[
+        pos.cli.qos_list_volume_policy(volumename=pos.cli.vols[0], arrayname="array1")[
             0
         ]
         == True
     )
     assert (
-        pos.cli.reset_volume_policy_qos(volumename=pos.cli.vols[0], arrayname="array1")[
+        pos.cli.qos_reset_volume_policy(volumename=pos.cli.vols[0], arrayname="array1")[
             0
         ]
         == True
@@ -44,14 +44,14 @@ def array(pos):
     assert pos.cli.list_array()[0] == True
     volume(pos)
     assert (
-        pos.cli.addspare_array(
+        pos.cli.array_addspare(
             device_name=pos.cli.system_disks[0], array_name="array1"
         )[0]
         == True
     )
-    assert pos.cli.info_array(array_name="array1")[0] == True
+    assert pos.cli.array_info(array_name="array1")[0] == True
     assert (
-        pos.cli.rmspare_array(
+        pos.cli.array_rmspare(
             device_name=pos.cli.array_info["array1"]["spare_list"][0],
             array_name="array1",
         )[0]
@@ -59,21 +59,21 @@ def array(pos):
     )
     for array in list(pos.cli.array_dict.keys()):
         assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
-    assert pos.cli.stop_telemetry()[0] == True
-    assert pos.cli.reseteventwrr_devel()[0] == True
+    assert pos.cli.telemetry_stop()[0] == True
+    assert pos.cli.devel_eventwrr_reset()[0] == True
 
 
 def volume(pos):
     logger.info(" ==================== Volume ===============")
-    assert pos.cli.info_volume(array_name="array1", vol_name=pos.cli.vols[0])[0] == True
-    assert pos.cli.list_volume(array_name="array1")[0] == True
-    # assert pos.cli.rename_volume("newvol", pos.cli.vols[0], "array1")[0] == True
-    assert pos.cli.unmount_volume(pos.cli.vols[0], "array1")[0] == True
-    assert pos.cli.info_volume(array_name="array1", vol_name=pos.cli.vols[0])[0] == True
-    assert pos.cli.rename_volume("newvol", pos.cli.vols[0], "array1")[0] == True
-    assert pos.cli.delete_volume("newvol", "array1")[0] == True
+    assert pos.cli.volume_info(array_name="array1", vol_name=pos.cli.vols[0])[0] == True
+    assert pos.cli.volume_list(array_name="array1")[0] == True
+    # assert pos.cli.volume_rename("newvol", pos.cli.vols[0], "array1")[0] == True
+    assert pos.cli.volume_unmount(pos.cli.vols[0], "array1")[0] == True
+    assert pos.cli.volume_info(array_name="array1", vol_name=pos.cli.vols[0])[0] == True
+    assert pos.cli.volume_rename("newvol", pos.cli.vols[0], "array1")[0] == True
+    assert pos.cli.volume_delete("newvol", "array1")[0] == True
 
 
 @pytest.mark.sanity
@@ -93,16 +93,16 @@ def test_cli_happypath(array_fixture):
         pos.cli.wbt_get_gc_status(array_name="array1")
 
         logger.info(" ================== logger ================")
-        assert pos.cli.get_log_level_logger()[0] == True
-        assert pos.cli.info_logger()[0] == True
-        assert pos.cli.set_log_level_logger(level="debug")[0] == True
-        # assert pos.cli.apply_log_filter()[0] == True
+        assert pos.cli.logger_get_log_level()[0] == True
+        assert pos.cli.logger_info()[0] == True
+        assert pos.cli.logger_set_log_level(level="debug")[0] == True
+        # assert pos.cli.logger_apply_log_filter()[0] == True
         array(pos)
 
         logger.info("================== telemetry ===============")
-        assert pos.cli.start_telemetry()[0] == True
+        assert pos.cli.telemetry_start()[0] == True
         logger.info("================== devel ==================")
-        assert pos.cli.updateeventwrr_devel("rebuild", "1")[0] == True
+        assert pos.cli.devel_eventwrr_update("rebuild", "1")[0] == True
         # pos.exit_handler(expected = True)
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

@@ -25,10 +25,10 @@ def rebuild_array_state(pos):
 
 
 def drive_detach(pos):
-    assert pos.cli.info_array(array_name=array_name)[0] == True
+    assert pos.cli.array_info(array_name=array_name)[0] == True
     remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives)
-    assert pos.cli.info_array(array_name)[0] == True
+    assert pos.cli.array_info(array_name)[0] == True
 
 
 @pytest.mark.regression
@@ -57,9 +57,9 @@ def test_rename_volume_while_io(array_fixture):
         pos = array_fixture
         assert rebuild_array_state(pos) == True
         run_io(pos)
-        assert pos.cli.list_volume(array_name=array_name)
+        assert pos.cli.volume_list(array_name=array_name)
         assert (
-            pos.cli.rename_volume(
+            pos.cli.volume_rename(
                 array_name=array_name, volname=pos.cli.vols[0], new_volname="posvol"
             )[0]
             == True
@@ -82,7 +82,7 @@ def test_array_rebuild_normal_state(array_fixture):
         pos = array_fixture
         assert rebuild_array_state(pos) == True
         drive_detach(pos)
-        assert pos.cli.info_array(array_name)[0] == True
+        assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_info[array_name]
         logger.info(str(array_status))
         logger.info(array_status["situation"])
@@ -91,7 +91,7 @@ def test_array_rebuild_normal_state(array_fixture):
             assert pos.target_utils.array_rebuild_wait(array_name=array_name)
         else:
             assert 0
-        assert pos.cli.info_array(array_name)[0] == True
+        assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_info[array_name]
         logger.info(str(array_status))
         logger.info(array_status["situation"])
@@ -118,11 +118,11 @@ def test_array_unmnt_mnt_rebuild_state(array_fixture):
         assert rebuild_array_state(pos) == True
         drive_detach(pos)
         time.sleep(60)
-        assert pos.cli.info_array(array_name)[0] == True
+        assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_info[array_name]
         if pos.cli.array_info[array_name]["situation"] == "REBUILDING":
             assert pos.cli.unmount_array(array_name=array_name)[0] == False
-            assert pos.cli.mount_array(array_name=array_name)[0] == False
+            assert pos.cli.array_unmount(array_name=array_name)[0] == False
         logger.info(
             " ============================= Test ENDs ======================================"
         )

@@ -32,7 +32,7 @@ def teardown_function():
         logger.info("No array found in the config")
     else:
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
@@ -57,14 +57,14 @@ def test_hetero_multi_array_smart_log(array_raid, num_devs):
         " ==================== Test :  test_hetero_multi_array_GC ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
         num_array = 2
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = pos.target_utils.ss_temp_list[:num_array]
         for id in range(num_array):
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_scan()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             # Verify the minimum disk requirement
             if len(pos.cli.system_disks) < (num_array - id) * num_devs:
@@ -87,17 +87,17 @@ def test_hetero_multi_array_smart_log(array_raid, num_devs):
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             for device in pos.cli.array_info[array_name]["data_list"]:
-                assert pos.cli.smart_log_device(devicename=device)[0] == True
+                assert pos.cli.device_smart_log(devicename=device)[0] == True
 
 
     except Exception as e:

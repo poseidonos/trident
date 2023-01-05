@@ -25,7 +25,7 @@ def test_array_rebuild_data_integrity(setup_cleanup_array_function, remove_disk)
         num_vols = 2
         num_data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         num_spare_disk = 1
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < (num_data_disk + num_spare_disk):
             pytest.skip("Less number of system disks")
 
@@ -53,13 +53,13 @@ def test_array_rebuild_data_integrity(setup_cleanup_array_function, remove_disk)
 
         time.sleep(120) # Wait for 2 minutes
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         data_disk_list = pos.cli.array_info[array_name]["data_list"]
         spare_disk_list = pos.cli.array_info[array_name]["spare_list"]
 
         random.shuffle(data_disk_list)
         replace_disk = data_disk_list[0]
-        assert pos.cli.replace_drive_array(replace_disk, array_name)[0] == True
+        assert pos.cli.array_replace_disk(replace_disk, array_name)[0] == True
         time.sleep(2)
 
         if remove_disk == "spare_disk":
@@ -80,7 +80,7 @@ def test_array_rebuild_data_integrity(setup_cleanup_array_function, remove_disk)
             assert pos.target_utils.pci_rescan() == True
             
         time.sleep(2) # Wait 2 seconds and verify the rebuilding should not start
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         assert pos.cli.array_info[array_name]["situation"].lower() == exp_array_situation
 
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
@@ -114,7 +114,7 @@ def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
     try:
         num_disks = RAID_MIN_DISK_REQ_DICT[raid_type]
         arrays_num_disks = (num_disks, num_disks)
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < (2 * num_disks + 2):
             pytest.skip("Less number of data disk")
 
@@ -143,7 +143,7 @@ def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
         time.sleep(300)
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         data_disk_list = pos.cli.array_info[array_name]["data_list"]
 
         random.shuffle(data_disk_list)
@@ -151,21 +151,21 @@ def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
         assert pos.target_utils.device_hot_remove([data_disk_list[0]]) == True
         assert pos.target_utils.pci_rescan() == True
 
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         array_situation = pos.cli.array_info[array_name]["situation"].lower()
         assert array_situation == "degraded"
 
-        assert pos.cli.replace_drive_array(data_disk_list[0], array_name)[0] == False
+        assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
 
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         spare_disk = pos.cli.system_disks[:2]
-        assert pos.cli.addspare_array(spare_disk[0], array_name=array_name)[0] ==  True
-        assert pos.cli.addspare_array(spare_disk[1], array_name=array_name)[0] ==  True
+        assert pos.cli.array_addspare(spare_disk[0], array_name=array_name)[0] ==  True
+        assert pos.cli.array_addspare(spare_disk[1], array_name=array_name)[0] ==  True
         time.sleep(2)
 
         assert pos.target_utils.array_rebuild_wait(array_name=array_name) == True
 
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         array_situation = pos.cli.array_info[array_name]["situation"].lower()
         assert array_situation == "normal"
 
@@ -198,7 +198,7 @@ def test_spare_disk_fail_during_disk_replace(setup_cleanup_array_function, raid_
     try:
         num_data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         num_spare_disk = 2
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < (num_data_disk + num_spare_disk):
             pytest.skip("Less number of data disk")
 
@@ -229,7 +229,7 @@ def test_spare_disk_fail_during_disk_replace(setup_cleanup_array_function, raid_
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
         assert pos.target_utils.array_rebuild_wait(array_name=array_name) == True
 
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         spare_disk_list = pos.cli.array_info[array_name]["spare_list"]
         assert pos.target_utils.device_hot_remove([spare_disk_list[0]]) == True
         assert pos.target_utils.pci_rescan() == True
@@ -272,7 +272,7 @@ def test_array_raid6_disk_replace_remove(setup_cleanup_array_function, disk_repl
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True

@@ -11,8 +11,8 @@ num_array = 2
 
 def check_disk_precondition(pos, req_disk):
     """Checks the minimum disks requirements"""
-    assert pos.cli.scan_device()[0] == True
-    assert pos.cli.list_device()[0] == True
+    assert pos.cli.device_scan()[0] == True
+    assert pos.cli.device_list()[0] == True
     sys_disks = pos.cli.system_disks
     if len(sys_disks) < req_disk:
         pytest.skip(f"Insufficient disks {sys_disks}. Required min {req_disk}")
@@ -34,9 +34,9 @@ def test_create_array3_after_array2_delete(array_fixture):
 
         # Delete 2nd Array
         array_name = f"array2"
-        assert pos.cli.delete_array(array_name=array_name)[0] == True
+        assert pos.cli.array_delete(array_name=array_name)[0] == True
 
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_array = []
         for i in range(nr_data_drives):
@@ -46,7 +46,7 @@ def test_create_array3_after_array2_delete(array_fixture):
         array_name = f"array3"
         uram_name = f"uram1"
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer=uram_name,
                 data=data_disk_array,
                 spare=[],
@@ -72,19 +72,19 @@ def test_multiarray_add_max_spare(array_fixture):
     try:
         pos = array_fixture
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
         for id in range(len(system_disks)):
             array_name = f"array{(id % 2) + 1}"
             device_name = system_disks.pop(0)
             assert (
-                pos.cli.addspare_array(device_name=device_name, array_name=array_name)[
+                pos.cli.array_addspare(device_name=device_name, array_name=array_name)[
                     0
                 ]
                 == True
             )
-            assert pos.cli.info_array(array_name=array_name)
+            assert pos.cli.array_info(array_name=array_name)
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -117,7 +117,7 @@ def test_multiarray_unmount_array_unmount_vol(array_fixture):
             # The volume unmount is expected to fail as array is already unmounted
             # TODO handle exception at API side
             try:
-                assert pos.cli.unmount_volume(
+                assert pos.cli.volume_unmount(
                     vol_name, array_name=array_name) == False
             except:
                 logger.info(
@@ -150,12 +150,12 @@ def test_multiarray_delete_array_list_vol(array_fixture):
             array_name = f"array{id+1}"
             vol_name = f"array{id+1}_{vol_name_pre}"
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
-            assert pos.cli.delete_array(array_name=array_name)[0] == True
+            assert pos.cli.array_delete(array_name=array_name)[0] == True
 
             # Expected fail for list volume as array is already deleted
             # TODO handle exception as API level
             try:
-                assert pos.cli.list_volume(vol_name) == False
+                assert pos.cli.volume_list(vol_name) == False
             except Exception as e:
                 logger.info(
                     "Expected fail for list volume - array is deleted. {e}")
@@ -200,7 +200,7 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
                 array_name = f"array{id +1}"
                 vol_name = f"{array_name}_{vol_name_pre}"
                 assert pos.cli.unmount_array(array_name=array_name)[0] == True
-                assert pos.cli.delete_array(array_name=array_name)[0] == True
+                assert pos.cli.array_delete(array_name=array_name)[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -224,8 +224,8 @@ def test_multiarray_mount_unmount_loop(array_fixture):
             for id in range(2):
                 array_name = f"array{id+1}"
                 assert pos.cli.unmount_array(array_name=array_name)[0] == True
-                assert pos.cli.mount_array(array_name=array_name)[0] == True
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
             logger.info("*" * 50)
             logger.info(f"Loop completed: {loop_counter + 1}/{loop_limit}.")
@@ -255,13 +255,13 @@ def test_unmount_array1_delete_array2(array_fixture):
         # Delete Array 2, Expected to fail
         array_name = "array2"
         try:
-            assert pos.cli.delete_array(array_name=array_name)[0] == False
+            assert pos.cli.array_delete(array_name=array_name)[0] == False
         except Exception as e:
             logger.info("Should be expected error. Verify from logs")
 
         # Unmount and Delete Array 2
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
-        assert pos.cli.delete_array(array_name=array_name)[0] == True
+        assert pos.cli.array_delete(array_name=array_name)[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -281,7 +281,7 @@ def test_array1_spare_as_array2_data_disk(array_fixture):
         pos.data_dict["array"]["num_array"] = 1
         pos.data_dict["array"]["pos_array"].pop(1)
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
         spare_disk_list = []
@@ -293,7 +293,7 @@ def test_array1_spare_as_array2_data_disk(array_fixture):
         array_name = f"array2"
         uram_name = f"uram1"
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer=uram_name,
                 data=pos.cli.array_info["array1"]["spare_list"],
                 spare=spare_disk_list,
@@ -321,7 +321,7 @@ def test_array1_data_as_array2_spare_disk(array_fixture):
         pos.data_dict["array"]["num_array"] = 1
         pos.data_dict["array"]["pos_array"].pop(1)
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_array = []
         for i in range(nr_data_drives):
@@ -331,7 +331,7 @@ def test_array1_data_as_array2_spare_disk(array_fixture):
         array_name = f"array2"
         uram_name = f"uram1"
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer=uram_name,
                 data=data_disk_array,
                 spare=pos.cli.array_info["array1"]["data_list"],
@@ -360,13 +360,13 @@ def test_multiarray_size_after_unmount_mount(array_fixture):
 
         for id in range(2):
             array_name = f"array{id+1}"
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             array_size_pre = int(pos.cli.array_info[array_name].get("size"))
 
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             array_size_post = int(pos.cli.array_info[array_name].get("size"))
 
             assert array_size_pre == array_size_post
@@ -433,7 +433,7 @@ def test_second_array_without_uram(array_fixture):
         pos.data_dict["array"]["num_array"] = 1
         pos.data_dict["array"]["pos_array"].pop(1)
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_array = []
         for i in range(nr_data_drives):
@@ -443,7 +443,7 @@ def test_second_array_without_uram(array_fixture):
         array_name = "array2"
         uram_name = f"uram_ivalid"
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer=uram_name,
                 data=data_disk_array[0],
                 spare=[],
@@ -478,7 +478,7 @@ def test_multiarray_with_invalid_uram(array_fixture):
 
         for id in range(2):
             assert (
-                pos.cli.create_device(
+                pos.cli.device_create(
                     uram_name=uram_names[id],
                     bufer_size=buff_size,
                     strip_size=512,
@@ -487,8 +487,8 @@ def test_multiarray_with_invalid_uram(array_fixture):
                 == True
             )
 
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         array_name_pre = "pos_array"
         data_disk_array = ([], [])
@@ -502,7 +502,7 @@ def test_multiarray_with_invalid_uram(array_fixture):
             array_name = f"{array_name_pre}_{id+1}"
             uram_name = uram_names[id]
             assert (
-                pos.cli.create_array(
+                pos.cli.array_create(
                     write_buffer=uram_name,
                     data=data_disk_array[id],
                     spare=[],
@@ -534,8 +534,8 @@ def test_multiarray_unmount_unmounted_array(array_fixture):
         assert pos.cli.unmount_array(array_name="array1")[0] == False
 
         # Mount both array
-        assert pos.cli.mount_array(array_name="array1")[0] == True
-        assert pos.cli.mount_array(array_name="array2")[0] == True
+        assert pos.cli.array_unmount(array_name="array1")[0] == True
+        assert pos.cli.array_unmount(array_name="array2")[0] == True
 
         # Unmount second array
         assert pos.cli.unmount_array(array_name="array1")[0] == True
@@ -573,7 +573,7 @@ def test_multiarray_invalid_raid(array_fixture):
 
             # Invalid RAID - Expected Failure
             assert (
-                pos.cli.create_array(
+                pos.cli.array_create(
                     write_buffer=uram_name,
                     data=data_disk_array[id],
                     spare=[],
@@ -585,7 +585,7 @@ def test_multiarray_invalid_raid(array_fixture):
 
             # Valid RAID - Expected Success
             assert (
-                pos.cli.create_array(
+                pos.cli.array_create(
                     write_buffer=uram_name,
                     data=data_disk_array[id],
                     spare=[],
@@ -613,7 +613,7 @@ def test_multiarray_consume_max_array_capacity(array_fixture):
         array_name_pre = "array"
         array_name = "array1"
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
 
         array_size = int(pos.cli.array_info[array_name].get("size"))
         # Volume Size in MB
@@ -630,7 +630,7 @@ def test_multiarray_consume_max_array_capacity(array_fixture):
         array_name = f"{array_name_pre}_2"
         vol_name = f"{array_name}_posarray2tempvol_257"
         assert (
-            pos.cli.create_volume(vol_name, size=vol_size,
+            pos.cli.volume_create(vol_name, size=vol_size,
                                   array_name=array_name)[0]
             == False
         )
@@ -657,24 +657,24 @@ def test_multiarray_unmount_array_effect(array_fixture):
         assert pos.cli.unmount_array(
             array_name=f"{array_name_pre}_2")[0] == True
 
-        assert pos.cli.info_array(array_name=f"{array_name_pre}_1")[0] == True
+        assert pos.cli.array_info(array_name=f"{array_name_pre}_1")[0] == True
         assert pos.cli.array_info[f"{array_name_pre}_1"].get(
             "state") == "NORMAL"
 
-        assert pos.cli.info_array(array_name=f"{array_name_pre}_2")[0] == True
+        assert pos.cli.array_info(array_name=f"{array_name_pre}_2")[0] == True
         assert pos.cli.array_info[f"{array_name_pre}_2"].get(
             "state") == "OFFLINE"
 
         # Unmount first array and Mount second array
         assert pos.cli.unmount_array(
             array_name=f"{array_name_pre}_1")[0] == True
-        assert pos.cli.mount_array(array_name=f"{array_name_pre}_2")[0] == True
+        assert pos.cli.array_unmount(array_name=f"{array_name_pre}_2")[0] == True
 
-        assert pos.cli.info_array(array_name=f"{array_name_pre}_1")[0] == True
+        assert pos.cli.array_info(array_name=f"{array_name_pre}_1")[0] == True
         assert pos.cli.array_info[f"{array_name_pre}_1"].get(
             "state") == "OFFLINE"
 
-        assert pos.cli.info_array(array_name=f"{array_name_pre}_2")[0] == True
+        assert pos.cli.array_info(array_name=f"{array_name_pre}_2")[0] == True
         assert pos.cli.array_info[f"{array_name_pre}_2"]["state"] == "NORMAL"
 
         logger.info(
@@ -697,12 +697,12 @@ def test_multiarray_unmount_mount_array1(array_fixture):
         # Unmount first array and verify the state
         array_name = "array1"
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         assert pos.cli.array_info[array_name].get("state") == "OFFLINE"
 
         # Mount the first array and verify the state
-        assert pos.cli.mount_array(array_name=array_name)[0] == True
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         assert pos.cli.array_info[array_name].get("state") == "NORMAL"
 
         logger.info(
@@ -728,18 +728,18 @@ def test_multiarray_vol_unmount_delete_loop(array_fixture):
                 array_name = "array1"
                 vol_name = f"{array_name}_vol_1111"
                 assert (
-                    pos.cli.create_volume(vol_name, size="10gb", array_name=array_name)[
+                    pos.cli.volume_create(vol_name, size="10gb", array_name=array_name)[
                         0
                     ]
                     == True
                 )
                 assert (
-                    pos.cli.mount_volume(vol_name, array_name)[0]
+                    pos.cli.volume_mount(vol_name, array_name)[0]
                     == True
                 )
 
-                assert pos.cli.unmount_volume(vol_name, array_name)[0] == True
-                assert pos.cli.delete_volume(vol_name, array_name)[0] == True
+                assert pos.cli.volume_unmount(vol_name, array_name)[0] == True
+                assert pos.cli.volume_delete(vol_name, array_name)[0] == True
 
             logger.info("*" * 50)
             logger.info(f"Loop completed: {loop_counter + 1}/{loop_limit}.")
@@ -763,7 +763,7 @@ def test_multiarray_mount_mounted_array(array_fixture):
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
         # Again mount the same array
-        assert pos.cli.mount_array(array_name="array1")[0] == False
+        assert pos.cli.array_unmount(array_name="array1")[0] == False
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -789,7 +789,7 @@ def test_array1_100_vols_array2_257_vols(array_fixture):
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         # negative test
         assert (
-            pos.cli.create_volume(
+            pos.cli.volume_create(
                 volumename="invalidvol", array_name=array_name, size="1gb"
             )[0]
             == False

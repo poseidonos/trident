@@ -53,7 +53,7 @@ def test_wt_array_rebuild_after_FIO(
             == True
         )
 
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
         assert pos.target_utils.array_rebuild_wait(array_name=array_name)
@@ -115,7 +115,7 @@ def test_wt_array_rebuild_during_FIO(
 
         time.sleep(180)  # Run IO for 3 minutes before Hot Remove
 
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
         assert pos.target_utils.array_rebuild_wait(array_name=array_name)

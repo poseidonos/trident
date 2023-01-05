@@ -48,12 +48,12 @@ def test_post_por_array_state(array_fixture,array1_num_drive, array2_num_drive,p
         array_names = list(pos.cli.array_dict.keys())
         num_drive=[array1_num_drive, array2_num_drive]
         for i,array in enumerate(array_names):
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             data_list = pos.cli.array_info[array]["data_list"]
 
             assert pos.target_utils.device_hot_remove(data_list[:num_drive[i]]) == True
             assert pos.target_utils.array_rebuild_wait(array_name=array)
-            assert pos.cli.info_array(array)[0] == True
+            assert pos.cli.array_info(array)[0] == True
             array_status = pos.cli.array_info[array]
             logger.info(array_status["state"])
 
@@ -64,7 +64,7 @@ def test_post_por_array_state(array_fixture,array1_num_drive, array2_num_drive,p
             assert pos.target_utils.Npor == True
 
         for array in pos.cli.array_dict.keys():
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             logger.info("{} State : {} and {} Situation : {}".format(array,pos.cli.array_info[array]['state'],array,pos.cli.array_info[array]['situation']))
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -105,12 +105,12 @@ def test_post_por_array_state_mulitple(array_fixture,array1_num_drive, array2_nu
         array_names = list(pos.cli.array_dict.keys())
         num_drive=[array1_num_drive, array2_num_drive]
         for i,array in enumerate(array_names):
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             data_list = pos.cli.array_info[array]["data_list"]
 
             assert pos.target_utils.device_hot_remove(data_list[:num_drive[i]]) == True
             assert pos.target_utils.array_rebuild_wait(array_name=array)
-            assert pos.cli.info_array(array)[0] == True
+            assert pos.cli.array_info(array)[0] == True
             array_status = pos.cli.array_info[array]
             logger.info(array_status["state"])
 
@@ -121,7 +121,7 @@ def test_post_por_array_state_mulitple(array_fixture,array1_num_drive, array2_nu
             assert pos.target_utils.Npor == True
 
             for array in pos.cli.array_dict.keys():
-                assert pos.cli.info_array(array_name=array)[0] == True
+                assert pos.cli.array_info(array_name=array)[0] == True
                 logger.info("{} State : {} and {} Situation : {}".format(array,pos.cli.array_info[array]['state'],array,pos.cli.array_info[array]['situation']))
         logger.info(
             " ============================= Test ENDs ======================================"

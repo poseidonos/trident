@@ -39,7 +39,7 @@ def recreation(pos,initial_array_raid):
     array_list =list(pos.cli.array_dict.keys())
     for array in array_list:
         assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
         pos.data_dict["array"]["pos_array"][array_list.index(array)]["raid_type"] = recreate_array
         pos.data_dict["array"]["pos_array"][array_list.index(array)]["data_device"] = recreate_array_drive
         pos.data_dict["array"]["pos_array"][array_list.index(array)]["spare_device"] = array_spare
@@ -59,11 +59,11 @@ def test_multiple_recreation(array_fixture):
         assert recreation(pos,"RAID5") == True
         for array in list(pos.cli.array_dict.keys()):
             assert pos.cli.unmount_array(array_name=array)[0] == True
-            assert pos.cli.delete_array(array_name=array)[0] == True
+            assert pos.cli.array_delete(array_name=array)[0] == True
 
 @pytest.mark.regression
 def test_apply_log_filter(array_fixture):
-    assert pos.cli.apply_log_filter()[0] == False
+    assert pos.cli.logger_apply_log_filter()[0] == False
 
 @pytest.mark.regression
 def test_multiple_r0_array(array_fixture):
@@ -84,8 +84,8 @@ def test_mount_invalid_volume_name(array_fixture):
     assert creation(pos=pos,pos_dict=pos.data_dict,volume_creation=False) == True
     assert pos.cli.list_array()[0] == True
     array = list(pos.cli.array_dict.keys())[0]
-    assert pos.cli.create_volume(volumename=volume_name,size='1gb',array_name=array)[0] == True
-    assert pos.cli.mount_volume(volumename=invalid_volume_name,array_name=array )[0] == False
+    assert pos.cli.volume_create(volumename=volume_name,size='1gb',array_name=array)[0] == True
+    assert pos.cli.volume_mount(volumename=invalid_volume_name,array_name=array )[0] == False
 
 @pytest.mark.negative
 def test_create_volume_with_invalid_name(array_fixture):
@@ -95,7 +95,7 @@ def test_create_volume_with_invalid_name(array_fixture):
     assert creation(pos=pos,pos_dict=pos.data_dict,volume_creation=False) == True
     assert pos.cli.list_array()[0] == True
     array = list(pos.cli.array_dict.keys())[0]
-    assert pos.cli.create_volume(volumename=invalid_volume_name,size='1gb',array_name=array)[0] == False
+    assert pos.cli.volume_create(volumename=invalid_volume_name,size='1gb',array_name=array)[0] == False
 
 def test_detaching_drives_r0(array_fixture):
     pos.data_dict['array']['phase'] = 'true'
@@ -107,7 +107,7 @@ def test_detaching_drives_r0(array_fixture):
     assert io.run_io(pos=pos) == True
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
-    assert pos.cli.info_array(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
+    assert pos.cli.array_info(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
     remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
 
@@ -119,8 +119,8 @@ def test_gc_on_r0(array_fixture):
     assert creation(pos=pos, pos_dict=pos.data_dict, volume_creation=False) == True
     assert pos.cli.list_array()[0] == True
     array = list(pos.cli.array_dict.keys())[0]
-    assert pos.cli.create_volume(volumename=volume_name, size='1gb', array_name=array)[0] == True
-    assert pos.cli.mount_volume(volumename=invalid_volume_name, array_name=array)[0] == False
+    assert pos.cli.volume_create(volumename=volume_name, size='1gb', array_name=array)[0] == True
+    assert pos.cli.volume_mount(volumename=invalid_volume_name, array_name=array)[0] == False
     pos.cli.wbt_do_gc()
     pos.cli.wbt_get_gc_status()[0]
     assert pos.cli.list_array()[0] == True
@@ -132,10 +132,10 @@ def test_array_in_degraded_state(array_fixture):
     assert creation(pos=pos, pos_dict=pos.data_dict) == True
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
-    assert pos.cli.info_array(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
+    assert pos.cli.array_info(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
     remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
-    assert pos.cli.info_array(array_name=array_list[0])[0] == True
+    assert pos.cli.array_info(array_name=array_list[0])[0] == True
     if pos.cli.array_info[array_list[0]]['situation'].upper() == "DEGRADED":
         assert io.run_io(pos=pos) == True
         pass
@@ -148,21 +148,21 @@ def test_remove_device_unmount_state(array_fixture):
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     assert pos.cli.unmount_array(array_name=array_list[0])[0] == True
-    assert pos.cli.info_array(array_name=array_list[0])[0] == True
+    assert pos.cli.array_info(array_name=array_list[0])[0] == True
     remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["spare_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
-    assert pos.cli.info_array(array_name=array_list[0])[0] == True
-    assert pos.cli.mount_array(array_name=array_list[0])[0] == True
-    assert pos.cli.info_array(array_name=array_list[0])[0] == True
+    assert pos.cli.array_info(array_name=array_list[0])[0] == True
+    assert pos.cli.array_unmount(array_name=array_list[0])[0] == True
+    assert pos.cli.array_info(array_name=array_list[0])[0] == True
     remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
-    assert pos.cli.info_array(array_name=array_list[0])[0] == True
+    assert pos.cli.array_info(array_name=array_list[0])[0] == True
 
 @pytest.mark.parametrize("level",["debug","warning","error","off"])
 def test_set_log_level(array_fixture,level):
     pos.data_dict['array']['phase'] = 'true'
     pos.data_dict['array']['num_array'] = 1
-    assert pos.cli.set_log_level_logger(level=level)[0] == True
+    assert pos.cli.logger_set_log_level(level=level)[0] == True
     assert creation(pos=pos, pos_dict=pos.data_dict, volume_creation=False) == True
 
 @pytest.mark.regression
@@ -173,10 +173,10 @@ def test_unmount_array_in_degraded_state(array_fixture):
     assert creation(pos=pos, pos_dict=pos.data_dict) == True
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
-    assert pos.cli.info_array(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
+    assert pos.cli.array_info(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
     remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
-    assert pos.cli.info_array(array_name=array_list[0])[0] == True
+    assert pos.cli.array_info(array_name=array_list[0])[0] == True
     if pos.cli.array_info[array_list[0]]['situation'].upper() == "DEGRADED":
         assert pos.cli.unmount_array(array_name=array_list[0])[0] == True
 
@@ -238,7 +238,7 @@ def test_write_through_to_write_back(array_fixture):
     arr_list = list(pos.cli.array_dict.keys())
     for i in range(1):
         assert pos.cli.unmount_array(array_name=arr_list[0])[0] == True
-        assert pos.cli.mount_array(array_name=arr_list[0],write_back=True) == True
+        assert pos.cli.array_unmount(array_name=arr_list[0],write_back=True) == True
         assert pos.cli.unmount_array(array_name=arr_list[0])[0] == True
-        assert pos.cli.mount_array(array_name=arr_list[0],write_back=False)[0] == True
+        assert pos.cli.array_unmount(array_name=arr_list[0],write_back=False)[0] == True
 

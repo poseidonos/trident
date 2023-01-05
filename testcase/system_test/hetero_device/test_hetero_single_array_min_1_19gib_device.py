@@ -65,7 +65,7 @@ def teardown_function():
         logger.info("No array found in the config")
     else:
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
@@ -91,9 +91,9 @@ def test_hetero_array_all_raid_using_19gib_data_disk():
         array_name = "array1"
         uram_name = data_dict["device"]["uram"][0]["uram_name"]
 
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         raid_list = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
         for raid_type, num_disk in raid_list:
@@ -109,7 +109,7 @@ def test_hetero_array_all_raid_using_19gib_data_disk():
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == False
 
@@ -136,9 +136,9 @@ def test_hetero_array_all_raid_using_19gib_spare_disk():
         array_name = "array1"
         uram_name = data_dict["device"]["uram"][0]["uram_name"]
 
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         raid_list = [("RAID5", 3), ("RAID10", 4)]
         for raid_type, num_disk in raid_list:
@@ -157,7 +157,7 @@ def test_hetero_array_all_raid_using_19gib_spare_disk():
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == False
 

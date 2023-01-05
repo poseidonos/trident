@@ -76,7 +76,7 @@ class TargetUtils:
         Returns:
             str
         """
-        out = self.cli.list_subsystem()
+        out = self.cli.subsystem_list()
         if out[0] is False:
             return None
         num = len(list(out[1].keys()))
@@ -106,7 +106,7 @@ class TargetUtils:
         """
         try:
             dev_bdf_map = {}
-            self.cli.list_device()
+            self.cli.device_list()
             if len(self.cli.dev_type["SSD"]) == 0:
                 raise Exception("No Devices found")
             for dev in list(self.cli.NVMe_BDF.keys()):
@@ -127,7 +127,7 @@ class TargetUtils:
         """
         try:
             self.dev_addr = []
-            self.cli.list_device()
+            self.cli.device_list()
             for each_dev in device_list:
                 if each_dev not in self.cli.dev_type["SSD"]:
                     logger.error(
@@ -171,7 +171,7 @@ class TargetUtils:
                 else:
                     logger.info("Device {} is removed from bdf list".format(dev))
 
-                assert self.cli.list_device()[0] == True
+                assert self.cli.device_list()[0] == True
                 if dev in self.cli.dev_type["SSD"]:
                     logger.error("Failed to remove the device.".format(dev))
                     return False
@@ -268,7 +268,7 @@ class TargetUtils:
 
             logger.info("scanning the devices after rescan")
             time.sleep(5)  # Adding 5 sec sleep for the sys to get back in normal state
-            assert self.cli.scan_device()[0] == True
+            assert self.cli.device_scan()[0] == True
 
             list_dev_out_aftr_rescan = self.dev_bdf_map()
             if list_dev_out_aftr_rescan[0] == False:
@@ -320,8 +320,8 @@ class TargetUtils:
         self,
         data_device_config: dict,
         spare_device_config: dict = None,
-        scan_device=False,
-        list_device=True,
+        device_scan=False,
+        device_list=True,
     ) -> bool:
         """
         Method to create array using hetero devices
@@ -329,20 +329,20 @@ class TargetUtils:
         Returns:
             bool
         """
-        if scan_device:
-            if not self.cli.scan_device():
+        if device_scan:
+            if not self.cli.device_scan():
                 logger.error("Failed to get the device list")
                 return False
 
-        if list_device:
-            if not self.cli.list_device():
+        if device_list:
+            if not self.cli.device_list():
                 logger.error("Failed to get the device list")
                 return False
 
-        scan_device = self.cli.NVMe_BDF
+        device_scan = self.cli.NVMe_BDF
 
         res, devices = self.helper.select_hetro_devices(
-            devices=scan_device,
+            devices=device_scan,
             data_dev_select=data_device_config,
             spare_dev_select=spare_device_config,
         )
@@ -382,7 +382,7 @@ class TargetUtils:
             if wbt_flush:
                 assert self.cli.wbt_flush()[0] == True
 
-            assert self.cli.stop_system(grace_shutdown=False)[0] == True
+            assert self.cli.system_stop(grace_shutdown=False)[0] == True
 
             if uram_backup:
                 self.helper.get_pos_path()
@@ -411,7 +411,7 @@ class TargetUtils:
             if array_name == None:
                 array_name = self.array
 
-            if self.cli.info_array(array_name=array_name)[0]:
+            if self.cli.array_info(array_name=array_name)[0]:
                 situation = self.cli.array_info[array_name]["situation"]
                 progress = int(self.cli.array_info[array_name]["rebuilding_progress"])
                 state = self.cli.array_info[array_name]["state"]
@@ -535,7 +535,7 @@ class TargetUtils:
         """
         try:
             if size == None or size == "None":
-                assert self.cli.info_array(array_name)[0] == True
+                assert self.cli.array_info(array_name)[0] == True
                 temp = self.helper.convert_size(
                     int(self.cli.array_info[array_name]["size"])
                 )
@@ -548,7 +548,7 @@ class TargetUtils:
             for i in range(num_vol):
                 volume_name = f"{array_name}_{vol_name}_{str(i)}"
                 assert (
-                    self.cli.create_volume(
+                    self.cli.volume_create(
                         volume_name, d_size, array_name, iops=maxiops, bw=bw
                     )[0]
                     == True
@@ -573,7 +573,7 @@ class TargetUtils:
 
         try:
             for vol in volume_list:
-                assert self.cli.mount_volume(volumename=vol, array_name=array_name,nqn = nqn)[0] == True
+                assert self.cli.volume_mount(volumename=vol, array_name=array_name,nqn = nqn)[0] == True
         except Exception as e:
             logger.error(f"Mount volume'{vol}' failed due to {e}")
             return False
@@ -605,7 +605,7 @@ class TargetUtils:
                 else:
                     ss_name = self.generate_nqn_name()
                 assert (
-                    self.cli.create_subsystem(
+                    self.cli.subsystem_create(
                         ss_name, ns_count, serial_number, model_name
                     )[0]
                     == True
@@ -622,7 +622,7 @@ class TargetUtils:
             bool
         """
         try:
-            out = self.cli.list_subsystem()
+            out = self.cli.subsystem_list()
             self.ss_temp_list = list(out[1].keys())
             self.ss_temp_list.remove("nqn.2014-08.org.nvmexpress.discovery")
 
@@ -639,7 +639,7 @@ class TargetUtils:
             bool
         """
         try:
-            assert self.cli.list_device()[0] == True
+            assert self.cli.device_list()[0] == True
             assert self.cli.list_array()[0] == True
             array_list = list(self.cli.array_dict.keys())
             self.mbr_dict = {}
@@ -648,7 +648,7 @@ class TargetUtils:
                 return False
 
             for array in list(self.cli.array_dict.keys()):
-                self.cli.info_array(array_name=array)[0] == True
+                self.cli.array_info(array_name=array)[0] == True
                 self.mbr_dict[array] = [
                     self.cli.array_info[array]["data_list"],
                     [self.cli.array_info[array]["spare_list"]],
@@ -677,8 +677,8 @@ class TargetUtils:
         self.static_dict = data_dict
         ###system config
         if self.static_dict["system"]["phase"] == "true":
-            assert self.cli.start_system()[0] == True
-            assert self.cli.create_transport_subsystem()[0] == True
+            assert self.cli.system_start()[0] == True
+            assert self.cli.subsystem_create_transport()[0] == True
         return True
 
     def bringupDevice(self, data_dict: dict) -> bool:
@@ -688,7 +688,7 @@ class TargetUtils:
             device_list = self.static_dict["device"]["uram"]
             for uram in device_list:
                 assert (
-                    self.cli.create_device(
+                    self.cli.device_create(
                         uram_name=uram["uram_name"],
                         bufer_size=uram["bufer_size"],
                         strip_size=uram["strip_size"],
@@ -697,8 +697,8 @@ class TargetUtils:
                     == True
                 )
 
-            assert self.cli.scan_device()[0] == True
-            assert self.cli.list_device()[0] == True
+            assert self.cli.device_scan()[0] == True
+            assert self.cli.device_list()[0] == True
         return True
 
     def bringupSubsystem(self, data_dict: dict) -> bool:
@@ -722,7 +722,7 @@ class TargetUtils:
 
             for subsystem in self.ss_temp_list:
                 assert (
-                    self.cli.add_listner_subsystem(
+                    self.cli.subsystem_add_listner(
                         subsystem, self.helper.ip_addr[0], "1158"
                     )[0]
                     == True
@@ -734,8 +734,8 @@ class TargetUtils:
         try:
             self.static_dict = data_dict
             if self.static_dict["array"]["phase"] == "true":
-                assert self.cli.reset_devel()[0] == True
-                assert self.cli.list_device()[0] == True
+                assert self.cli.devel_resetmbr()[0] == True
+                assert self.cli.device_list()[0] == True
                 system_disks = self.cli.system_disks
 
                 pos_array_list = self.static_dict["array"]["pos_array"]
@@ -766,7 +766,7 @@ class TargetUtils:
                             system_disks.pop(0) for i in range(nr_spare_drives)
                         ]
                         assert (
-                            self.cli.create_array(
+                            self.cli.array_create(
                                 write_buffer=array["uram"],
                                 data=data_disk_list,
                                 spare=spare_disk_list,
@@ -777,7 +777,7 @@ class TargetUtils:
                         )
                     else:
                         assert (
-                            self.cli.autocreate_array(
+                            self.cli.array_autocreate(
                                 array["uram"],
                                 nr_data_drives,
                                 array["raid_type"],
@@ -787,7 +787,7 @@ class TargetUtils:
                             == True
                         )
 
-                        assert self.cli.info_array(array_name=array_name)[0] == True
+                        assert self.cli.array_info(array_name=array_name)[0] == True
                         d_dev = set(self.cli.array_info[array_name]["data_list"])
                         s_dev = set(self.cli.array_info[array_name]["spare_list"])
                         system_disks = list(set(system_disks) - d_dev.union(s_dev))
@@ -797,7 +797,7 @@ class TargetUtils:
                         if array["write_back"] == "false":
                             write_back = False
                         assert (
-                            self.cli.mount_array(
+                            self.cli.array_unmount(
                                 array_name=array_name, write_back=write_back
                             )[0]
                             == True
@@ -817,7 +817,7 @@ class TargetUtils:
                 volumes = [self.static_dict["volume"]["pos_volumes"][0]]
             for vol in volumes:
                 array_name = vol["array_name"]
-                assert self.cli.list_volume(array_name)
+                assert self.cli.volume_list(array_name)
                 old_vols = self.cli.vols
                 assert (
                     self.create_volume_multiple(
@@ -830,7 +830,7 @@ class TargetUtils:
                 )
 
                 if vol["mount"]["phase"]:
-                    assert self.cli.list_volume(array_name)[0] == True
+                    assert self.cli.volume_list(array_name)[0] == True
                     assert self.get_subsystems_list() == True
                     subsystem_range = vol["mount"]["subsystem_range"]
 
@@ -853,7 +853,7 @@ class TargetUtils:
                             nqnname = nqn_list[nqn_index]
                             volname = self.cli.vols[mountcount]
                             assert (
-                                self.cli.mount_volume(
+                                self.cli.volume_mount(
                                     volumename=volname,
                                     array_name=array_name,
                                     nqn=nqnname,
@@ -1094,7 +1094,7 @@ class TargetUtils:
             bool
         """
         logger.info("=============================SYSTEM==========================")
-        assert self.cli.info_system()[0] == True
+        assert self.cli.system_info()[0] == True
         logger.info("=============================ARRAY==========================")
 
         assert self.cli.list_array()[0] == True
@@ -1102,33 +1102,33 @@ class TargetUtils:
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) != 0:
             for array in array_list:
-                assert self.cli.info_array(array_name=array)[0] == True
+                assert self.cli.array_info(array_name=array)[0] == True
 
         logger.info("=============================VOLUME==========================")
         if len(array_list) != 0:
             for array in array_list:
-                assert self.cli.list_volume(array_name=array)[0] == True
+                assert self.cli.volume_list(array_name=array)[0] == True
 
         logger.info("=============================DEVICE==========================")
-        assert self.cli.list_device()[0] == True
+        assert self.cli.device_list()[0] == True
         logger.info("=============================QOS============================")
         if len(array_list) != 0:
             for array in array_list:
-                assert self.cli.list_volume(array_name=array)[0] == True
+                assert self.cli.volume_list(array_name=array)[0] == True
                 if len(self.cli.vols) != 0:
                     for vol in self.cli.vols:
                         assert (
-                            self.cli.list_volume_policy_qos(
+                            self.cli.qos_list_volume_policy(
                                 volumename=vol, arrayname=array
                             )[0]
                             == True
                         )
 
         logger.info("=============================LOGGER==========================")
-        assert self.cli.info_logger()[0] == True
+        assert self.cli.logger_info()[0] == True
 
         logger.info("=============================SUBSYSTEM==========================")
-        assert self.cli.list_subsystem()[0] == True
+        assert self.cli.subsystem_list()[0] == True
         return True
 
     def npor_and_save_state(self) -> bool:
@@ -1146,7 +1146,7 @@ class TargetUtils:
             else:
                 for array in array_list:
                     if self.cli.array_dict[array].lower() == "mounted":
-                        assert self.cli.list_volume(array_name=array)[0] == True
+                        assert self.cli.volume_list(array_name=array)[0] == True
                         if len(self.cli.vols) == 0:
                             logger.info("No volumes found")
                         else:
@@ -1156,13 +1156,13 @@ class TargetUtils:
                                     == "mounted"
                                 ):
                                     assert (
-                                        self.cli.unmount_volume(
+                                        self.cli.volume_unmount(
                                             volumename=vol, array_name=array
                                         )[0]
                                         == True
                                     )
 
-            assert self.cli.stop_system()[0] == True
+            assert self.cli.system_stop()[0] == True
             assert self.bringupPOR(array_list) == True
             return True
         except Exception as e:
@@ -1172,12 +1172,12 @@ class TargetUtils:
 
     def bringupPOR(self, array_list) -> bool:
 
-        assert self.cli.start_system()[0] == True
+        assert self.cli.system_start()[0] == True
         uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
         for uram in uram_list:
-            assert self.cli.create_device(uram_name=uram)[0] == True
+            assert self.cli.device_create(uram_name=uram)[0] == True
 
-        assert self.cli.scan_device()[0] == True
+        assert self.cli.device_scan()[0] == True
         assert self.cli.list_array()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
@@ -1185,8 +1185,8 @@ class TargetUtils:
             return False
         else:
             for array in array_list:
-                assert self.cli.mount_array(array_name=array)[0] == True
-                assert self.cli.list_volume(array_name=array)[0] == True
+                assert self.cli.array_unmount(array_name=array)[0] == True
+                assert self.cli.volume_list(array_name=array)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
         return True
@@ -1202,10 +1202,10 @@ class TargetUtils:
             assert self.helper.get_mellanox_interface_ip()[0] == True
             ip_addr = self.helper.ip_addr[0]
 
-            assert self.cli.create_transport_subsystem()[0] == True
+            assert self.cli.subsystem_create_transport()[0] == True
             for ss in self.ss_temp_list:
                 assert (
-                    self.cli.create_subsystem(
+                    self.cli.subsystem_create(
                         ss,
                         ns_count="512",
                         serial_number="POS000000000001",
@@ -1214,7 +1214,7 @@ class TargetUtils:
                     == True
                 )
                 assert (
-                    self.cli.add_listner_subsystem(
+                    self.cli.subsystem_add_listner(
                         nqn_name=ss, mellanox_interface=ip_addr, port="1158"
                     )[0]
                     == True
@@ -1224,7 +1224,7 @@ class TargetUtils:
             array_list = self.cli.array_dict.keys()
             if len(array_list) > 0:
                 for array in array_list:
-                    assert self.cli.list_volume(array_name=array)[0] == True
+                    assert self.cli.volume_list(array_name=array)[0] == True
                     if len(self.cli.vols) == 0:
                         logger.info("No volumes found")
                     else:
@@ -1245,7 +1245,7 @@ class TargetUtils:
                                 nqnname = ss_list[nqn_index]
                                 volname = self.cli.vols[mountcount]
                                 assert (
-                                    self.cli.mount_volume(
+                                    self.cli.volume_mount(
                                         volumename=volname,
                                         array_name=array,
                                         nqn=nqnname,
@@ -1273,7 +1273,7 @@ class TargetUtils:
         """
         try:
             # Store Device Information
-            assert self.cli.list_device()[0] == True
+            assert self.cli.device_list()[0] == True
             uram_dev_list = self.cli.dev_type["NVRAM"]
             logger.debug("Buffer Device List: {}".format(uram_dev_list))
 
@@ -1299,20 +1299,20 @@ class TargetUtils:
             ip_addr = self.helper.ip_addr[0]
 
             # Start The POS system
-            assert self.cli.start_system()[0] == True
+            assert self.cli.system_start()[0] == True
 
             # Create the URAM device
             for uram in uram_dev_list:
-                assert self.cli.create_device(uram_name=uram)[0] == True
+                assert self.cli.device_create(uram_name=uram)[0] == True
 
-            assert self.cli.scan_device()[0] == True
+            assert self.cli.device_scan()[0] == True
 
             # Create subsystem and Add listner
-            assert self.cli.create_transport_subsystem()[0] == True
+            assert self.cli.subsystem_create_transport()[0] == True
             for ss in subsystem_list:
-                assert self.cli.create_subsystem(ss)[0] == True
+                assert self.cli.subsystem_create(ss)[0] == True
                 assert (
-                    self.cli.add_listner_subsystem(
+                    self.cli.subsystem_add_listner(
                         nqn_name=ss, mellanox_interface=ip_addr, port="1158"
                     )[0]
                     == True
@@ -1321,10 +1321,10 @@ class TargetUtils:
             # Restore Array and Volumes
             for array in array_list:
                 assert (
-                    self.cli.mount_array(array_name=array, write_back=write_through)[0]
+                    self.cli.array_unmount(array_name=array, write_back=write_through)[0]
                     == True
                 )
-                assert self.cli.list_volume(array_name=array)[0] == True
+                assert self.cli.volume_list(array_name=array)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
                 else:
@@ -1343,13 +1343,13 @@ class TargetUtils:
         try:
             assert self.cli.list_array()[0] == True
             if arrayname in list(self.cli.array_dict.keys()):
-                assert self.cli.list_volume(array_name=arrayname)[0] == True
+                assert self.cli.volume_list(array_name=arrayname)[0] == True
                 if len(self.cli.vols) == 0:
                     logger.info("No volumes found")
                     return True
                 for vol in self.cli.vols:
                     assert (
-                        self.cli.info_volume(array_name=arrayname, vol_name=vol)[0]
+                        self.cli.volume_info(array_name=arrayname, vol_name=vol)[0]
                         == True
                     )
                     if (
@@ -1357,13 +1357,13 @@ class TargetUtils:
                         == "mounted"
                     ):
                         assert (
-                            self.cli.unmount_volume(
+                            self.cli.volume_unmount(
                                 volumename=vol, array_name=arrayname
                             )[0]
                             == True
                         )
                     assert (
-                        self.cli.delete_volume(volumename=vol, array_name=arrayname)[0]
+                        self.cli.volume_delete(volumename=vol, array_name=arrayname)[0]
                         == True
                     )
                 return True

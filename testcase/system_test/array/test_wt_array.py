@@ -19,10 +19,10 @@ def test_array_wt_wb_loop(setup_cleanup_array_function, raid_type, nr_data_drive
         array_name = "array1"
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives):
             pytest.skip(
@@ -36,7 +36,7 @@ def test_array_wt_wb_loop(setup_cleanup_array_function, raid_type, nr_data_drive
             raid_type = "no-raid"
 
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=spare_disk_list,
@@ -48,11 +48,11 @@ def test_array_wt_wb_loop(setup_cleanup_array_function, raid_type, nr_data_drive
 
         for i in range(5):
             assert (
-                pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
+                pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
             )
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
             assert (
-                pos.cli.mount_array(array_name=array_name, write_back=True)[0] == True
+                pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
             )
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
 
@@ -76,9 +76,9 @@ def test_array_cli_wt(setup_cleanup_array_function, raid_type, nr_data_drives):
         array_name = "posarray1"
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives):
             pytest.skip(
@@ -88,7 +88,7 @@ def test_array_cli_wt(setup_cleanup_array_function, raid_type, nr_data_drives):
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
         spare_disk_list = []
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=spare_disk_list,
@@ -97,7 +97,7 @@ def test_array_cli_wt(setup_cleanup_array_function, raid_type, nr_data_drives):
             )[0]
             == True
         )
-        assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -118,9 +118,9 @@ def test_array_nouram(setup_cleanup_array_function, raid_type, nr_data_drives):
         array_name = "posarray1"
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives):
             pytest.skip(
@@ -131,7 +131,7 @@ def test_array_nouram(setup_cleanup_array_function, raid_type, nr_data_drives):
         spare_disk_list = []
         # creating array without Uram
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer=None,
                 data=data_disk_list,
                 spare=spare_disk_list,

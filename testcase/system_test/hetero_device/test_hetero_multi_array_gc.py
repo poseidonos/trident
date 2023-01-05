@@ -16,7 +16,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
     yield pos
 
 
@@ -29,10 +29,10 @@ def teardown_function():
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -60,7 +60,7 @@ def test_hetero_multi_array_GC(array_raid, num_devs, num_vols):
         assert pos.target_utils.get_subsystems_list() == True
         ss_list = pos.target_utils.ss_temp_list[:num_array]
         for id in range(num_array):
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             # Verify the minimum disk requirement
             if len(pos.cli.system_disks) < (num_array - id) * num_devs:
@@ -83,12 +83,12 @@ def test_hetero_multi_array_GC(array_raid, num_devs, num_vols):
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True 
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True 
 
             array_size = int(pos.cli.array_info[array_name].get("size"))
             vol_size = f"{int((array_size / num_vols) / (1024 * 1024))}mb"
@@ -96,7 +96,7 @@ def test_hetero_multi_array_GC(array_raid, num_devs, num_vols):
 
             assert pos.target_utils.create_volume_multiple(array_name, num_vols,
                     vol_name=vol_name, size=vol_size, maxiops=0, bw=0) == True
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             nqn=ss_list[id]
             assert pos.target_utils.mount_volume_multiple(array_name=array_name,
                             volume_list=pos.cli.vols, nqn=nqn) == True

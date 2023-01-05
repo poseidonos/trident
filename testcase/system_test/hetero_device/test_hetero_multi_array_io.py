@@ -17,7 +17,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
     yield pos
 
 
@@ -30,10 +30,10 @@ def teardown_function():
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -82,8 +82,8 @@ def test_hetero_multi_array_max_size_volume_FIO(test_id):
         mount_types = (array1_mount, array2_mount)
 
         for id in range(2):
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_scan()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             # Verify the minimum disk requirement
             if len(pos.cli.system_disks) < sum(num_devs[id:]):
@@ -108,7 +108,7 @@ def test_hetero_multi_array_max_size_volume_FIO(test_id):
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
@@ -119,18 +119,18 @@ def test_hetero_multi_array_max_size_volume_FIO(test_id):
                 if (mount_type != "wb"):
                     logger.warning("Unsupported mount type. Use default Write Back")
 
-            assert pos.cli.mount_array(array_name=array_name, 
+            assert pos.cli.array_unmount(array_name=array_name, 
                                        write_back=write_back)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_info[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             vol_name = f"{array_name}_pos_vol"
-            assert pos.cli.create_volume(vol_name, vol_size, array_name=array_name)[0] == True
+            assert pos.cli.volume_create(vol_name, vol_size, array_name=array_name)[0] == True
 
             ss_list = [ss for ss in ss_temp_list if f"array{id + 1}" in ss]
             nqn=ss_list[0]
-            assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == True
+            assert pos.cli.volume_mount(vol_name, array_name, nqn)[0] == True
 
             # Connect client
             assert pos.client.nvme_connect(nqn, 
@@ -191,8 +191,8 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
 
         for counter in range(repeat_ops):
             for id in range(num_array):
-                assert pos.cli.scan_device()[0] == True
-                assert pos.cli.list_device()[0] == True
+                assert pos.cli.device_scan()[0] == True
+                assert pos.cli.device_list()[0] == True
 
                 # Verify the minimum disk requirement
                 if len(pos.cli.system_disks) < (num_array - id) * num_disk:
@@ -214,12 +214,12 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                 data_drives = pos.target_utils.data_drives
                 spare_drives = pos.target_utils.spare_drives
 
-                assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                             spare=spare_drives, raid_type=raid_type,
                                             array_name=array_name)[0] == True
 
-                assert pos.cli.mount_array(array_name=array_name)[0] == True
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 array_size = int(pos.cli.array_info[array_name].get("size"))
                 vol_size = f"{int(array_size / (1024 * 1024) / num_vols)}mb"  # Volume Size in MB
@@ -229,7 +229,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                         vol_name=vol_name, size=vol_size, maxiops=0, bw=0) == True
 
                 nqn=ss_list[id]
-                assert pos.cli.list_volume(array_name=array_name)[0] == True
+                assert pos.cli.volume_list(array_name=array_name)[0] == True
                 assert pos.target_utils.mount_volume_multiple(array_name=array_name,
                                 volume_list=pos.cli.vols, nqn=nqn) == True
 
@@ -291,14 +291,14 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                 elif additional_ops == "vol_del_reverse" :
                     for array in pos.cli.array_dict.keys():
                         # Delete volumes in reverse order
-                        assert pos.cli.list_volume(array_name=array)[0] == True
+                        assert pos.cli.volume_list(array_name=array)[0] == True
                         for vol in pos.cli.vols[::-1]:
-                            assert pos.cli.unmount_volume(vol, array_name=array)[0] == True
-                            assert pos.cli.delete_volume(vol, array_name=array)[0] == True
+                            assert pos.cli.volume_unmount(vol, array_name=array)[0] == True
+                            assert pos.cli.volume_delete(vol, array_name=array)[0] == True
                 # Delete bot array Array     
                 for array in pos.cli.array_dict.keys():
                     assert pos.cli.unmount_array(array_name=array)[0] == True
-                    assert pos.cli.delete_array(array_name=array)[0] == True
+                    assert pos.cli.array_delete(array_name=array)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

@@ -33,21 +33,21 @@ def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
     assert pos.cli.list_array()[0] == True
     for array_name in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
         if pos.cli.array_dict[array_name].lower() == "mounted":
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             for vol in pos.cli.vols:
                 assert (
-                    pos.cli.info_volume(array_name=array_name, vol_name=vol)[0] == True
+                    pos.cli.volume_info(array_name=array_name, vol_name=vol)[0] == True
                 )
 
                 if pos.cli.volume_info[array_name][vol]["status"] == "Mounted":
                     assert (
-                        pos.cli.unmount_volume(volumename=vol, array_name=array_name)[0]
+                        pos.cli.volume_unmount(volumename=vol, array_name=array_name)[0]
                         == True
                     )
                 assert (
-                    pos.cli.delete_volume(volumename=vol, array_name=array_name)[0]
+                    pos.cli.volume_delete(volumename=vol, array_name=array_name)[0]
                     == True
                 )
 
@@ -74,7 +74,7 @@ def test_unsupported_volumes(num_vols):
         subsystem_list = pos.target_utils.ss_temp_list
         assert pos.cli.list_array()[0] == True
         for index, array_name in enumerate(pos.cli.array_dict.keys()):
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             array_size = int(pos.cli.array_info[array_name].get("size"))
             vol_size = f"{int(array_size // (1024 * 1024)/ 260)}mb"  # Volume Size in MB
             assert (
@@ -84,9 +84,9 @@ def test_unsupported_volumes(num_vols):
             if (num_vols[index] - 256) > 0:
                 # Create and mount 257 volumes
                 vol_name = f"{array_name}_PoS_VoL_257"
-                assert pos.cli.create_volume(vol_name, vol_size, array_name)[0] == False
+                assert pos.cli.volume_create(vol_name, vol_size, array_name)[0] == False
 
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             assert len(pos.cli.vols) == 256
             ss_list = [ss for ss in subsystem_list if array_name in ss]
             assert (

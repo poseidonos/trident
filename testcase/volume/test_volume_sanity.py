@@ -39,34 +39,34 @@ def test_SanityVolume(array_fixture, numvol, volsize):
         for nums in range(numvol):
             volname = f"tempvolpos{str(nums)}"
             assert (
-                pos.cli.create_volume(
+                pos.cli.volume_create(
                     volumename=volname, array_name="array33", size=volsize
                 )[0]
                 == False
             )  # invalid array volume creation
             assert (
-                pos.cli.mount_volume(volumename=volname, array_name="array1")[0]
+                pos.cli.volume_mount(volumename=volname, array_name="array1")[0]
                 == False
             )  ##volume re-mount
 
-        assert pos.cli.list_volume(array_name="array1")[0] == True
+        assert pos.cli.volume_list(array_name="array1")[0] == True
         for vol in pos.cli.vols:
             rlist = [i for i in range(10, 255)]
             newname = random_string(random.choice(rlist))
-            assert pos.cli.info_volume(array_name="array1", vol_name=vol)[0] == True
+            assert pos.cli.volume_info(array_name="array1", vol_name=vol)[0] == True
             assert (
-                pos.cli.rename_volume(
+                pos.cli.volume_rename(
                     new_volname=newname, volname=vol, array_name="array1"
                 )[0]
                 == True
             )
             assert (
-                pos.cli.unmount_volume(volumename=newname, array_name="array1")[0]
+                pos.cli.volume_unmount(volumename=newname, array_name="array1")[0]
                 == True
             )
-            assert pos.cli.info_volume(array_name="array1", vol_name=newname)[0] == True
+            assert pos.cli.volume_info(array_name="array1", vol_name=newname)[0] == True
             assert (
-                pos.cli.delete_volume(volumename=newname, array_name="array1")[0]
+                pos.cli.volume_delete(volumename=newname, array_name="array1")[0]
                 == True
             )
 
@@ -87,7 +87,7 @@ def test_volumesanity257vols(array_fixture):
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         # negative test
         assert (
-            pos.cli.create_volume(
+            pos.cli.volume_create(
                 volumename="invalidvol", array_name=array_name, size="1gb"
             )[0]
             == False

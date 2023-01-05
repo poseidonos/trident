@@ -6,7 +6,7 @@ logger = logger.get_logger(__name__)
 
 def num_check(pos):
     numa_dev_list = [{"ssd": [], "nvram": []}, {"ssd": [], "nvram": []}]
-    assert pos.cli.list_device()[0] == True
+    assert pos.cli.device_list()[0] == True
     for dev in pos.cli.device_map:
         dev_type = pos.cli.device_map[dev]["type"].lower()
         dev_numa = int(pos.cli.device_map[dev]["numa"])
@@ -31,7 +31,7 @@ def test_auto_array_with_all_numa(array_fixture):
             array_name = f"array{numa_id}"
             if num_dev["ssd"] and num_dev["nvram"]:
                 assert (
-                    pos.cli.autocreate_array(
+                    pos.cli.array_autocreate(
                         num_dev["nvram"][0],
                         1,
                         "no-raid",
@@ -41,11 +41,11 @@ def test_auto_array_with_all_numa(array_fixture):
                     == True
                 )
 
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
                 assert pos.cli.array_info[array_name]["state"] == "OFFLINE"
 
-                assert pos.cli.mount_array(array_name=array_name)[0] == True
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
                 assert pos.cli.array_info[array_name]["state"] == "NORMAL"
             else:
                 logger.info(f"Insufficient device {num_dev} to numa {numa_id}")
@@ -76,7 +76,7 @@ def test_auto_array_with_insufficient_numa_dev(array_fixture):
             array_name = f"array{numa_id}"
             if len(num_dev["ssd"]) >= 3 and num_dev["nvram"]:
                 assert (
-                    pos.cli.autocreate_array(
+                    pos.cli.array_autocreate(
                         num_dev["nvram"][0],
                         len(num_dev["ssd"]) + 1,
                         "RAID5",

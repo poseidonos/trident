@@ -153,7 +153,7 @@ def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
             logger.info("No array found in the config")
         else:
             for array in array_list:
-                assert pos.cli.info_array(array_name=array)[0] == True
+                assert pos.cli.array_info(array_name=array)[0] == True
                 if pos.cli.array_dict[array].lower() == "mounted":
                     assert pos.cli.unmount_array(array_name=array)[0] == True
 

@@ -16,7 +16,7 @@ def setup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
     yield pos
 
 
@@ -28,10 +28,10 @@ def teardown_function():
 
     assert pos.cli.list_array()[0] == True
     for array in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
             assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
     logger.info("==========================================")
 
 
@@ -59,8 +59,8 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
 
         for i in range(repeat_ops):
             for id in range(2):
-                assert pos.cli.scan_device()[0] == True
-                assert pos.cli.list_device()[0] == True
+                assert pos.cli.device_scan()[0] == True
+                assert pos.cli.device_list()[0] == True
 
                 # Verify the minimum disk requirement
                 if len(pos.cli.system_disks) < sum(num_devs[id:]):
@@ -84,14 +84,14 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
                 data_drives = pos.target_utils.data_drives
                 spare_drives = pos.target_utils.spare_drives
 
-                assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+                assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                             spare=spare_drives, raid_type=raid_type,
                                             array_name=array_name)[0] == True
 
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
-                assert pos.cli.mount_array(array_name=array_name)[0] == True
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 array_size = pos.cli.array_info[array_name].get("size")
                 array_state = pos.cli.array_info[array_name].get("state")
@@ -102,7 +102,7 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
             array_list = list(pos.cli.array_dict.keys())
             for array in array_list:
                 assert pos.cli.unmount_array(array_name=array)[0] == True
-                assert pos.cli.delete_array(array_name=array)[0] == True
+                assert pos.cli.array_delete(array_name=array)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -122,15 +122,15 @@ def test_hetero_multi_array_max_size_volume():
         " ==================== Test : test_hetero_multi_array_max_size_volume ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
         assert pos.target_utils.get_subsystems_list() == True
         ss_temp_list = pos.target_utils.ss_temp_list
 
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         for id in range(2):
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_scan()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             # Verify the minimum disk requirement
             if len(pos.cli.system_disks) < 3 * (3 - id):
@@ -149,21 +149,21 @@ def test_hetero_multi_array_max_size_volume():
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_info[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             vol_name = f"{array_size}_pos_vol"
-            assert pos.cli.create_volume(vol_name, vol_size, array_name=array_name)[0] == True
+            assert pos.cli.volume_create(vol_name, vol_size, array_name=array_name)[0] == True
 
             ss_list = [ss for ss in ss_temp_list if f"subsystem{id + 1}" in ss]
             nqn=ss_list[0]
-            assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == True
+            assert pos.cli.volume_mount(vol_name, array_name, nqn)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -185,15 +185,15 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
         " ==================== Test : test_hetero_multi_array_diff_states_rename_vol ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
         assert pos.target_utils.get_subsystems_list() == True
         ss_temp_list = pos.target_utils.ss_temp_list
 
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         for id in range(2):
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_scan()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             # Verify the minimum disk requirement
             if len(pos.cli.system_disks) < 3 * (2 - id):
@@ -212,21 +212,21 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_info[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             vol_name = f"{array_size}_pos_vol"
-            assert pos.cli.create_volume(vol_name, vol_size, array_name=array_name)[0] == True
+            assert pos.cli.volume_create(vol_name, vol_size, array_name=array_name)[0] == True
 
             ss_list = [ss for ss in ss_temp_list if array_name in ss]
             nqn=ss_list[0]
-            assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == True
+            assert pos.cli.volume_mount(vol_name, array_name, nqn)[0] == True
 
         num_disk_remove = 0
         unmount_array = False
@@ -249,7 +249,7 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
         for array_name in pos.cli.array_dict.keys():
             vol_name = f"{array_size}_pos_vol"
             new_vol_name =  f"{array_size}_pos_vol_new"
-            out = pos.cli.rename_volume(new_vol_name, vol_name,
+            out = pos.cli.volume_rename(new_vol_name, vol_name,
                                         array_name=array_name)[0]
             if array_state in ["OFFLINE", "STOP"]:
                 assert out == False
@@ -274,15 +274,15 @@ def test_hetero_degraded_array_create_delete_vols():
         " ==================== Test : test_hetero_degraded_array_create_delete_vols ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
         assert pos.target_utils.get_subsystems_list() == True
         ss_temp_list = pos.target_utils.ss_temp_list
 
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         for id in range(2):
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_scan()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             # Verify the minimum disk requirement
             if len(pos.cli.system_disks) < 3 * (2 - id):
@@ -301,12 +301,12 @@ def test_hetero_degraded_array_create_delete_vols():
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
         assert pos.cli.list_array()[0] == True
 
@@ -320,10 +320,10 @@ def test_hetero_degraded_array_create_delete_vols():
         for array_name in pos.cli.array_dict.keys():
             vol_size = "1G"
             vol_name = f"{array_name}_pos_vol"
-            assert pos.cli.create_volume(vol_name, vol_size, 
+            assert pos.cli.volume_create(vol_name, vol_size, 
                                         array_name=array_name)[0] == True
             
-            assert pos.cli.delete_volume(vol_name, array_name)[0] == True
+            assert pos.cli.volume_delete(vol_name, array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -344,12 +344,12 @@ def test_hetero_degraded_array_unmount():
         " ==================== Test : test_hetero_degraded_array_unmount ================== "
     )
     try:
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         for id in range(2):
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_scan()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             # Verify the minimum disk requirement
             if len(pos.cli.system_disks) < 3 * (2 - id):
@@ -368,12 +368,12 @@ def test_hetero_degraded_array_unmount():
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.mount_array(array_name=array_name)[0] == True
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
         assert pos.cli.list_array()[0] == True
 
@@ -388,7 +388,7 @@ def test_hetero_degraded_array_unmount():
 
         # Get the array info for both array
         for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

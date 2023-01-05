@@ -25,7 +25,7 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             array_cap_before = pos.cli.array_info[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_before))
 
@@ -37,7 +37,7 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
         )
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             array_cap_after = pos.cli.array_info[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_after))
 
@@ -70,7 +70,7 @@ def test_multi_array_delete_vols(setup_cleanup_array_function):
                 )
                 == True
             )
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             array_cap_creation = pos.cli.array_info[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_creation))
             assert pos.target_utils.deleteAllVolumes(arrayname=array_name) == True
@@ -98,14 +98,14 @@ def test_multi_array_invalid_vols(setup_cleanup_array_function):
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             assert (
-                pos.cli.create_volume(
+                pos.cli.volume_create(
                     array_name=array_name, volumename="###", size="100gb"
                 )[0]
                 == False
             )
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         logger.info("As expected array size vary before and after volume creation ")
         logger.info(
             " ============================= Test ENDs ======================================"

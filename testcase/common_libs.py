@@ -118,18 +118,18 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
 
 
 def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None, 
-                        array_index=0, mount_array=None, info_array=False):
+                        array_index=0, array_unmount=None, array_info=False):
     """
     Common api to create array using hetero size device.
     data_disk_req: Dictionay to select data disk of required size e.g - {'mix': 2, 'any': 1}
     spare_disk_req: Dictionay to select spare disk of required size e.g -  {'mix': 2, 'any': 1}
-    mount_array:  Control flag to mount array. 
+    array_unmount:  Control flag to mount array. 
                   None - Do not mount
                   WT/WB - Mount Write Through/ Write Back
     """
     try:
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         reqired_disk = sum(data_disk_req.values())
         if spare_disk_req: 
@@ -144,22 +144,22 @@ def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None,
         array_name = data_dict["array"]["pos_array"][array_index]["array_name"]
         uram_name = data_dict["device"]["uram"][array_index]["uram_name"]
 
-        if not pos.target_utils.get_hetero_device(data_disk_req, spare_device_config=spare_disk_req, list_device=False):
+        if not pos.target_utils.get_hetero_device(data_disk_req, spare_device_config=spare_disk_req, device_list=False):
             logger.info("Failed to get the required hetero devcies")
             pytest.skip("Required condition not met. Refer to logs for more details")
 
         data_drives = pos.target_utils.data_drives
         spare_drives = pos.target_utils.spare_drives
 
-        assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+        assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                     spare=spare_drives, raid_type=raid_type,
                                     array_name=array_name)[0] == True
-        if mount_array:
-            write_back = False if mount_array == "WT" else True
-            assert pos.cli.mount_array(array_name=array_name, write_back=write_back)[0] == True
+        if array_unmount:
+            write_back = False if array_unmount == "WT" else True
+            assert pos.cli.array_unmount(array_name=array_name, write_back=write_back)[0] == True
 
-        if info_array: 
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+        if array_info: 
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Failed to create hetero array due to {e}")
@@ -168,21 +168,21 @@ def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None,
     return True
 
 
-def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
+def array_unmount_and_delete(pos, unmount=True, delete=True, array_info=False):
     """
     Common cleanup function to unmount and delete arrays
     """
     try:
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():
-            if info_array:
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+            if array_info:
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
             if unmount and pos.cli.array_dict[array_name].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array_name)[0] == True
             
             if delete:
-                assert pos.cli.delete_array(array_name=array_name)[0] == True
+                assert pos.cli.array_delete(array_name=array_name)[0] == True
     except Exception as e:
         logger.error(f"Failed to Unmount or Delete array due to {e}")
         return False
@@ -204,7 +204,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
             subs_list = pos.target_utils.ss_temp_list
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_cap = int(pos.cli.array_info[array_name]["size"])
             if not vol_size:
@@ -219,7 +219,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
             assert pos.target_utils.create_volume_multiple(array_name, num_volumes,
                                 vol_name=vol_name_pre, size=vol_size) == exp_res
 
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             if mount_vols:
                 ss_list = [ss for ss in subs_list if array_name in ss]
                 logger.info(f"{ss_list}")
@@ -239,12 +239,12 @@ def volume_unmount_and_delete_multiple(pos, array_list=None):
             assert pos.cli.list_array()[0] == True
             array_list = list(pos.cli.array_dict.keys())
         for array_name in array_list:
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             for vol_name in pos.cli.vol_dict.keys():
                 if pos.cli.vol_dict[vol_name]["status"].lower() == "mounted":
-                    assert pos.cli.unmount_volume(vol_name,
+                    assert pos.cli.volume_unmount(vol_name,
                                         array_name=array_name)[0] == True
-                assert pos.cli.delete_volume(vol_name,
+                assert pos.cli.volume_delete(vol_name,
                                         array_name=array_name)[0] == True
     except Exception as e:
         logger.error(f"Volume Unmount or Delete Failed due to {e}")
@@ -377,7 +377,7 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list, delay=2):
         logger.info("*********** HOT REMOVE REBUILD START **************")
         for disk_rebuild in disk_remove_interval_list:
             logger.info(f"REBUILD INTERVAL : {disk_rebuild} ")
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             data_disk_list = pos.cli.array_info[array_name]["data_list"]
 
             random.shuffle(data_disk_list)
@@ -442,23 +442,23 @@ def pos_system_restore_stop(pos, array_info=True, array_unmount=True, array_dele
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():
             if array_info:
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
             
-            assert pos.cli.list_volume()[0] == True
+            assert pos.cli.volume_list()[0] == True
             for vol_name in pos.cli.vols:
                 if ((vol_unmount or vol_delete) and 
                         pos.cli.vol_dict[vol_name]["status"].lower() == "mounted"):
-                    assert pos.cli.unmount_volume(vol_name, array_name=array_name)[0] == True
+                    assert pos.cli.volume_unmount(vol_name, array_name=array_name)[0] == True
 
                 if vol_delete:
-                    assert pos.cli.delete_volume(vol_name, array_name=array_name)[0] == True
+                    assert pos.cli.volume_delete(vol_name, array_name=array_name)[0] == True
 
             if ((array_delete or array_unmount) and 
                         pos.cli.array_dict[array_name].lower() == "mounted"):
                 assert pos.cli.unmount_array(array_name=array_name)[0] == True
 
             if array_delete:
-                assert pos.cli.delete_array(array_name=array_name)[0] == True
+                assert pos.cli.array_delete(array_name=array_name)[0] == True
         return True
     except Exception as e:
         logger.error(f"Failed to restore and stop pos system due to {e}")
@@ -475,7 +475,7 @@ def array_disk_remove_replace(pos, array_list, replace=False, verify_rebuild=Fal
         rebuild_array_list = []
         selected_disk_dict = {}
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             data_disk_list = pos.cli.array_info[array]["data_list"]
             spare_disk_list = pos.cli.array_info[array]["spare_list"]
             array_situation = pos.cli.array_info[array]["situation"]
@@ -494,7 +494,7 @@ def array_disk_remove_replace(pos, array_list, replace=False, verify_rebuild=Fal
                     exp_res = False
                 else:
                     rebuild_array_list.append(array)
-                assert pos.cli.replace_drive_array(selected_disk, array)[0] == exp_res
+                assert pos.cli.array_replace_disk(selected_disk, array)[0] == exp_res
 
         time.sleep(delay)
 
@@ -507,7 +507,7 @@ def array_disk_remove_replace(pos, array_list, replace=False, verify_rebuild=Fal
 
         if verify_disk:
             for array in rebuild_array_list:
-                assert pos.cli.info_array(array_name=array)[0] == True
+                assert pos.cli.array_info(array_name=array)[0] == True
                 data_disk_list = pos.cli.array_info[array]["data_list"]
                 assert selected_disk_dict[array] not in data_disk_list
 
@@ -524,16 +524,16 @@ def array_add_spare_disk(pos, array_list, spare_disks=None, verify=True):
     """
     try:
         if not spare_disks:
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.device_list()[0] == True
             spare_disks = pos.cli.system_disks
         
         assert len(array_list) <= len(spare_disks)
 
         for array in array_list:
             spare_disk = spare_disks.pop(0)
-            assert pos.cli.addspare_array(spare_disk, array_name=array)[0] ==  True
+            assert pos.cli.array_addspare(spare_disk, array_name=array)[0] ==  True
             if verify:
-                assert pos.cli.info_array(array_name=array)[0] == True
+                assert pos.cli.array_info(array_name=array)[0] == True
                 spare_disk_list = pos.cli.array_info[array]["spare_list"]
                 assert (spare_disk in spare_disk_list) == True
     except Exception as e:

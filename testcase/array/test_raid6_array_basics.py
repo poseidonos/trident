@@ -18,7 +18,7 @@ def test_create_raid6_array(array_fixture, array_mount):
     )
     pos = array_fixture
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
         array_disks = [(4, 0), (4, 1), (4, 2), (8, 2), (16, 2), (3, 0), (2, 2)]
@@ -57,7 +57,7 @@ def test_auto_create_raid6_array(array_fixture, array_mount):
     )
     pos = array_fixture
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
         array_disks = [(4, 0), (4, 1), (4, 2), (3, 2), (2, 2)]
@@ -76,7 +76,7 @@ def test_auto_create_raid6_array(array_fixture, array_mount):
 
             if exp_res:
                 array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 assert array_unmount_and_delete(pos) == True
         logger.info(
@@ -99,7 +99,7 @@ def test_array_cap_with_volumes(array_fixture, array_mount):
     )
     pos = array_fixture
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < RAID6_MIN_DISKS:
             pytest.skip("Less number of data disk")
 
@@ -148,7 +148,7 @@ def test_raid6_array_vols_data_integrity(array_fixture, array_mount, num_vols):
     pos = array_fixture
     try:
         num_data_disk, num_spare_disk = RAID6_MIN_DISKS, 2
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < (num_data_disk + num_spare_disk):
             pytest.skip("Less number of system disk")
 

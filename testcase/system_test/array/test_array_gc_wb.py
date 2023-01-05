@@ -10,7 +10,7 @@ def gc_array_io(pos):
     try:
         global array_name
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         data_dict = pos.data_dict
         data_dict["array"]["num_array"] = 1
         data_dict["array"]["pos_array"][0]["data_device"] = 3
@@ -63,9 +63,9 @@ def test_gc_after_unmnt_vol(array_fixture):
         pos = array_fixture
         assert gc_array_io(pos) == True
 
-        assert pos.cli.list_volume(array_name=array_name)
+        assert pos.cli.volume_list(array_name=array_name)
         assert (
-            pos.cli.unmount_volume(array_name=array_name, volumename=pos.cli.vols[0])[0]
+            pos.cli.volume_unmount(array_name=array_name, volumename=pos.cli.vols[0])[0]
             == True
         )
         logger.info(" ============================= Test ENDs ===================")

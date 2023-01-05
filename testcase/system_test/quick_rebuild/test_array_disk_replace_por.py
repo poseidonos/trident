@@ -50,7 +50,7 @@ def test_arrays_disk_replace_por(setup_cleanup_array_function, por_operation):
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.list_array()[0] == True

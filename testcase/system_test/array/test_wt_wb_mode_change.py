@@ -34,7 +34,7 @@ def teardown_function():
         logger.info("No array found in the config")
     else:
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
@@ -52,13 +52,13 @@ def por_array_io():
         array_name = "POSARRAY1"
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(1)]
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=None,
@@ -67,15 +67,15 @@ def por_array_io():
             )[0]
             == True
         )
-        assert pos.cli.mount_array(array_name=array_name, write_back=True)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
         assert (
-            pos.cli.create_volume(
+            pos.cli.volume_create(
                 array_name=array_name, size="2000gb", volumename="vol"
             )[0]
             == True
         )
         assert pos.target_utils.get_subsystems_list() == True
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem1" in ss]
         assert (
             pos.target_utils.mount_volume_multiple(

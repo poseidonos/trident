@@ -66,7 +66,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
             == True
         )
         logger.info("Lock status : release {}".format(target.cli.lock.release()))
-        assert target.cli.list_volume(target.cli.array_name)[0] == True
+        assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -90,7 +90,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
         while True:
             logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
 
-            assert target.cli.info_array(target.cli.array_name)[0] == True
+            assert target.cli.array_info(target.cli.array_name)[0] == True
             num_data_disks = len(
                 target.cli.array_info[target.cli.array_name]["data_list"]
             )
@@ -137,10 +137,10 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
             )
 
             logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
-            assert target.cli.list_device()[0] == True
+            assert target.cli.device_list()[0] == True
             logger.info("System Disks {}".format(target.cli.system_disks))
 
-            assert target.cli.info_array(array_name=target.cli.array_name)[0] == True
+            assert target.cli.array_info(array_name=target.cli.array_name)[0] == True
             data_disks = target.cli.array_info[target.cli.array_name]["data_list"]
             spare_disks = target.cli.array_info[target.cli.array_name]["spare_list"]
 
@@ -187,11 +187,11 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
 
             logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
             for index in range(2):
-                assert target.cli.list_device()[0] == True
+                assert target.cli.device_list()[0] == True
                 system_disks = target.cli.system_disks
                 normal_disks = target.cli.normal_data_disks
                 assert (
-                    target.cli.info_array(array_name=target.cli.array_name)[0] == True
+                    target.cli.array_info(array_name=target.cli.array_name)[0] == True
                 )
                 data_disks = target.cli.array_info[target.cli.array_name]["data_list"]
                 spare_disks = target.cli.array_info[target.cli.array_name]["spare_list"]
@@ -199,7 +199,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                 if len(spare_disks) == 0:
                     if len(normal_disks) < len(data_disks):
                         assert (
-                            target.cli.addspare_array(
+                            target.cli.array_addspare(
                                 system_disks[0], target.cli.array_name
                             )[0]
                             == True
@@ -207,7 +207,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                     elif len(normal_disks) == len(data_disks):
                         if random.randint(0, 1):
                             assert (
-                                target.cli.addspare_array(
+                                target.cli.array_addspare(
                                     system_disks[0], target.cli.array_name
                                 )[0]
                                 == True
@@ -219,7 +219,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
 
             while True:
                 assert (
-                    target.cli.info_array(array_name=target.cli.array_name)[0] == True
+                    target.cli.array_info(array_name=target.cli.array_name)[0] == True
                 )
                 if (
                     "normal"

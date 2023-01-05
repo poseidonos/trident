@@ -134,9 +134,9 @@ class Prometheus(Cli):
 
     def set_telemetry_configs(self) -> bool:
         """method to start and do set-property in telemetry"""
-        assert self.start_telemetry()[0] == True
-        assert self.set_property()[0] == True
-        assert self.get_property()[0] == True
+        assert self.telemetry_start()[0] == True
+        assert self.telemetry_set_property()[0] == True
+        assert self.telemetry_get_property()[0] == True
         return True
 
     def docker_restart(self):

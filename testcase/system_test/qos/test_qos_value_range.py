@@ -31,10 +31,10 @@ def setup_module():
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
 
-    assert pos.cli.list_volume(array_name=array_name)[0] == True
+    assert pos.cli.volume_list(array_name=array_name)[0] == True
     for vol_name in pos.cli.vols:
-        assert pos.cli.reset_volume_policy_qos(vol_name, array_name)[0] == True
-        assert pos.cli.delete_volume(vol_name, array_name)[0] == True
+        assert pos.cli.qos_reset_volume_policy(vol_name, array_name)[0] == True
+        assert pos.cli.volume_delete(vol_name, array_name)[0] == True
 
     logger.info("==========================================")
 
@@ -81,11 +81,11 @@ def test_qos_maxiops_maxbw_value(qos_test):
         qos_values = qos_tests[qos_test]["iops_bw"]
         exp_result = qos_tests[qos_test]["result"]
 
-        assert pos.cli.create_volume(vol_name, "10GB", array_name)[0] == True
+        assert pos.cli.volume_create(vol_name, "10GB", array_name)[0] == True
 
         for max_iops, max_bw in qos_values:
             assert (
-                pos.cli.create_volume_policy_qos(
+                pos.cli.qos_create_volume_policy(
                     vol_name, array_name, max_iops, max_bw
                 )[0]
                 == exp_result
@@ -93,7 +93,7 @@ def test_qos_maxiops_maxbw_value(qos_test):
 
             if exp_result:
                 assert (
-                    pos.cli.info_volume(array_name=array_name, vol_name=vol_name)[0]
+                    pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0]
                     == True
                 )
 
@@ -134,7 +134,7 @@ def test_vol_create_with_qos_value(max_iops, max_bw, exp_result):
     )
     try:
         assert (
-            pos.cli.create_volume(
+            pos.cli.volume_create(
                 vol_name, "10GB", array_name, iops=max_iops, bw=max_bw
             )[0]
             == exp_result
@@ -142,7 +142,7 @@ def test_vol_create_with_qos_value(max_iops, max_bw, exp_result):
 
         if exp_result:
             assert (
-                pos.cli.info_volume(array_name=array_name, vol_name=vol_name)[0] == True
+                pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0] == True
             )
 
             vol_info = pos.cli.volume_info[array_name][vol_name]

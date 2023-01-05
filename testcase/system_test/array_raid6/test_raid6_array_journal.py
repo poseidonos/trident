@@ -24,7 +24,7 @@ def journal_setup_cleanup(pos_connection):
     logger.info("========== SETUP TEST =========")
     pos = pos_connection
     if not pos.target_utils.helper.check_pos_exit():
-        assert pos.cli.stop_system()[0] == True
+        assert pos.cli.system_stop()[0] == True
 
     data_dict = pos.data_dict
     data_dict['system']['phase'] = "true"
@@ -81,7 +81,7 @@ def test_raid6_arrays_journal_enable(journal_setup_cleanup, raid_type, jouranl_e
         num_vols = 8
         num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         arrays_num_disks = (RAID6_MIN_DISKS, num_disk)
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):
             pytest.skip("Less number of data disk")
 
@@ -134,7 +134,7 @@ def test_raid6_longetivity_npor_spor_journal_enabled(journal_setup_cleanup,por):
         for array in pos.cli.array_dict.keys():
             disk_interval = [(0,)]
             assert array_disks_hot_remove(pos=pos,array_name=array,disk_remove_interval_list=disk_interval) == True
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             logger.info("{} State : {} and {} Situation : {}".format(array,pos.cli.array_info[array]['state'],array,pos.cli.array_info[array]['situation']))
             assert pos.cli.array_info[array]['state'] == 'BUSY' and pos.cli.array_info[array]['situation'] == 'REBUILDING'
 

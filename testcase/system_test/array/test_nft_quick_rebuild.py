@@ -25,13 +25,13 @@ def create_array_and_volumes(pos, raid_types, data_disks, spare_disks, num_array
 def trigger_quick_rebuild(pos,array):
     # Replace data drive of the first array
 
-    assert pos.cli.info_array(array_name=array)[0] == True
+    assert pos.cli.array_info(array_name=array)[0] == True
 
     data_dev = random.choice(list(pos.cli.array_info[array]['data_list']))
 
     logger.info("*************** Triggering device replacement ***************")
 
-    assert pos.cli.replace_drive_array(array_name=array, device_name=data_dev)[0] == True
+    assert pos.cli.array_replace_disk(array_name=array, device_name=data_dev)[0] == True
 
     return True
 
@@ -66,12 +66,12 @@ def test_nft_quick_rebuild_while_io_running(array_fixture,testcase):
         arrays = list(pos.cli.array_dict.keys())
         assert trigger_quick_rebuild(pos=pos,array=arrays[0]) == True
         assert pos.target_utils.check_rebuild_status(array_name=arrays[0]) == True
-        assert pos.cli.info_array(array_name=arrays[0])[0] == True
+        assert pos.cli.array_info(array_name=arrays[0])[0] == True
         assert pos.cli.array_info[arrays[0]]['situation'] ==  TESTCASE_DICT[testcase]["situation"][0]
 
         #Hot remove the data drive of second array
         assert array_disks_hot_remove(pos=pos, array_name=arrays[1], disk_remove_interval_list=[(0,)]) == True
-        assert pos.cli.info_array(array_name=arrays[1])[0] == True
+        assert pos.cli.array_info(array_name=arrays[1])[0] == True
         assert pos.cli.array_info[arrays[1]]['situation'] == TESTCASE_DICT[testcase]["situation"][1]
 
         #Wait for rebuild to complete
@@ -80,7 +80,7 @@ def test_nft_quick_rebuild_while_io_running(array_fixture,testcase):
         assert pos.target_utils.array_rebuild_wait_multiple(array_list=arrays) == True
 
         for array in arrays:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

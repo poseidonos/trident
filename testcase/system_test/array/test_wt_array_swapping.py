@@ -34,9 +34,9 @@ def teardown_function():
         for array in array_list:
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
-                assert pos.cli.delete_array(array_name=array)[0] == True
+                assert pos.cli.array_delete(array_name=array)[0] == True
             else:
-                assert pos.cli.delete_array(array_name=array)[0] == True
+                assert pos.cli.array_delete(array_name=array)[0] == True
     logger.info("==========================================")
 
 
@@ -48,10 +48,10 @@ arrays = ["POSARRAY1", "POSARRAY2"]
 nqn_name = "nqn.2022-10-array1.pos:subsystem"
 def create_initial_arrays(array_detail):
     array_name = ["POSARRAY1","POSARRAY2"]
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
     for array in range(len(array_name)):
-        assert pos.cli.scan_device()[0] == True 
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_scan()[0] == True 
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (array_detail[array][1]):
             pytest.skip(
@@ -68,7 +68,7 @@ def create_initial_arrays(array_detail):
         else:
             buffer_device = "uram1"
         assert (
-                pos.cli.create_array(
+                pos.cli.array_create(
                     write_buffer=buffer_device,
                     data=data_disk_list,
                     spare=spare_disk_list,
@@ -78,11 +78,11 @@ def create_initial_arrays(array_detail):
                 == True
         )
 
-        assert pos.cli.mount_array(array_name=array_name[array], write_back=False)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name[array], write_back=False)[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         if len(pos.target_utils.ss_temp_list) >= len(array_name):
-            assert pos.cli.create_volume(array_name=array_name[array],volumename=array_name[array]+'vol',size='1gb')[0] == True
-            assert pos.cli.mount_volume(array_name=array_name[array],volumename=array_name[array]+'vol',nqn=pos.target_utils.ss_temp_list[array])[0] == True
+            assert pos.cli.volume_create(array_name=array_name[array],volumename=array_name[array]+'vol',size='1gb')[0] == True
+            assert pos.cli.volume_mount(array_name=array_name[array],volumename=array_name[array]+'vol',nqn=pos.target_utils.ss_temp_list[array])[0] == True
         else:
             logger.error("Not enough subsystems")
 
@@ -109,13 +109,13 @@ def test_array_swapping(array_detail):
     assert pos.cli.list_array()[0] == True
     for array in list(pos.cli.array_dict.keys()):
         assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
     swapped_arrays = array_detail[::-1]
     create_initial_arrays(swapped_arrays)
     assert run_block_io() == True
     assert pos.cli.list_array()[0] == True
     arrays = list(pos.cli.array_dict.keys())
-    assert pos.cli.info_array(array_name=arrays[0])[0] == True
+    assert pos.cli.array_info(array_name=arrays[0])[0] == True
     remove_drives = [random.choice(pos.cli.array_info[arrays[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
     assert pos.target_utils.array_rebuild_wait(array_name=arrays[0]) == True 
@@ -127,10 +127,10 @@ def test_raid10_creation_with_diff_num_drives(array_detail):
     num_of_drives = array_detail[1]
     raid_type = "RAID10"
     bool_op = [True,False]
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
     for array in range(num_of_array):
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (num_of_drives):
             pytest.skip(
@@ -139,7 +139,7 @@ def test_raid10_creation_with_diff_num_drives(array_detail):
         spare_disk_list = []
         assert pos.target_utils.get_subsystems_list() == True
         assert (
-                pos.cli.create_array(
+                pos.cli.array_create(
                     write_buffer="uram"+str(array),
                     data=data_disk_list,
                     spare=spare_disk_list,
@@ -148,29 +148,29 @@ def test_raid10_creation_with_diff_num_drives(array_detail):
                 )[0]
                 != bool(num_of_drives%2)
         )
-        assert pos.cli.mount_array(array_name=arrays[array])[0] != bool(num_of_drives % 2)
+        assert pos.cli.array_unmount(array_name=arrays[array])[0] != bool(num_of_drives % 2)
 
         assert pos.cli.list_array()[0] == True
         if len(list(pos.cli.array_dict.keys())) > 0:
-            assert pos.cli.create_volume(array_name=arrays[array],volumename=arrays[array]+'vol',size='10gb')[0] == True
-            assert pos.cli.mount_volume(array_name=arrays[array],volumename=arrays[array]+'vol',nqn=pos.target_utils.ss_temp_list[array])
+            assert pos.cli.volume_create(array_name=arrays[array],volumename=arrays[array]+'vol',size='10gb')[0] == True
+            assert pos.cli.volume_mount(array_name=arrays[array],volumename=arrays[array]+'vol',nqn=pos.target_utils.ss_temp_list[array])
             assert run_block_io() == True
 
 def test_creation_of_raid10_with_same_drives():
     num_of_drives = 4
     raid_type= "RAID10"
-    assert pos.cli.reset_devel()[0] == True
-    assert pos.cli.scan_device()[0] == True
-    assert pos.cli.list_device()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
+    assert pos.cli.device_scan()[0] == True
+    assert pos.cli.device_list()[0] == True
     system_disks = pos.cli.system_disks
     if len(system_disks) < (num_of_drives):
         pytest.skip(
             f"Insufficient disk count {system_disks}. Required minimum {num_of_drives + 1}")
     data_disk_list = [system_disks.pop(0) for i in range(num_of_drives)]
     spare_disk_list = []
-    assert pos.cli.create_array(write_buffer="uram0",data=data_disk_list,spare=spare_disk_list,raid_type=raid_type,array_name=arrays[0])[0] == True
-    assert pos.cli.mount_array(array_name=arrays[0])[0] == True
-    assert pos.cli.create_array(write_buffer="uram1",data=data_disk_list,spare=spare_disk_list,raid_type=raid_type,array_name=arrays[1])[0] == False
+    assert pos.cli.array_create(write_buffer="uram0",data=data_disk_list,spare=spare_disk_list,raid_type=raid_type,array_name=arrays[0])[0] == True
+    assert pos.cli.array_unmount(array_name=arrays[0])[0] == True
+    assert pos.cli.array_create(write_buffer="uram1",data=data_disk_list,spare=spare_disk_list,raid_type=raid_type,array_name=arrays[1])[0] == False
 
 
 def test_array_create_raid10_and_raid5():
@@ -188,12 +188,12 @@ def test_array_create_and_trigger_rebuild():
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
         assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
     create_initial_arrays(config_2)
     assert run_block_io() == True
-    assert pos.cli.info_array(array_name=array_list[1])[0] == True
+    assert pos.cli.array_info(array_name=array_list[1])[0] == True
     remove_drives = [random.choice(pos.cli.array_info[array_list[1]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives)
-    assert pos.cli.info_array(array_name=array_list[1])
+    assert pos.cli.array_info(array_name=array_list[1])
     if pos.cli.array_info[array_list[1]]["state"] == 'BUSY' and pos.cli.array_info[array_list[1]]["situation"] == 'REBUILDING':
         pos.target_utils.array_rebuild_wait(array_name=array_list[1])

@@ -70,7 +70,7 @@ def teardown_function():
         logger.info("No array found in the config")
     else:
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
@@ -99,9 +99,9 @@ def test_hetero_array_all_raid():
 
         raid_list = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
         for raid_type, num_disk in raid_list:
-            assert pos.cli.reset_devel()[0] == True
-            assert pos.cli.scan_device()[0] == True
-            assert pos.cli.list_device()[0] == True
+            assert pos.cli.devel_resetmbr()[0] == True
+            assert pos.cli.device_scan()[0] == True
+            assert pos.cli.device_list()[0] == True
 
             if len(pos.cli.system_disks) < num_disk:
                 logger.warning("Avilable drive {} is insufficient, required {}".format(
@@ -116,15 +116,15 @@ def test_hetero_array_all_raid():
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
+            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == True
             
-            assert pos.cli.mount_array(array_name=array_name, write_back=False)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
 
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
 
-            assert pos.cli.delete_array(array_name=array_name)[0] == True
+            assert pos.cli.array_delete(array_name=array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

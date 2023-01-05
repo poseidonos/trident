@@ -18,7 +18,7 @@ def test_raid6_array_disk_fail(setup_cleanup_array_function, array_mount):
     pos = setup_cleanup_array_function
     try:
         num_vols = 16
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < RAID6_MIN_DISKS + 4:
             pytest.skip("Less number of data disk")
 
@@ -28,7 +28,7 @@ def test_raid6_array_disk_fail(setup_cleanup_array_function, array_mount):
                                     num_spare_disk, array_mount, False) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols,
@@ -81,7 +81,7 @@ def test_raid6_array_disk_fail_random_io(setup_cleanup_array_function, write_mix
     try:
         num_vols = 16
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):
             pytest.skip("Less number of data disk")
 
@@ -90,7 +90,7 @@ def test_raid6_array_disk_fail_random_io(setup_cleanup_array_function, write_mix
                                       (False, False)) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols,
@@ -146,7 +146,7 @@ def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
         num_vols = 16
         num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         arrays_num_disks = (RAID6_MIN_DISKS, num_disk)
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks):
             pytest.skip("Less number of data disk")
 
@@ -155,7 +155,7 @@ def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
                                       (False, False)) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols,
@@ -195,7 +195,7 @@ def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
         # Wait for rebuild to complete in both array
         for pos_array in pos.data_dict["array"]["pos_array"]:
             array_name = pos_array["array_name"]
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             assert pos.cli.array_info[array_name]["situation"] == "DEGRADED"
             assert pos.cli.array_info[array_name]["state"] == "BUSY"
 
@@ -223,7 +223,7 @@ def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
     try:
         num_vols = 16
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < sum(arrays_num_disks) + 2:
             pytest.skip("Less number of data disk")
 
@@ -232,7 +232,7 @@ def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
                                       (False, False)) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols,
@@ -275,7 +275,7 @@ def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
 
         assert pos.cli.list_array()[0] == True
         for idx, array_name in enumerate(pos.cli.array_dict.keys()): 
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
             assert pos.cli.array_info[array_name]["situation"] == array_situation[idx]
             assert pos.cli.array_info[array_name]["state"] == array_states[idx]
 

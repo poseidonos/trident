@@ -12,9 +12,9 @@ def negative_test_setup_function(pos, nr_data_drives: int):
         array_name = "posarray1"
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives):
             pytest.skip(
@@ -41,7 +41,7 @@ def test_array_invalid_data_disk(
         assert negative_test_setup_function(pos, nr_data_drives) == True
         system_disks = ["dummy1", "dummy2", "dummy1"]
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-        status = pos.cli.create_array(
+        status = pos.cli.array_create(
             write_buffer="uram0",
             data=data_disk_list,
             spare=[],
@@ -73,7 +73,7 @@ def test_create_array_invalid_commands(
         pos = setup_cleanup_array_function
         assert negative_test_setup_function(pos, nr_data_drives) == True
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="dummy",
                 data=data_disk_list,
                 spare=[],
@@ -97,7 +97,7 @@ def test_array_less_data_drive(
     try:
         pos = setup_cleanup_array_function
         assert negative_test_setup_function(pos, nr_data_drives) == True
-        status = pos.cli.create_array(
+        status = pos.cli.array_create(
             write_buffer="uram0",
             data=data_disk_list,
             spare=[],
@@ -130,7 +130,7 @@ def test_add_spare_without_array_mount(
         assert negative_test_setup_function(pos, nr_data_drives) == True
         spare_disk_list = [system_disks.pop()]
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=[],
@@ -140,7 +140,7 @@ def test_add_spare_without_array_mount(
             == True
         )
         assert (
-            pos.cli.addspare_array(
+            pos.cli.array_addspare(
                 array_name=array_name, device_name=spare_disk_list[0]
             )[0]
             == False
@@ -165,7 +165,7 @@ def test_remove_spare_without_array_mount(
         assert negative_test_setup_function(pos, nr_data_drives) == True
         spare_disk_list = [system_disks.pop()]
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=spare_disk_list,
@@ -175,7 +175,7 @@ def test_remove_spare_without_array_mount(
             == True
         )
         assert (
-            pos.cli.rmspare_array(
+            pos.cli.array_rmspare(
                 array_name=array_name, device_name=spare_disk_list[0]
             )[0]
             == False
@@ -194,7 +194,7 @@ def test_array_mnt_without_arrays(setup_cleanup_array_function, nr_data_drives=3
     try:
         pos = setup_cleanup_array_function
         assert negative_test_setup_function(pos, nr_data_drives) == True
-        status = pos.cli.mount_array(array_name=array_name, write_back=False)
+        status = pos.cli.array_unmount(array_name=array_name, write_back=False)
         assert status[0] == False
         logger.info(
             "As expected testcases failed due to {}".format(
@@ -220,7 +220,7 @@ def test_mnt_vol_stop_arrray_state(
         pos = setup_cleanup_array_function
         assert negative_test_setup_function(pos, nr_data_drives) == True
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=[],
@@ -229,9 +229,9 @@ def test_mnt_vol_stop_arrray_state(
             )[0]
             == True
         )
-        assert pos.cli.mount_array(array_name=array_name, write_back=True)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
         assert pos.target_utils.device_hot_remove(data_disk_list[:2]) == True
-        assert pos.cli.info_array(array_name)[0] == True
+        assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_info[array_name]
         logger.info(str(array_status))
         logger.info(array_status["state"])
@@ -244,7 +244,7 @@ def test_mnt_vol_stop_arrray_state(
             assert 0
         else:
             assert (
-                pos.cli.create_volume(
+                pos.cli.volume_create(
                     array_name=array_name, size="10gb", volumename="vol"
                 )[0]
                 == False
@@ -266,7 +266,7 @@ def test_rename_vol_stop_arrray_state(
         pos = setup_cleanup_array_function
         assert negative_test_setup_function(pos, nr_data_drives) == True
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=[],
@@ -275,16 +275,16 @@ def test_rename_vol_stop_arrray_state(
             )[0]
             == True
         )
-        assert pos.cli.mount_array(array_name=array_name, write_back=True)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
         assert (
-            pos.cli.create_volume(array_name=array_name, size="10gb", volumename="vol")[
+            pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol")[
                 0
             ]
             == True
         )
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         assert pos.target_utils.device_hot_remove(data_disk_list[:2]) == True
-        assert pos.cli.info_array(array_name)[0] == True
+        assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_info[array_name]
         logger.info(str(array_status))
         logger.info(array_status["state"])
@@ -297,7 +297,7 @@ def test_rename_vol_stop_arrray_state(
             assert 0
         else:
             assert (
-                pos.cli.rename_volume(
+                pos.cli.volume_rename(
                     array_name=array_name, volname=pos.cli.vols[0], new_volname="posvol"
                 )[0]
                 == False
@@ -316,9 +316,9 @@ def test_uram_creation_after_scan(setup_cleanup_array_function, nr_data_drives=3
     try:
         pos = setup_cleanup_array_function
         assert negative_test_setup_function(pos, nr_data_drives) == True
-        assert pos.cli.scan_device()[0] == True
+        assert pos.cli.device_scan()[0] == True
         assert (
-            pos.cli.create_device(
+            pos.cli.device_create(
                 uram_name="uram2", bufer_size=8388608, strip_size=512, numa=0
             )[0]
             == True
@@ -343,7 +343,7 @@ def test_delete_create_array(
         assert negative_test_setup_function(pos, nr_data_drives) == True
         spare_disk_list = [system_disks.pop()]
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=[],
@@ -353,9 +353,9 @@ def test_delete_create_array(
             == True
         )
         assert pos.target_utils.device_hot_remove(system_disks[:1]) == True
-        assert pos.cli.delete_array(array_name=array_name)
+        assert pos.cli.array_delete(array_name=array_name)
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=[],
@@ -382,7 +382,7 @@ def test_logger_info(setup_cleanup_array_function, raid_type="RAID5", nr_data_dr
         assert negative_test_setup_function(pos, nr_data_drives) == True
         spare_disk_list = [system_disks.pop()]
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram0",
                 data=data_disk_list,
                 spare=[],
@@ -391,7 +391,7 @@ def test_logger_info(setup_cleanup_array_function, raid_type="RAID5", nr_data_dr
             )[0]
             == True
         )
-        assert pos.cli.info_logger()[0] == True
+        assert pos.cli.logger_info()[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )

@@ -12,13 +12,13 @@ def array_ops(pos):
     assert pos.cli.list_array()[0] == True
     array_name = list(pos.cli.array_dict.keys())[0]
 
-    assert pos.cli.list_volume(array_name=array_name)[0] == True
+    assert pos.cli.volume_list(array_name=array_name)[0] == True
     for volume in pos.cli.vols:
-        pos.cli.unmount_volume(volumename=volume, array_name=array_name)
-        pos.cli.delete_volume(volumename=volume, array_name=array_name)
-    assert pos.cli.info_array(array_name=array_name)[0] == True
+        pos.cli.volume_unmount(volumename=volume, array_name=array_name)
+        pos.cli.volume_delete(volumename=volume, array_name=array_name)
+    assert pos.cli.array_info(array_name=array_name)[0] == True
     assert pos.cli.unmount_array(array_name=array_name)[0] == True
-    assert pos.cli.delete_array(array_name=array_name)[0] == True
+    assert pos.cli.array_delete(array_name=array_name)[0] == True
 
 
 def file_io(pos):

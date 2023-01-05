@@ -31,7 +31,7 @@ def teardown_function():
         logger.info("No array found in the config")
     else:
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
@@ -73,11 +73,11 @@ def test_get_default_gc_threshold_value():
 def test_gc_delete_array():
     logger.info(" ==================== Test : test_gc_delete_array ================== ")
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer="uram1",
                 data=data_disk_list,
                 spare=[],
@@ -86,7 +86,7 @@ def test_gc_delete_array():
             )[0]
             == True
         )
-        assert pos.cli.delete_array(array_name="array_gc")[0] == True
+        assert pos.cli.array_delete(array_name="array_gc")[0] == True
         assert pos.cli.wbt_do_gc()[0] == False
         logger.error("As expected gc fails without after deletion of array")
         logger.info(

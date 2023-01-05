@@ -68,9 +68,9 @@ def test_hetero_array_sample():
         data_dict["array"]["phase"] = "false"
         data_dict["volume"]["phase"] = "false"
         assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         array_name = data_dict["array"]["pos_array"][0]["array_name"]
         raid_type = data_dict["array"]["pos_array"][0]["raid_type"]
@@ -86,7 +86,7 @@ def test_hetero_array_sample():
         spare_drives = pos.target_utils.spare_drives
 
         assert (
-            pos.cli.create_array(
+            pos.cli.array_create(
                 write_buffer=uram_name,
                 data=data_drives,
                 spare=spare_drives,

@@ -30,7 +30,7 @@ def teardown_function():
         logger.info("No array found in the config")
     else:
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
+            assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.unmount_array(array_name=array)[0] == True
 
@@ -83,13 +83,13 @@ def test_get_gc_without_io():
     )
     try:
         assert (
-            pos.cli.create_volume(
+            pos.cli.volume_create(
                 array_name=array_name, size="50gb", volumename="vol"
             )[0]
             == True
         )
         assert pos.target_utils.get_subsystems_list() == True
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
         assert (
             pos.target_utils.mount_volume_multiple(

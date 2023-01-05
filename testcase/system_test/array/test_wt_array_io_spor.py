@@ -28,10 +28,10 @@ def test_wt_array_io_spor(array_setup_cleanup, raid_type, nr_data_drives):
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
 
         assert (
-            pos.cli.create_volume("pos_vol1", array_name=array_name, size="2000gb")[0]
+            pos.cli.volume_create("pos_vol1", array_name=array_name, size="2000gb")[0]
             == True
         )
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         assert (
             pos.target_utils.mount_volume_multiple(
                 array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
