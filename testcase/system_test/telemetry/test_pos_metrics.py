@@ -17,7 +17,8 @@ def array_and_volume_creation(pos,num_array=1,run_io=True):
         assert vol_connect_and_run_random_io(pos, pos.target_utils.ss_temp_list, size='1g') == True
     return arrays
 
-def test_verify_volume_states_and_capacity(array_fixture):
+@pytest.mark.parametrize("num_array",[1,2])
+def test_verify_volume_states_and_capacity(array_fixture,num_array):
     pos = array_fixture
     try:
         #Set telemetry Configs
@@ -28,46 +29,47 @@ def test_verify_volume_states_and_capacity(array_fixture):
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         arrays = list(pos.cli.array_dict.keys())
         assert pos.cli.list_volume(array_name=arrays[0])[0] == True
-        array = arrays[0]
-        vol = pos.cli.vols[0]
-        assert pos.cli.info_array(array_name=array)[0] == True
-        array_info = pos.cli.array_info[array]
+        # array = arrays[0]
+        vols = pos.cli.vols
 
         time.sleep(20)
+        for array in arrays:
+            assert pos.cli.info_array(array_name=array)[0] == True
+            array_info = pos.cli.array_info[array]
+            for vol in vols:
+                #Verify volume total
+                assert pos.cli.info_volume(array_name=array, vol_name=vol)[0] == True
+                assert pos.prometheus.get_volume_capacity_total(array_name=arrays[0], volume_name=vol) \
+                       == str(pos.cli.volume_info[arrays[0]][vol]['total_capacity']), "Total volume capacity does not match"
 
-        #Verify volume total
-        assert pos.cli.info_volume(array_name=array, vol_name=vol)[0] == True
-        assert pos.prometheus.get_volume_capacity_total(array_name=arrays[0], volume_name=vol) \
-               == str(pos.cli.volume_info[arrays[0]][vol]['total_capacity']), "Total volume capacity does not match"
+                time.sleep(20)
 
-        time.sleep(20)
+                assert pos.prometheus.get_volume_capacity_used(array_id=str(array_info['index']),
+                                                               volume_id=str(pos.cli.vol_dict[vol]['index'])) \
+                       == str( pos.cli.vol_dict[vol]['total'] - pos.cli.volume_info[arrays[0]][vol]['remain']),\
+                       "Used volume capacity does not match"
 
-        assert pos.prometheus.get_volume_capacity_used(array_id=str(array_info['index']),
-                                                       volume_id=str(pos.cli.vol_dict[vol]['index'])) \
-               == str( pos.cli.vol_dict[vol]['total'] - pos.cli.volume_info[arrays[0]][vol]['remain']),\
-               "Used volume capacity does not match"
+                #Verfiy volume mounted state in metric
+                assert pos.prometheus.volume_states[pos.prometheus.get_volume_state(array_name=array, volume_name=vol)] \
+                       == pos.cli.vol_dict[vol]["status"].lower()
 
-        #Verfiy volume mounted state in metric
-        assert pos.prometheus.volume_states[pos.prometheus.get_volume_state(array_name=array, volume_name=vol)] \
-               == pos.cli.vol_dict[vol]["status"].lower()
+                #Unmount the volume
+                assert pos.cli.unmount_volume(array_name=array,volumename=vol)[0] == True
+                assert pos.cli.list_volume(array_name=array)[0] == True
+                time.sleep(20)
 
-        #Unmount the volume
-        assert pos.cli.unmount_volume(array_name=array,volumename=vol)[0] == True
-        assert pos.cli.list_volume(array_name=array)[0] == True
-        time.sleep(20)
+                #Verify unmounted state in metrics
+                assert pos.prometheus.volume_states[pos.prometheus.get_volume_state(array_name=array,volume_name=vol)] \
+                       == pos.cli.vol_dict[vol]["status"].lower()
 
-        #Verify unmounted state in metrics
-        assert pos.prometheus.volume_states[pos.prometheus.get_volume_state(array_name=array,volume_name=vol)] \
-               == pos.cli.vol_dict[vol]["status"].lower()
+                #Delete the volume
+                assert pos.cli.delete_volume(array_name=arrays[0],volumename=pos.cli.vols[0])[0] == True
+                assert pos.cli.list_volume(array_name=array)[0] == True
+                time.sleep(20)
 
-        #Delete the volume
-        assert pos.cli.delete_volume(array_name=arrays[0],volumename=pos.cli.vols[0])[0] == True
-        assert pos.cli.list_volume(array_name=array)[0] == True
-        time.sleep(20)
-
-        #Verify the offline state in metrics
-        assert pos.prometheus.volume_states[pos.prometheus.get_volume_state(array_name=array, volume_name=vol)] \
-               == "offline"
+                #Verify the offline state in metrics
+                assert pos.prometheus.volume_states[pos.prometheus.get_volume_state(array_name=array, volume_name=vol)] \
+                       == "offline"
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -176,3 +178,74 @@ def test_array_and_volume_capacity(array_fixture):
         logger.info(f"Testcase failed due to {e}")
         pos.exit_handler(expected=False)
 
+def test_array_capacity_after_volume_deletion(array_fixture):
+    pos = array_fixture
+    try:
+        assert pos.prometheus.set_telemetry_configs() == True
+
+        arrays = array_and_volume_creation(pos, num_array=1)
+        assert pos.cli.info_array(array_name=arrays[0])[0] == True
+        array_info = pos.cli.array_info[arrays[0]]
+
+        # Verify the array used capacity
+        assert pos.prometheus.get_used_array_capacity(array_id=str(array_info['index'])) == str(array_info['used'])
+
+        assert pos.cli.list_volume(array_name=arrays[0])[0] == True
+        for vol in list(pos.cli.vols):
+            pos.cli.unmount_volume(volumename=vol,array_name=arrays[0])[0] == True
+            pos.cli.delete_volume(volumename=vol,array_name=arrays[0])[0] == True
+
+        # Verify the array used capacity after volume deleteion
+        assert pos.prometheus.get_used_array_capacity(array_id=str(array_info['index'])) == str(array_info['used'])
+
+    except Exception as e:
+        logger.info(f"Testcase failed due to {e}")
+        pos.exit_handler(expected=False)
+
+def test_array_recreation_in_loop(array_fixture):
+    pos = array_fixture
+    try:
+        assert pos.prometheus.set_telemetry_configs() == True
+        for array in range(2):
+            arrays = array_and_volume_creation(pos, num_array=1)
+            assert pos.cli.info_array(array_name=arrays[0])[0] == True
+            assert pos.prometheus.array_states[
+                       pos.prometheus.get_array_state(uniqueid=pos.cli.array_info[arrays[0]]['uniqueId'])] \
+                   == pos.cli.array_info[arrays[0]]['situation']
+            assert pos.cli.list_volume(array_name=arrays[0])[0] == True
+            vols = pos.cli.vols
+            for vol in vols:
+                assert pos.cli.pos_exporter(operation='start')[0] == True
+
+                assert pos.cli.unmount_volume(array_name=array, volumename=vol)[0] == True
+                assert pos.cli.list_volume(array_name=array)[0] == True
+                time.sleep(20)
+
+                # Verify unmounted state in metrics
+                assert pos.prometheus.volume_states[pos.prometheus.get_volume_state(array_name=array, volume_name=vol)] \
+                       == pos.cli.vol_dict[vol]["status"].lower()
+
+                assert pos.cli.delete_volume(array_name=arrays[0], volumename=pos.cli.vols[0])[0] == True
+                assert pos.cli.list_volume(array_name=array)[0] == True
+                time.sleep(20)
+
+                # Verify the offline state in metrics
+                assert pos.prometheus.volume_states[pos.prometheus.get_volume_state(array_name=array, volume_name=vol)] \
+                       == "offline"
+
+            assert pos.cli.unmount_array(array_name=array)[0] == True
+
+            assert pos.cli.info_array(array_name=arrays[0])[0] == True
+            assert pos.prometheus.array_states[
+                       pos.prometheus.get_array_state(uniqueid=pos.cli.array_info[arrays[0]]['uniqueId'])] \
+                   == pos.cli.array_info[arrays[0]]['situation']
+
+            assert pos.cli.delete_array(array_name=arrays[0])[0] == True
+            assert pos.cli.info_array(array_name=arrays[0])[0] == True
+            assert pos.prometheus.array_states[
+                       pos.prometheus.get_array_state(uniqueid=pos.cli.array_info[arrays[0]]['uniqueId'])] \
+                   == pos.cli.array_info[arrays[0]]['situation']
+
+    except Exception as e:
+        logger.info(f"Testcase failed due to {e}")
+        pos.exit_handler(expected=False)
