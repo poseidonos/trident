@@ -15,9 +15,7 @@
         "config_file": "cce_config.json",
         "issue_key": "sample_test"
     },
-
-    "pos_as_a_service" : {
-
+    "pos_as_a_service": {
         "enable" : "false"
     }
 

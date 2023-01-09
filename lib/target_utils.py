@@ -76,18 +76,18 @@ class TargetUtils:
         Returns:
             str
         """
-        out = self.cli.subsystem_list()
-        if out[0] is False:
-            return None
-        num = len(list(out[1].keys()))
-        if num is 1:
+        assert self.cli.subsystem_list()[0] == True
+        ss_list = list(self.cli.nvmf_subsystem.keys())
+        
+        num = len(ss_list)
+        if num == 1:
             logger.info("creating first Nvmf Subsystem")
             return "{}:subsystem1".format(default_nqn_name)
         elif num is 0:
             logger.error("No Subsystem information found, please verify pos status")
             return None
         else:
-            temp = list(out[1].keys())
+            temp = ss_list
             temp.remove("nqn.2014-08.org.nvmexpress.discovery")
             count = []
             for subsystem in temp:
@@ -382,7 +382,7 @@ class TargetUtils:
             if wbt_flush:
                 assert self.cli.wbt_flush()[0] == True
 
-            assert self.cli.system_stop(grace_shutdown=False)[0] == True
+            assert self.cli.pos_stop(grace_shutdown=False)[0] == True
 
             if uram_backup:
                 self.helper.get_pos_path()
@@ -612,6 +612,7 @@ class TargetUtils:
                 )
             return True
         except Exception as e:
+            logger.error(f"Subsystem creation failed due to {e}")
             return False
 
     def get_subsystems_list(self) -> bool:
@@ -622,13 +623,13 @@ class TargetUtils:
             bool
         """
         try:
-            out = self.cli.subsystem_list()
-            self.ss_temp_list = list(out[1].keys())
+            assert self.cli.subsystem_list()[0] == True
+            self.ss_temp_list = list(self.cli.nvmf_subsystem.keys())
             self.ss_temp_list.remove("nqn.2014-08.org.nvmexpress.discovery")
 
             return True
         except Exception as e:
-            logger.error(e)
+            logger.error(f"subsystem list failed due to {e}")
             return False
 
     def get_disk_info(self) -> bool:
@@ -677,7 +678,7 @@ class TargetUtils:
         self.static_dict = data_dict
         ###system config
         if self.static_dict["system"]["phase"] == "true":
-            assert self.cli.system_start()[0] == True
+            assert self.cli.pos_start()[0] == True
             assert self.cli.subsystem_create_transport()[0] == True
         return True
 
@@ -703,31 +704,36 @@ class TargetUtils:
 
     def bringupSubsystem(self, data_dict: dict) -> bool:
         """method to bringup subsystem"""
-        self.static_dict = data_dict
-        if self.static_dict["subsystem"]["phase"] == "true":
-            ss = self.static_dict["subsystem"]
-            for ssinfo in ss["pos_subsystems"]:
-                assert (
-                    self.create_subsystems_multiple(
-                        ssinfo["nr_subsystems"],
-                        base_name=ssinfo["base_nqn_name"],
-                        ns_count=ssinfo["ns_count"],
-                        serial_number=ssinfo["serial_number"],
-                        model_name=ssinfo["model_name"],
+        try:
+            self.static_dict = data_dict
+            if self.static_dict["subsystem"]["phase"] == "true":
+                ss = self.static_dict["subsystem"]
+                for ssinfo in ss["pos_subsystems"]:
+                    assert (
+                        self.create_subsystems_multiple(
+                            ssinfo["nr_subsystems"],
+                            base_name=ssinfo["base_nqn_name"],
+                            ns_count=ssinfo["ns_count"],
+                            serial_number=ssinfo["serial_number"],
+                            model_name=ssinfo["model_name"],
+                        )
+                        == True
                     )
-                    == True
-                )
 
-            assert self.get_subsystems_list() == True
+                assert self.get_subsystems_list() == True
 
-            for subsystem in self.ss_temp_list:
-                assert (
-                    self.cli.subsystem_add_listner(
-                        subsystem, self.helper.ip_addr[0], "1158"
-                    )[0]
-                    == True
-                )
-        return True
+                for subsystem in self.ss_temp_list:
+                    assert (
+                        self.cli.subsystem_add_listner(
+                            subsystem, self.helper.ip_addr[0], "1158"
+                        )[0]
+                        == True
+                    )
+            return True
+        except Exception as e:
+            logger.error(f"Subsystem bringup failed due to {e}")
+            traceback.print_exc()
+            return False
 
     def bringupArray(self, data_dict: dict) -> bool:
         """method to bringup array"""
@@ -1162,7 +1168,7 @@ class TargetUtils:
                                         == True
                                     )
 
-            assert self.cli.system_stop()[0] == True
+            assert self.cli.pos_stop()[0] == True
             assert self.bringupPOR(array_list) == True
             return True
         except Exception as e:
@@ -1172,7 +1178,7 @@ class TargetUtils:
 
     def bringupPOR(self, array_list) -> bool:
 
-        assert self.cli.system_start()[0] == True
+        assert self.cli.pos_start()[0] == True
         uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
         for uram in uram_list:
             assert self.cli.device_create(uram_name=uram)[0] == True
@@ -1299,7 +1305,7 @@ class TargetUtils:
             ip_addr = self.helper.ip_addr[0]
 
             # Start The POS system
-            assert self.cli.system_start()[0] == True
+            assert self.cli.pos_start()[0] == True
 
             # Create the URAM device
             for uram in uram_dev_list:

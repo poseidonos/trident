@@ -84,7 +84,7 @@ class POS:
         else:
             self.data_dict = self._json_reader(data_path)[1]
         self.config_dict = self._json_reader(config_path)[1]
-        self.pos_AsService = self._json_reader(trident_config)[1]["pos_as_a_service"]["enable"]
+        self.pos_as_service = self._json_reader(trident_config)[1]["pos_as_a_service"]["enable"]
        
         self.target_ssh_obj = SSHclient(
             self.config_dict["login"]["target"]["server"][0]["ip"],
@@ -92,18 +92,13 @@ class POS:
             self.config_dict["login"]["target"]["server"][0]["password"],
         )
         self.obj_list.append(self.target_ssh_obj)
-        self.cli = Cli(
-            self.target_ssh_obj,
-            data_dict=self.data_dict,pos_as_service= self.pos_AsService
-            
-        )
-        self.target_utils = TargetUtils(
-            self.target_ssh_obj,
-            self.cli,
-            self.data_dict,
-            pos_as_service=self.pos_AsService
-            
-        )
+
+        self.cli = Cli(self.target_ssh_obj, data_dict=self.data_dict,
+                       pos_as_service=self.pos_as_service)
+
+        self.target_utils = TargetUtils(self.target_ssh_obj, self.cli,
+                                        self.data_dict,
+                                        pos_as_service=self.pos_as_service)
          
         self.pos_conf = POS_Config(self.target_ssh_obj)
         self.pos_conf.load_config()

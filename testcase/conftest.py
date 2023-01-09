@@ -63,11 +63,12 @@ def copy_dir(source_item):
 def pytest_sessionstart(session):
     global session_start_time
     session_start_time = datetime.now()
-    logger.info(
-        "Test Session Start Time : {}".format(
-            session_start_time.strftime("%m/%d/%Y, %H:%M:%S")
-        )
-    )
+    logger.info("Test Session Start Time : {}".format(
+                 session_start_time.strftime("%m/%d/%Y, %H:%M:%S")))
+
+    # Initialize POS object
+    global pos
+    pos = POS()
 
     if trident_config_data["code_coverage"]["enable"] == "true":
         global cc
@@ -91,133 +92,34 @@ def get_code_coverage_data(jira_id):
 
     return True
    
-@pytest.fixture(scope="module")
-def setup_clenup_array_module():
-    logger.info("========== SETUP ARRAY MODULE =========")
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.devel_resetmbr()[0] == True
-
-    yield pos
-
-    logger.info("========= CLEANUP ARRAY MODULE ========")
-    pos.exit_handler(expected=True)
-
-
 @pytest.fixture(scope="function")
-def setup_cleanup_array_function(setup_clenup_array_module):
-    logger.info("========== SETUP ARRAY TEST =========")
-    pos = setup_clenup_array_module
-    data_dict = pos.data_dict
-    if pos.target_utils.helper.check_pos_exit() == True:
-        data_dict['system']['phase'] = "true"
-        data_dict['subsystem']['phase'] = "true"
-        data_dict['device']['phase'] = "true"
-        data_dict['array']['phase'] = "false"
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-    data_dict["system"]["phase"] = "false"
-    data_dict["subsystem"]["phase"] = "false"
-    data_dict["device"]["phase"] = "false"
-    data_dict["array"]["phase"] = "true"
+def array_fixture():
+    logger.info("========== SETUP BEFORE TEST =========")
+    start_time = datetime.now()
+    logger.info("Test Session Start Time : {}".format(
+                 start_time.strftime("%m/%d/%Y, %H:%M:%S")))
 
-    assert pos.cli.device_list()[0] == True
-    logger.info(f"System Disk : {pos.cli.system_disks}")
+    assert check_pos_and_bringup() == True
 
     yield pos
 
-    logger.info("========== CLEANUP ARRAY TEST =========")
-    try:
-        if pos.client.ctrlr_list()[1] is not None:
-            assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-    except Exception as e:
-        logger.error(f"Failed to nvme disconnect due to {e}")
+    logger.info("========== CLEANUP AFTER TEST ==========")
+    assert client_tear_down() == True
+    assert array_tear_down_function() == True
+    
+    end_time = datetime.now()
+    logger.info("Test Session End Time : {}".format(
+                 end_time.strftime("%m/%d/%Y, %H:%M:%S")))
 
-    assert pos.cli.list_array()[0] == True
-    for array in pos.cli.array_dict.keys():
-        assert pos.cli.array_info(array_name=array)[0] == True
-        if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.array_delete(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-# @pytest.fixture(scope="session", autouse=True)
-def setup_cleanup():
-    global pos
-    session_start_time = datetime.now()
-    logger.info(
-        "Test Session Start Time : {}".format(
-            session_start_time.strftime("%m/%d/%Y, %H:%M:%S")
-        )
-    )
-    # Start POS, Device Scan and Create Transport
-    pos = POS()
-    data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
-    # Reset the Disk MBR
-    assert pos.cli.devel_resetmbr()[0] == True
-
-    yield pos
-
-    # Stop POS
-    pos.exit_handler(expected=True)
-
-    session_end_time = datetime.now()
-    logger.info(
-        "Test Session End Time : {}".format(
-            session_end_time.strftime("%m/%d/%Y, %H:%M:%S")
-        )
-    )
     session_time = session_end_time - session_start_time
     session_minutes = divmod(session_time.seconds, 60)
-    logger.info(
-        "Total Session Time : {} minutes {} seconds".format(
-            session_minutes[0], session_minutes[1]
-        )
-    )
-
-
-@pytest.fixture(scope="function")
-def array_setup_cleanup():
-    logger.info("========== SETUP BEFORE TEST =========")
-
-    # Disable the POS system start and Device Scan Phase
-    data_dict = pos.data_dict
-    data_dict["system"]["phase"] = "false"
-    data_dict["device"]["phase"] = "false"
-    data_dict["array"]["phase"] = "true"
-
-    assert pos.cli.device_list()[0] == True
-    logger.info(f"System Disk : {pos.cli.system_disks}")
-    yield pos
-
-    logger.info("========== CLEANUP AFTER TEST =========")
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.list_array()[0] == True
-    for array in pos.cli.array_dict.keys():
-        assert pos.cli.array_info(array_name=array)[0] == True
-        if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.array_delete(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
+    logger.info("Total Test Session Time : {} minutes {} seconds".format(
+                 session_minutes[0], session_minutes[1]))
 
 ################################################################################################################
 
-
 def check_pos_and_bringup():
     try:
-
         pos.data_dict["system"]["phase"] = "true"
         pos.data_dict["subsystem"]["phase"] = "true"
         pos.data_dict["device"]["phase"] = "true"
@@ -237,7 +139,6 @@ def check_pos_and_bringup():
         logger.error(e)
         traceback.print_exc()
         return False
-
 
 def unmount_fs() -> bool:
     """if mounted to FS delete FS then disconnect"""
@@ -267,6 +168,7 @@ def array_tear_down_function():
     assert pos.target_utils.re_scan() == True
         
     return True
+
 def array_cleanup():
         assert pos.cli.list_array()[0] == True
         array_list = list(pos.cli.array_dict.keys())
@@ -286,35 +188,6 @@ def volume_cleanup(array_name):
         assert pos.target_utils.deleteAllVolumes(arrayname = array_name) == True
     return True
 
-
-@pytest.fixture(scope="function")
-def array_fixture():
-    session_start_time = datetime.now()
-    logger.info(
-        "Test Session Start Time : {}".format(
-            session_start_time.strftime("%m/%d/%Y, %H:%M:%S")
-        )
-    )
-    logger.info("========== SETUP BEFORE TEST =========")
-    assert check_pos_and_bringup() == True
-    yield pos
-    logger.info("========== CLEANUP AFTER TEST ==========")
-    assert client_tear_down() == True
-    assert array_tear_down_function() == True
-    
-    session_end_time = datetime.now()
-    logger.info(
-        "Test Session End Time : {}".format(
-            session_end_time.strftime("%m/%d/%Y, %H:%M:%S")
-        )
-    )
-    session_time = session_end_time - session_start_time
-    session_minutes = divmod(session_time.seconds, 60)
-    logger.info(
-        "Total Session Time : {} minutes {} seconds".format(
-            session_minutes[0], session_minutes[1]
-        )
-    )
 
 
 def teardown_session():
@@ -360,8 +233,6 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
         value.move_to_end("IP", last=False)
         logger.info("Test Config :" + str(dict(value)))
     logger.info("################### End Tag - System Info #####################")
-    global pos
-    pos = POS()
 
 def pos_logs_core_dump(report, issuekey):
     time_stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -476,7 +347,7 @@ def pytest_sessionfinish(session):
     try:
         if pos:
             if pos.target_utils.helper.check_pos_exit() == False:
-                pos.cli.system_stop(grace_shutdown = False)
+                pos.cli.pos_stop(grace_shutdown = False)
             pos._clearall_objects()
     except NameError:
         return "Exiting"

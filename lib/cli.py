@@ -446,7 +446,7 @@ class PosCLI:
                 spare_disks = ",".join(spare)
                 cmd = f"{cmd} -s {spare_disks}"
 
-            if raid_type.lower() != "no-raid" or raid_type.lower() != "noraid":
+            if raid_type.lower() == "no-raid" or raid_type.lower() == "noraid":
                cmd = f"{cmd} --no-raid"
             else:
                 cmd = f"{cmd} --raid {raid_type}"
@@ -1403,7 +1403,7 @@ class PosCLI:
             Tuple of (Status, Comamnd Response)
         """
         try:
-            self.nvmf_out, temp = {}, {}
+            self.nvmf_subsystem, temp = {}, {}
             cli_rsp, jout = self.run_cli_command("list", 
                                                  command_type="subsystem")
             if cli_rsp == False:
@@ -1411,8 +1411,9 @@ class PosCLI:
 
             for data in jout["data"]["subsystemlist"]:
                 temp = data
-                self.nvmf_out[data["nqn"]] = temp
+                self.nvmf_subsystem[data["nqn"]] = temp
 
+            logger.info(f"Subsystem list {self.nvmf_subsystem}")
             #return (True, self.nvmf_out)
 
             return cli_rsp, jout
@@ -1833,7 +1834,6 @@ class Cli(LinuxCLI, PosCLI):
 
         self.ssh_obj = con
         self.helper = helper.Helper(con, pos_as_service=pos_as_service)
-        self.data_dict = data_dict
         self.pos_as_service = pos_as_service
 
         if not self.pos_as_service:
@@ -1842,8 +1842,8 @@ class Cli(LinuxCLI, PosCLI):
             self.cli_path = "poseidonos-cli"
 
         # Initialize Base Classes
-        LinuxCLI.__init__(con)
-        PosCLI.__init__(con, self.cli_path)
+        LinuxCLI.__init__(self, con)
+        PosCLI.__init__(self, con, data_dict, self.cli_path)
 
         # Temp POS Info Storage 
         self.array_info = {}
@@ -1875,6 +1875,7 @@ class Cli(LinuxCLI, PosCLI):
                         time.sleep(10) # Sleep 10 second
                         continue
                     success = True
+                    break
 
                 if not success:
                     raise Exception("POS is not listed after given timeout")
@@ -1924,6 +1925,7 @@ class Cli(LinuxCLI, PosCLI):
                         time.sleep(10) # Sleep 10 second
                         continue
                     success = True
+                    break
 
                 if not success:
                     raise Exception("POS process is listed after timeout")

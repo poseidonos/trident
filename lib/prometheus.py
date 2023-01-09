@@ -69,7 +69,7 @@ class Prometheus(Cli):
     def __init__(self, con, data_dict: dict, array_name: str = "array1"):
         """con : ssh obj of the target"""
         super().__init__(con, data_dict, array_name)
-        assert self.pos_exporter(operation="start")[0] == True
+        assert self.pos_xpo_service_start()[0] == True
         self.prometheus_path = paths.pos_prometheus
         self.ssh_obj = con
         if self.check_pos_exporter() == False:
