@@ -730,8 +730,8 @@ class PosCLI:
             logger.error(f"Device scan command failed due to {e}")
             return False, jout
 
-    def device_create(self, uram_name: str, bufer_size: str,
-                      strip_size: str, numa: int) -> (bool, dict()):
+    def device_create(self, uram_name: str, bufer_size: str = None,
+                      strip_size: str = None, numa: int = 0) -> (bool, dict()):
         """
         Method to create malloc device
 
@@ -745,6 +745,13 @@ class PosCLI:
             Tuple of (Status, Comamnd Response) 
         """
         try:
+            for uram in self.data_dict["device"]["uram"]:
+                if uram["uram_name"] == uram_name:
+                    bufer_size = bufer_size or uram["bufer_size"]
+                    strip_size = strip_size or uram["strip_size"]
+                    numa = numa or uram["numa_node"]
+                    break
+
             cmd = f'create --device-name {uram_name} --num-blocks {bufer_size}'
             cmd = f'{cmd} --block-size {strip_size} --numa {numa} --device-type "uram"'
 
