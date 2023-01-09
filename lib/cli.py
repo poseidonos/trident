@@ -43,7 +43,7 @@ from threading import Lock
 
 logger = logger.get_logger(__name__)
 
-class LinuxCli:
+class LinuxCLI:
     """
     This is a class to execute commands to linux Cli
 
@@ -102,9 +102,30 @@ class LinuxCli:
     def pos_xpo_service_status(self):
         """ Method to get status of pos-exporter service """
         return self.systemctl_servie("status", "pos-exporter")
-    
 
-class PosCli:
+    def kill_process(self, process: str, signal: int):
+        """ 
+        Method to kill process with selected signal
+
+        Parameters:
+            process (str) : Name of the process
+            signal (int) : Signal number
+        
+        Returns:
+            A touple of Status and Comnad Response
+        """
+        try:
+            out = self.ssh_obj.execute(command=f"pkill {signal} {process}")
+            return True, out
+        except Exception as e:
+            logger.error(f"POS kill {signal} failed due to {e}")
+            return False, out
+
+    def pos_kill(self, signal=-9):
+        """ Method to kill pos with selected signal (defaul is -9) """
+        return self.kill_process("poseidonos", signal=signal)
+
+class PosCLI:
     """
     The PosCli class execute commands to POS cli
 
@@ -1780,10 +1801,7 @@ class PosCli:
 
 
 
-
-
-
-class Cli(LinuxCli, PosCli):
+class Cli(LinuxCLI, PosCLI):
 
     """
     The PosCli class execute commands to POS cli
@@ -1798,10 +1816,10 @@ class Cli(LinuxCli, PosCli):
                 pos_as_service: bool=False, 
                 pos_source_path: str = None) -> None:
         """
-            The constructor for PosCli class
+        The constructor for Cli class
 
         Parameters:
-            con (object): target ssh obj
+            con (object): Target ssh obj
             data_dict (dict): pos_config details from testcase/config_files/`.json
             pos_source_path (str): pos souce code path
         """
@@ -1809,123 +1827,101 @@ class Cli(LinuxCli, PosCli):
         self.ssh_obj = con
         self.helper = helper.Helper(con, pos_as_service=pos_as_service)
         self.data_dict = data_dict
-        self.array_info = {}
-        self.cli_history = []
-        self.lock = Lock()
         self.pos_as_service = pos_as_service
 
         if not self.pos_as_service:
             self.cli_path =  f'{pos_source_path}/bin/poseidonos-cli'
         else:
             self.cli_path = "poseidonos-cli"
-        
-    
-    def pos_service(self,operation:str) -> (bool,list):
-        """method to start/stop poseidon service
-           operation (str) : start/stop"""
-        try:
-            cmd = f'systemctl {operation} poseidonos.service'
-            out = self.ssh_obj.execute(cmd, get_pty=True)
-           
-                    
-            return True, out
-        except Exception as e:
-            logger.error("failed to start POS as a service")
-            return False, out
-    
-    def pos_exporter(self,operation:str) -> (bool,list):
-        """method to start/stop poseidon service
-           operation (str) : start/stop"""
-        try:
-            cmd = f'systemctl {operation} pos-exporter.service'
-            out = self.ssh_obj.execute(cmd, get_pty=True)
-                    
-            return True, out
-        except Exception as e:
-            logger.error("failed to start POS as a service")
-            return False, out
 
+        # Initialize Base Classes
+        LinuxCLI.__init__(con)
+        PosCLI.__init__(con, self.cli_path)
 
-   def system_start(self, timeout=60) -> tuple(bool,dict):
+        # Temp POS Info Storage 
+        self.array_info = {}
+        self.cli_history = []
+
+        self.lock = Lock()
+
+    def pos_start(self, timeout=120, verify=True):
         """
         Method to start pos
-        mode = cli if to use system start else mode = service
+
+        Parameters:
+            timeout (int): POS start timeout or wait time
         """
         try:
-            jout = {}
-            if self.pos_as_service == "false":
-                cli_rsp, jout = self.run_cli_command("start", command_type="system")
-                if cli_rsp == True:
-                     return True, jout
+            if self.pos_as_service:   # POS as service
+                res, jout = self.pos_service_start()
             else:
-                assert self.pos_service(operation="start")[0] == True
+                res, jout = self.system_start(timeout=timeout)
+
+            if res and verify:
                 start_time = time.time()
                 run_end_time = start_time + timeout
 
+                success = False
                 while time.time() < run_end_time:
                     if self.helper.check_pos_exit() == True:
-                        logger.warning("waiting for POS to be UP and running")
-                        time.sleep(5)
-                    else:
-                        break
+                        logger.warning("Waiting for POS to be UP and running")
+                        time.sleep(10) # Sleep 10 second
+                        continue
+                    success = True
 
-            
-                return True, jout
+                if not success:
+                    raise Exception("POS is not listed after given timeout")
+   
+            return res, jout
         except Exception as e:
-            logger.error(f"failed due to {e}")
+            logger.error(f"POS start failed due to {e}")
             return False, jout
 
-
-    def system_stop(self, grace_shutdown: bool = True,
-        time_out: int = 300,
-    ) -> (bool, dict()):
+    def pos_stop(self, grace_shutdown: bool = True,
+                 timeout: int = 300, verify=True) -> (bool, dict()):
         """
         Method to stop poseidon
-        Parameters::
-            grace_shutdown (bool) :"flag to kill POS grace_fully" (optional) | (default= True),
-            time_out (int) "timeout to wait POS map" (optional) | (default =300)
+
+        Parameters:
+            grace_shutdown (bool) : Stop pos gracefully after array unmount
+            timeout (int): POS stop timeout or wait time
         """
         try:
-            out = None
             if grace_shutdown:
                 assert self.list_array()[0] == True
                 array_list = list(self.array_dict.keys())
-                if len(array_list) == 0:
-                    logger.info("No array found in the config")
+                for array in array_list:
+                    if self.array_dict[array].lower() == "mounted":
+                        assert self.unmount_array(array_name=array)[0] == True
+
+                if self.pos_as_service:
+                    res, jout = self.pos_service_stop()
                 else:
-                    for array in array_list:
-                        # assert self.array_info(array_name=array)[0] == True
-
-                        if self.array_dict[array].lower() == "mounted":
-                            assert self.unmount_array(array_name=array)[0] == True
-
-                out = self.run_cli_command("stop --force", command_type="system")
-                if out[0] == False:
-                    logger.error("POS system stop command failed.")
-                    return False, out
-
-                if out[1]["output"]["Response"]["result"]["status"]["code"] != 0:
-                    logger.error("POS graceful shutdown failed.")
-                    return False, out
-
-                logger.info("POS graceful shutdown successful. Verifying PID...")
-                count = 0
-                while True:
-                    out = self.helper.check_pos_exit()
-                    if out == False:
-                        logger.warning("POS PID is still active")
-                        time.sleep(10)
-                        count += 10
-                    else:
-                        break
-
-                if count == time_out:
-                    logger.error(f"POS PID is still active after {count} seconds.")
-                    return False, out
+                    res, jout = self.system_stop(timeout=timeout)
             else:
-                out = self.ssh_obj.execute(command="pkill -11 pos")
+                res, jout = self.pos_kill()
+
+            if res == False:
+                logger.error("POS stop failed")
+
+            if res and verify:
+                logger.info("POS shutdown successful. Verifying PID...")
+
+                start_time = time.time()
+                run_end_time = start_time + timeout
+
+                success = False
+                while time.time() < run_end_time:
+                    if self.helper.check_pos_exit() == False:
+                        logger.warning("POS is still active. Wait for 10 seconds...")
+                        time.sleep(10) # Sleep 10 second
+                        continue
+                    success = True
+
+                if not success:
+                    raise Exception("POS process is listed after timeout")
+             
+            return res, jout
         except Exception as e:
-            logger.error("failed due to {}".format(e))
-            # self.system_stop(grace_shutdown=False)
-            return False, out
-        return True, out
+            logger.error(f"POS stop failed due to {e}")
+            return False, jout
