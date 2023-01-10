@@ -688,7 +688,7 @@ class PosCLI:
 
             return cli_rsp, jout
         except Exception as e:
-            logger.error("Array replace disk command failed due to {e}")
+            logger.error(f"Array replace disk command failed due to {e}")
             return False, jout
 
     def array_rebuild(self, array_name: str) -> (bool, dict()):
@@ -1135,18 +1135,20 @@ class PosCLI:
         try:
             self.vol_dict = {}
             cmd = f"list -a {array_name}"
-            cli_rsp, out = self.run_cli_command(cmd, command_type="volume")
+            cli_rsp, jout = self.run_cli_command(cmd, command_type="volume")
 
             if cli_rsp == False:
                 raise Exception("CLI Error")
 
-            if out["status_code"] != 0:
+            if jout["status_code"] != 0:
                 raise Exception(out["description"])
-            no_vols_str = f"no any volume exist in {self.array_name}"
-            if no_vols_str == out["description"]:
-                logger.warning(out["description"])
+
+            no_vols_str = f"no any volume exist in {array_name}"
+            if no_vols_str == jout["description"]:
+                logger.warning(jout["description"])
                 self.vols = []
-                return True, [], {}
+                return True, jout
+
             for vol in out["data"]["volumes"]:
                 self.vol_dict[vol["name"]] = {
                     "index": vol["index"],
@@ -1156,10 +1158,10 @@ class PosCLI:
                     "maxbw": vol["maxbw"],
                 }
             self.vols = list(self.vol_dict.keys())
-            return True, list(self.vol_dict.keys())
+            return True, jout
         except Exception as e:
             logger.error(f"Volume list command failed due to {e}")
-            return False, out
+            return False, jout
 
     def volume_info(self, array_name: str,
                     vol_name: str) -> (bool, dict()):
@@ -1174,7 +1176,7 @@ class PosCLI:
             Tuple of (Status, Comamnd Response)
         """
         try:
-            self.volume_info = {}
+            self.volume_data = {}
             self.volume_info[array_name] = {}
 
             cmd = f"list -a {array_name} -v {vol_name}"
@@ -1491,13 +1493,11 @@ class PosCLI:
     # TODO check if the below Methods are to be open sourced/ renamed for open sourcing
     ######################################wbt#######################################
 
-    def wbt_do_gc(self, array_name: str = None):
+    def wbt_do_gc(self, array_name: str):
         """
         Method to do gc
         """
         try:
-            if array_name == None:
-                array_name = self.array_name
             cmd = "do_gc --array {}".format(array_name)
             cli_rsp, jout = self.run_cli_command(cmd, "wbt")
             if cli_rsp == True:
@@ -1508,13 +1508,11 @@ class PosCLI:
             logger.error(e)
             return False, jout
 
-    def wbt_get_gc_status(self, array_name: str = None):
+    def wbt_get_gc_status(self, array_name: str):
         """
         Method to get gc status
         """
         try:
-            if array_name == None:
-                array_name = self.array_name
             cmd = "get_gc_status --array {}".format(array_name)
             cli_rsp, jout = self.run_cli_command(cmd, "wbt")
             if cli_rsp == True:
@@ -1536,18 +1534,12 @@ class PosCLI:
             return False, jout
 
     def wbt_set_gc_threshold(
-            self, array_name: str = None, normal: int = None, urgent: int = None
+        self, array_name: str, normal: int, urgent: int
     ):
         """
         Method to set gc threshold value to the given array
         """
         try:
-            if array_name == None:
-                array_name = self.array_name
-            if normal == None or urgent == None:
-                logger.error(
-                    "normal and urgent are mandatory params for set_gc_threshold"
-                )
             cmd = "set_gc_threshold --array {} --normal {} --urgent {}".format(
                 array_name, normal, urgent
             )
@@ -1560,13 +1552,11 @@ class PosCLI:
             logger.error(e)
             return False, jout
 
-    def wbt_get_gc_threshold(self, array_name: str = None):
+    def wbt_get_gc_threshold(self, array_name: str):
         """
         Method to get gc threshold
         """
         try:
-            if array_name == None:
-                array_name = self.array_name
             cmd = "get_gc_threshold --array {}".format(array_name)
             cli_rsp, jout = self.run_cli_command(cmd, "wbt")
             if cli_rsp == True:
@@ -1587,13 +1577,11 @@ class PosCLI:
             logger.error(e)
             return False, jout
 
-    def wbt_flush(self, array_name: str = None):
+    def wbt_flush(self, array_name: str):
         """
         Method to flush
         """
         try:
-            if array_name == None:
-                array_name = self.array_name
             cmd = "flush -a {}".format(array_name)
             cli_rsp, jout = self.run_cli_command(cmd, "wbt")
             if cli_rsp == True:
@@ -1605,7 +1593,7 @@ class PosCLI:
             return False, jout
 
     def wbt_read_vsamap_entry(
-            self, volumename: str, rba: str, array_name: str = None
+        self, volumename: str, rba: str, array_name: str
     ) -> (bool):
         """
         Method to read vsamap entry
@@ -1642,7 +1630,7 @@ class PosCLI:
             logger.error(e)
             return False, jout
 
-    def wbt_read_stripemap_entry(self, vsid: str, array_name: str = None):
+    def wbt_read_stripemap_entry(self, vsid: str, array_name: str):
         """
         Method to read stripe map entry
         """

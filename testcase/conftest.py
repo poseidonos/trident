@@ -111,7 +111,7 @@ def array_fixture():
     logger.info("Test Session End Time : {}".format(
                  end_time.strftime("%m/%d/%Y, %H:%M:%S")))
 
-    session_time = session_end_time - session_start_time
+    session_time = end_time - start_time
     session_minutes = divmod(session_time.seconds, 60)
     logger.info("Total Test Session Time : {} minutes {} seconds".format(
                  session_minutes[0], session_minutes[1]))
@@ -183,7 +183,7 @@ def array_cleanup():
         assert pos.cli.devel_resetmbr()[0] == True
         return True
 def volume_cleanup(array_name):
-    assert pos.cli.volume_list(array_name = array_name)[0] == True
+    assert pos.cli.volume_list(array_name=array_name)[0] == True
     if len(pos.cli.vols) > 0:
         assert pos.target_utils.deleteAllVolumes(arrayname = array_name) == True
     return True
