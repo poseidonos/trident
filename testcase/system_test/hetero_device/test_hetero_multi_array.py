@@ -93,8 +93,8 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
                 assert pos.cli.array_unmount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
-                array_size = pos.cli.array_info[array_name].get("size")
-                array_state = pos.cli.array_info[array_name].get("state")
+                array_size = pos.cli.array_data[array_name].get("size")
+                array_state = pos.cli.array_data[array_name].get("state")
                 logger.info(f"Array Size = {array_size} and Status = {array_state}")
 
             # List Array, Unmount and Delete to goto Cleanup for next iteration
@@ -156,7 +156,7 @@ def test_hetero_multi_array_max_size_volume():
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             vol_name = f"{array_size}_pos_vol"
             assert pos.cli.volume_create(vol_name, vol_size, array_name=array_name)[0] == True
@@ -219,7 +219,7 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             vol_name = f"{array_size}_pos_vol"
             assert pos.cli.volume_create(vol_name, vol_size, array_name=array_name)[0] == True
@@ -240,7 +240,7 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():
             if num_disk_remove > 0 :
-                data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+                data_dev_list =  pos.cli.array_data[array_name]["data_list"]
                 remove_drives = data_dev_list[:num_disk_remove]
                 assert pos.target_utils.device_hot_remove(device_list=remove_drives)
             elif unmount_array:
@@ -312,7 +312,7 @@ def test_hetero_degraded_array_create_delete_vols():
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
-            data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+            data_dev_list =  pos.cli.array_data[array_name]["data_list"]
             remove_drives = data_dev_list[:1]
             assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       
@@ -379,7 +379,7 @@ def test_hetero_degraded_array_unmount():
 
         # Hot Remove Disk from first array
         array_name = "array1"
-        data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+        data_dev_list =  pos.cli.array_data[array_name]["data_list"]
         remove_drives = data_dev_list[:1]
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       

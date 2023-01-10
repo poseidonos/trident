@@ -75,7 +75,7 @@ def test_unsupported_volumes(num_vols):
         assert pos.cli.list_array()[0] == True
         for index, array_name in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{int(array_size // (1024 * 1024)/ 260)}mb"  # Volume Size in MB
             assert (
                 pos.target_utils.create_volume_multiple(array_name, 256, size=vol_size)

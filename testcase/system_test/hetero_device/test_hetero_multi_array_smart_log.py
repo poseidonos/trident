@@ -96,7 +96,7 @@ def test_hetero_multi_array_smart_log(array_raid, num_devs):
         assert pos.cli.list_array()[0] == True
         for array_name in pos.cli.array_dict.keys():
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            for device in pos.cli.array_info[array_name]["data_list"]:
+            for device in pos.cli.array_data[array_name]["data_list"]:
                 assert pos.cli.device_smart_log(devicename=device)[0] == True
 
 

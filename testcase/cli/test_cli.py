@@ -52,7 +52,7 @@ def array(pos):
     assert pos.cli.array_info(array_name="array1")[0] == True
     assert (
         pos.cli.array_rmspare(
-            device_name=pos.cli.array_info["array1"]["spare_list"][0],
+            device_name=pos.cli.array_data["array1"]["spare_list"][0],
             array_name="array1",
         )[0]
         == True

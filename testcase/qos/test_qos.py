@@ -60,7 +60,7 @@ def test_qos_rebuilding_Array(array_fixture):
             assert pos.cli.array_info(array_name=array)[0] == True
             assert (
                 pos.target_utils.device_hot_remove(
-                    device_list=[pos.cli.array_info[array]["data_list"][0]]
+                    device_list=[pos.cli.array_data[array]["data_list"][0]]
                 )
                 == True
             )

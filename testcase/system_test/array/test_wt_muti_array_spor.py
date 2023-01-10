@@ -46,7 +46,7 @@ def test_wt_multi_array_FIO_SPOR_NPOR(setup_cleanup_array_function, array1, arra
 
         for id, array_name in enumerate((array_name1, array_name2)):
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
 
             assert (

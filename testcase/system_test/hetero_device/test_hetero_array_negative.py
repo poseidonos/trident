@@ -269,7 +269,7 @@ def test_hetero_faulty_array_create_delete_vols():
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
-            data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+            data_dev_list =  pos.cli.array_data[array_name]["data_list"]
             remove_drives = data_dev_list[:2]
             assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       

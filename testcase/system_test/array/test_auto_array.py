@@ -42,11 +42,11 @@ def test_auto_array_with_all_numa(array_fixture):
                 )
 
                 assert pos.cli.array_info(array_name=array_name)[0] == True
-                assert pos.cli.array_info[array_name]["state"] == "OFFLINE"
+                assert pos.cli.array_data[array_name]["state"] == "OFFLINE"
 
                 assert pos.cli.array_unmount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
-                assert pos.cli.array_info[array_name]["state"] == "NORMAL"
+                assert pos.cli.array_data[array_name]["state"] == "NORMAL"
             else:
                 logger.info(f"Insufficient device {num_dev} to numa {numa_id}")
 

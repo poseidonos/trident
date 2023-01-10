@@ -232,10 +232,10 @@ def test_mnt_vol_stop_arrray_state(
         assert pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
         assert pos.target_utils.device_hot_remove(data_disk_list[:2]) == True
         assert pos.cli.array_info(array_name)[0] == True
-        array_status = pos.cli.array_info[array_name]
+        array_status = pos.cli.array_data[array_name]
         logger.info(str(array_status))
         logger.info(array_status["state"])
-        if pos.cli.array_info[array_name]["state"] != "STOP":
+        if pos.cli.array_data[array_name]["state"] != "STOP":
             logger.error(
                 "Expected array state mismatch with output{}".format(
                     array_status["state"]
@@ -285,10 +285,10 @@ def test_rename_vol_stop_arrray_state(
         assert pos.cli.volume_list(array_name=array_name)[0] == True
         assert pos.target_utils.device_hot_remove(data_disk_list[:2]) == True
         assert pos.cli.array_info(array_name)[0] == True
-        array_status = pos.cli.array_info[array_name]
+        array_status = pos.cli.array_data[array_name]
         logger.info(str(array_status))
         logger.info(array_status["state"])
-        if pos.cli.array_info[array_name]["state"] != "STOP":
+        if pos.cli.array_data[array_name]["state"] != "STOP":
             logger.error(
                 "Expected array state mismatch with output{}".format(
                     array_status["state"]

@@ -26,7 +26,7 @@ def volume_create_and_mount_multiple(
         for array_name in array_list:
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-            array_cap = int(pos.cli.array_info[array_name]["size"])
+            array_cap = int(pos.cli.array_data[array_name]["size"])
             vol_size = array_cap * (vol_utilize / 100) / num_volumes
             vol_size = f"{int(vol_size / (1024 * 1024))}mb"  # Size in mb
 

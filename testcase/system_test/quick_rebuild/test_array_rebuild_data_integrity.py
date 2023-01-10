@@ -54,8 +54,8 @@ def test_array_rebuild_data_integrity(setup_cleanup_array_function, remove_disk)
         time.sleep(120) # Wait for 2 minutes
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
-        spare_disk_list = pos.cli.array_info[array_name]["spare_list"]
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
+        spare_disk_list = pos.cli.array_data[array_name]["spare_list"]
 
         random.shuffle(data_disk_list)
         replace_disk = data_disk_list[0]
@@ -81,7 +81,7 @@ def test_array_rebuild_data_integrity(setup_cleanup_array_function, remove_disk)
             
         time.sleep(2) # Wait 2 seconds and verify the rebuilding should not start
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        assert pos.cli.array_info[array_name]["situation"].lower() == exp_array_situation
+        assert pos.cli.array_data[array_name]["situation"].lower() == exp_array_situation
 
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
 
@@ -144,7 +144,7 @@ def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         random.shuffle(data_disk_list)
 
@@ -152,7 +152,7 @@ def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
         assert pos.target_utils.pci_rescan() == True
 
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        array_situation = pos.cli.array_info[array_name]["situation"].lower()
+        array_situation = pos.cli.array_data[array_name]["situation"].lower()
         assert array_situation == "degraded"
 
         assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
@@ -166,7 +166,7 @@ def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
         assert pos.target_utils.array_rebuild_wait(array_name=array_name) == True
 
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        array_situation = pos.cli.array_info[array_name]["situation"].lower()
+        array_situation = pos.cli.array_data[array_name]["situation"].lower()
         assert array_situation == "normal"
 
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
@@ -230,7 +230,7 @@ def test_spare_disk_fail_during_disk_replace(setup_cleanup_array_function, raid_
         assert pos.target_utils.array_rebuild_wait(array_name=array_name) == True
 
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        spare_disk_list = pos.cli.array_info[array_name]["spare_list"]
+        spare_disk_list = pos.cli.array_data[array_name]["spare_list"]
         assert pos.target_utils.device_hot_remove([spare_disk_list[0]]) == True
         assert pos.target_utils.pci_rescan() == True
 

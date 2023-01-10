@@ -26,7 +26,7 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
 
         for array_name in array_list:
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_cap_before = pos.cli.array_info[array_name]["size"]
+            array_cap_before = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_before))
 
         assert (
@@ -38,7 +38,7 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
 
         for array_name in array_list:
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_cap_after = pos.cli.array_info[array_name]["size"]
+            array_cap_after = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_after))
 
         logger.info("As expected array size vary before and after volume creation ")
@@ -71,10 +71,10 @@ def test_multi_array_delete_vols(setup_cleanup_array_function):
                 == True
             )
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_cap_creation = pos.cli.array_info[array_name]["size"]
+            array_cap_creation = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_creation))
             assert pos.target_utils.deleteAllVolumes(arrayname=array_name) == True
-            array_cap_creation = pos.cli.array_info[array_name]["size"]
+            array_cap_creation = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_creation))
             logger.info(
                 " ============================= Test ENDs ======================================"

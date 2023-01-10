@@ -43,7 +43,7 @@ def test_hetero_degraded_array_create_delete_vols(array_fixture):
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
-            data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+            data_dev_list =  pos.cli.array_data[array_name]["data_list"]
             remove_drives = data_dev_list[:1]
             assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       
@@ -81,7 +81,7 @@ def test_hetero_degraded_array_unmount(array_fixture):
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
-            data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+            data_dev_list =  pos.cli.array_data[array_name]["data_list"]
             remove_drives = data_dev_list[:1]
             assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       

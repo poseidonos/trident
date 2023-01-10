@@ -162,7 +162,7 @@ def test_hetero_array_all_dev_fio(raid_type, mount_type):
             
         assert pos.cli.array_unmount(array_name=array_name, write_back=write_back)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        array_size = int(pos.cli.array_info[array_name].get("size"))
+        array_size = int(pos.cli.array_data[array_name].get("size"))
         vol_size = f"{int(array_size // (1024 * 1024))}mb"  # Volume Size in MB
 
         assert pos.target_utils.create_volume_multiple(array_name, 1, 

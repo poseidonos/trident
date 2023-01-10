@@ -95,7 +95,7 @@ def test_hetero_multi_array_long_io_mem_leak(raid_type, num_devs):
                                        write_back=True)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             num_vols = 2
             vol_size = f"{int((array_size / 2) / (1024 * 1024))}mb"  # Volume Size in MB
 

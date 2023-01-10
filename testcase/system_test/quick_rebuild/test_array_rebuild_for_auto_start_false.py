@@ -85,7 +85,7 @@ def test_array_rebuild_auto_start_disable(auto_rebuild_setup_cleanup, test_opera
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         random.shuffle(data_disk_list)
         selected_disks = data_disk_list[0]
@@ -100,7 +100,7 @@ def test_array_rebuild_auto_start_disable(auto_rebuild_setup_cleanup, test_opera
         
         time.sleep(2) # Wait 2 seconds and verify the rebuilding should not start
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        assert pos.cli.array_info[array_name]["situation"] == array_situation
+        assert pos.cli.array_data[array_name]["situation"] == array_situation
 
         if test_operation != "disk_replace_rebuild":
             assert pos.cli.array_rebuild(array_name)[0] == True

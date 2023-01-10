@@ -255,7 +255,7 @@ def test_io_sanity_set_get_threashold_io_gc(
 
             assert target.cli.array_info(target.cli.array_name)[0] == True
             num_data_disks = len(
-                target.cli.array_info[target.cli.array_name]["data_list"]
+                target.cli.array_data[target.cli.array_name]["data_list"]
             )
             stripe_size_for_writing = num_data_disks * 256 * 1024
             logger.info("Lock status : release {}".format(target.cli.lock.release()))

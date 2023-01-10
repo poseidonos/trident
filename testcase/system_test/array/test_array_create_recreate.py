@@ -108,7 +108,7 @@ def test_detaching_drives_r0(array_fixture):
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     assert pos.cli.array_info(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
-    remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["data_list"])]
+    remove_drives = [random.choice(pos.cli.array_data[array_list[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
 
 def test_gc_on_r0(array_fixture):
@@ -133,10 +133,10 @@ def test_array_in_degraded_state(array_fixture):
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     assert pos.cli.array_info(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
-    remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["data_list"])]
+    remove_drives = [random.choice(pos.cli.array_data[array_list[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
     assert pos.cli.array_info(array_name=array_list[0])[0] == True
-    if pos.cli.array_info[array_list[0]]['situation'].upper() == "DEGRADED":
+    if pos.cli.array_data[array_list[0]]['situation'].upper() == "DEGRADED":
         assert io.run_io(pos=pos) == True
         pass
 
@@ -149,12 +149,12 @@ def test_remove_device_unmount_state(array_fixture):
     array_list = list(pos.cli.array_dict.keys())
     assert pos.cli.unmount_array(array_name=array_list[0])[0] == True
     assert pos.cli.array_info(array_name=array_list[0])[0] == True
-    remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["spare_list"])]
+    remove_drives = [random.choice(pos.cli.array_data[array_list[0]]["spare_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
     assert pos.cli.array_info(array_name=array_list[0])[0] == True
     assert pos.cli.array_unmount(array_name=array_list[0])[0] == True
     assert pos.cli.array_info(array_name=array_list[0])[0] == True
-    remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["data_list"])]
+    remove_drives = [random.choice(pos.cli.array_data[array_list[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
     assert pos.cli.array_info(array_name=array_list[0])[0] == True
 
@@ -174,10 +174,10 @@ def test_unmount_array_in_degraded_state(array_fixture):
     assert pos.cli.list_array()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     assert pos.cli.array_info(array_name=list(pos.cli.array_dict.keys())[0])[0] == True
-    remove_drives = [random.choice(pos.cli.array_info[array_list[0]]["data_list"])]
+    remove_drives = [random.choice(pos.cli.array_data[array_list[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
     assert pos.cli.array_info(array_name=array_list[0])[0] == True
-    if pos.cli.array_info[array_list[0]]['situation'].upper() == "DEGRADED":
+    if pos.cli.array_data[array_list[0]]['situation'].upper() == "DEGRADED":
         assert pos.cli.unmount_array(array_name=array_list[0])[0] == True
 
 @pytest.mark.regression

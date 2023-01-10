@@ -135,8 +135,8 @@ def test_raid6_longetivity_npor_spor_journal_enabled(journal_setup_cleanup,por):
             disk_interval = [(0,)]
             assert array_disks_hot_remove(pos=pos,array_name=array,disk_remove_interval_list=disk_interval) == True
             assert pos.cli.array_info(array_name=array)[0] == True
-            logger.info("{} State : {} and {} Situation : {}".format(array,pos.cli.array_info[array]['state'],array,pos.cli.array_info[array]['situation']))
-            assert pos.cli.array_info[array]['state'] == 'BUSY' and pos.cli.array_info[array]['situation'] == 'REBUILDING'
+            logger.info("{} State : {} and {} Situation : {}".format(array,pos.cli.array_data[array]['state'],array,pos.cli.array_data[array]['situation']))
+            assert pos.cli.array_data[array]['state'] == 'BUSY' and pos.cli.array_data[array]['situation'] == 'REBUILDING'
 
         assert setup.run_fio_all_volumes(pos=pos, nvme_devs=pos.client.nvme_list_out, fio_cmd=fio_cmd,size='5g') == True
 

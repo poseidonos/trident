@@ -175,7 +175,7 @@ def test_create_vol_larger_array_size():
     try:
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name)[0] == True
-        array_status = pos.cli.array_info[array_name]
+        array_status = pos.cli.array_data[array_name]
         logger.info(str(array_status))
         logger.info(array_status["size"])
         capacity = int(array_status["size"]) + 2048
@@ -205,10 +205,10 @@ def test_vol_array_normal_states():
     try:
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name)[0] == True
-        array_status = pos.cli.array_info[array_name]
+        array_status = pos.cli.array_data[array_name]
         logger.info(str(array_status))
         logger.info(array_status["state"])
-        if pos.cli.array_info[array_name]["state"] == "NORMAL":
+        if pos.cli.array_data[array_name]["state"] == "NORMAL":
             assert (
                 pos.cli.volume_create(
                     array_name=array_name, size="10gb", volumename="vol"

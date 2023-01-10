@@ -20,31 +20,31 @@ def test_stop_arrray_state(array_fixture, num_drives):
         assert pos.cli.list_array()[0] == True
         array_name = list(pos.cli.array_dict.keys())[0]
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        data_list = pos.cli.array_info[array_name]["data_list"]
-        spare_list = pos.cli.array_info[array_name]["spare_list"]
+        data_list = pos.cli.array_data[array_name]["data_list"]
+        spare_list = pos.cli.array_data[array_name]["spare_list"]
 
         assert pos.target_utils.device_hot_remove(data_list[:num_drives]) == True
         assert pos.cli.array_info(array_name)[0] == True
-        array_status = pos.cli.array_info[array_name]
+        array_status = pos.cli.array_data[array_name]
         logger.info(array_status["state"])
-        if (pos.cli.array_info[array_name]["state"] == "NORMAL") and (
-            pos.cli.array_info[array_name]["situation"] == "NORMAL"
+        if (pos.cli.array_data[array_name]["state"] == "NORMAL") and (
+            pos.cli.array_data[array_name]["situation"] == "NORMAL"
         ):
             logger.info(
                 "Expected array state mismatch with output{}".format(
                     array_status["state"]
                 )
             )
-        elif (pos.cli.array_info[array_name]["state"] == "STOP") and (
-            pos.cli.array_info[array_name]["situation"] == "FAULT"
+        elif (pos.cli.array_data[array_name]["state"] == "STOP") and (
+            pos.cli.array_data[array_name]["situation"] == "FAULT"
         ):
             logger.error(
                 "Expected array state mismatch with output{}".format(
                     array_status["state"]
                 )
             )
-        elif (pos.cli.array_info[array_name]["state"] == "BUSY") and (
-            pos.cli.array_info[array_name]["situation"] == "DEGRADED"
+        elif (pos.cli.array_data[array_name]["state"] == "BUSY") and (
+            pos.cli.array_data[array_name]["situation"] == "DEGRADED"
         ):
             assert (
                 pos.cli.array_addspare(
@@ -52,7 +52,7 @@ def test_stop_arrray_state(array_fixture, num_drives):
                 )[0]
                 == True
             )
-            assert pos.cli.array_info[array_name]["situation"] == "REBUILDING"
+            assert pos.cli.array_data[array_name]["situation"] == "REBUILDING"
             logger.info("As expected rebuild in progress")
 
     except Exception as e:

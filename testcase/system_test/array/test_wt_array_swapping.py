@@ -116,7 +116,7 @@ def test_array_swapping(array_detail):
     assert pos.cli.list_array()[0] == True
     arrays = list(pos.cli.array_dict.keys())
     assert pos.cli.array_info(array_name=arrays[0])[0] == True
-    remove_drives = [random.choice(pos.cli.array_info[arrays[0]]["data_list"])]
+    remove_drives = [random.choice(pos.cli.array_data[arrays[0]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives) == True
     assert pos.target_utils.array_rebuild_wait(array_name=arrays[0]) == True 
 
@@ -192,8 +192,8 @@ def test_array_create_and_trigger_rebuild():
     create_initial_arrays(config_2)
     assert run_block_io() == True
     assert pos.cli.array_info(array_name=array_list[1])[0] == True
-    remove_drives = [random.choice(pos.cli.array_info[array_list[1]]["data_list"])]
+    remove_drives = [random.choice(pos.cli.array_data[array_list[1]]["data_list"])]
     assert pos.target_utils.device_hot_remove(device_list=remove_drives)
     assert pos.cli.array_info(array_name=array_list[1])
-    if pos.cli.array_info[array_list[1]]["state"] == 'BUSY' and pos.cli.array_info[array_list[1]]["situation"] == 'REBUILDING':
+    if pos.cli.array_data[array_list[1]]["state"] == 'BUSY' and pos.cli.array_data[array_list[1]]["situation"] == 'REBUILDING':
         pos.target_utils.array_rebuild_wait(array_name=array_list[1])

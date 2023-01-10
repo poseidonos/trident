@@ -196,8 +196,8 @@ def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
         for pos_array in pos.data_dict["array"]["pos_array"]:
             array_name = pos_array["array_name"]
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            assert pos.cli.array_info[array_name]["situation"] == "DEGRADED"
-            assert pos.cli.array_info[array_name]["state"] == "BUSY"
+            assert pos.cli.array_data[array_name]["situation"] == "DEGRADED"
+            assert pos.cli.array_data[array_name]["state"] == "BUSY"
 
         # Wait for async fio to complete
         assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=120) == True
@@ -276,8 +276,8 @@ def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
         assert pos.cli.list_array()[0] == True
         for idx, array_name in enumerate(pos.cli.array_dict.keys()): 
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            assert pos.cli.array_info[array_name]["situation"] == array_situation[idx]
-            assert pos.cli.array_info[array_name]["state"] == array_states[idx]
+            assert pos.cli.array_data[array_name]["situation"] == array_situation[idx]
+            assert pos.cli.array_data[array_name]["state"] == array_states[idx]
 
 
         # Wait for async fio to complete

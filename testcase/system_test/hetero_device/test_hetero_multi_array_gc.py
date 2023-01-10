@@ -90,7 +90,7 @@ def test_hetero_multi_array_GC(array_raid, num_devs, num_vols):
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True 
 
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{int((array_size / num_vols) / (1024 * 1024))}mb"
             vol_name = "pos_vol"
 

@@ -93,7 +93,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
 
         for array_name in array_list:
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_cap = int(pos.cli.array_info[array_name]["size"])
+            array_cap = int(pos.cli.array_data[array_name]["size"])
             vol_size = (array_cap * (vol_utilize // 100) // num_volumes)
             vol_size = f"{int(vol_size // (1024 * 1024))}mb"     # Size in mb
 
@@ -243,8 +243,8 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list):
     """
     try:
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
-        remaining_spare_disk = len(pos.cli.array_info[array_name]["spare_list"])
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
+        remaining_spare_disk = len(pos.cli.array_data[array_name]["spare_list"])
 
         for disk_rebuild in disk_remove_interval_list:
             if len(disk_rebuild) > remaining_spare_disk:
@@ -329,9 +329,9 @@ def array_disk_remove_replace(pos, array_list, replace=False, verify_rebuild=Fal
         selected_disk_dict = {}
         for array in array_list:
             assert pos.cli.array_info(array_name=array)[0] == True
-            data_disk_list = pos.cli.array_info[array]["data_list"]
-            spare_disk_list = pos.cli.array_info[array]["spare_list"]
-            array_situation = pos.cli.array_info[array]["situation"]
+            data_disk_list = pos.cli.array_data[array]["data_list"]
+            spare_disk_list = pos.cli.array_data[array]["spare_list"]
+            array_situation = pos.cli.array_data[array]["situation"]
             if random_disk:
                 random.shuffle(data_disk_list)
             selected_disk = data_disk_list[disk_index]
@@ -361,7 +361,7 @@ def array_disk_remove_replace(pos, array_list, replace=False, verify_rebuild=Fal
         if verify_disk:
             for array in rebuild_array_list:
                 assert pos.cli.array_info(array_name=array)[0] == True
-                data_disk_list = pos.cli.array_info[array]["data_list"]
+                data_disk_list = pos.cli.array_data[array]["data_list"]
                 assert selected_disk_dict[array] not in data_disk_list
 
     except Exception as e:
@@ -384,7 +384,7 @@ def array_add_spare_disk(pos, array_list, spare_disks=None, verify=True):
             assert pos.cli.array_addspare(spare_disk, array_name=array)[0] ==  True
             if verify:
                 assert pos.cli.array_info(array_name=array)[0] == True
-                spare_disk_list = pos.cli.array_info[array]["spare_list"]
+                spare_disk_list = pos.cli.array_data[array]["spare_list"]
                 assert (spare_disk in spare_disk_list) == True
     except Exception as e:
         logger.info(f"Failed to array disk replace/remove due to {e}")

@@ -26,7 +26,7 @@ def test_noraid_array_disk_replace(setup_cleanup_array_function):
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
         assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
@@ -72,7 +72,7 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
 
         for array_name in array_list:
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            data_disk_list = pos.cli.array_info[array_name]["data_list"]
+            data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
         status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
@@ -288,7 +288,7 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
 
         for array in array_list:
             assert pos.cli.array_info(array_name=array)[0] == True
-            data_disk_list = pos.cli.array_info[array]["data_list"]
+            data_disk_list = pos.cli.array_data[array]["data_list"]
             random.shuffle(data_disk_list)
             
             # Quick Rebuild Will be started 
@@ -367,7 +367,7 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
 
         for array in array_list:
             assert pos.cli.array_info(array_name=array)[0] == True
-            data_disk_list = pos.cli.array_info[array]["data_list"]
+            data_disk_list = pos.cli.array_data[array]["data_list"]
             random.shuffle(data_disk_list)
             
             #  Array disk remove and Rebuild Will be started 

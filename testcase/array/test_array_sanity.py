@@ -125,7 +125,7 @@ def test_SanityArray(array_fixture):
                 assert (
                     pos.cli.array_addspare(
                         array_name=array_name,
-                        device_name=pos.cli.array_info["array1"]["data_list"][0],
+                        device_name=pos.cli.array_data["array1"]["data_list"][0],
                     )[0]
                     == False
                 )

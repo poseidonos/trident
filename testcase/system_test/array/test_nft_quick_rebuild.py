@@ -27,7 +27,7 @@ def trigger_quick_rebuild(pos,array):
 
     assert pos.cli.array_info(array_name=array)[0] == True
 
-    data_dev = random.choice(list(pos.cli.array_info[array]['data_list']))
+    data_dev = random.choice(list(pos.cli.array_data[array]['data_list']))
 
     logger.info("*************** Triggering device replacement ***************")
 
@@ -67,12 +67,12 @@ def test_nft_quick_rebuild_while_io_running(array_fixture,testcase):
         assert trigger_quick_rebuild(pos=pos,array=arrays[0]) == True
         assert pos.target_utils.check_rebuild_status(array_name=arrays[0]) == True
         assert pos.cli.array_info(array_name=arrays[0])[0] == True
-        assert pos.cli.array_info[arrays[0]]['situation'] ==  TESTCASE_DICT[testcase]["situation"][0]
+        assert pos.cli.array_data[arrays[0]]['situation'] ==  TESTCASE_DICT[testcase]["situation"][0]
 
         #Hot remove the data drive of second array
         assert array_disks_hot_remove(pos=pos, array_name=arrays[1], disk_remove_interval_list=[(0,)]) == True
         assert pos.cli.array_info(array_name=arrays[1])[0] == True
-        assert pos.cli.array_info[arrays[1]]['situation'] == TESTCASE_DICT[testcase]["situation"][1]
+        assert pos.cli.array_data[arrays[1]]['situation'] == TESTCASE_DICT[testcase]["situation"][1]
 
         #Wait for rebuild to complete
         assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=10) == True

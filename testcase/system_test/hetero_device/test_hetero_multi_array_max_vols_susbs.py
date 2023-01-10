@@ -105,7 +105,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
                 assert pos.cli.array_unmount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
-                array_size = int(pos.cli.array_info[array_name].get("size"))
+                array_size = int(pos.cli.array_data[array_name].get("size"))
                 vol_size = f"{int(array_size / (1024 * 1024) / num_vols)}mb"  # Volume Size in MB
                 vol_name = "pos_vol"
 

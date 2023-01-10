@@ -257,7 +257,7 @@ def test_volume_create_gt_max_array_capacity():
     try:
         num_vol = 255
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        array_size = int(pos.cli.array_info[array_name].get("size"))
+        array_size = int(pos.cli.array_data[array_name].get("size"))
         vol_size = f"{int((array_size // num_vol) // (1024 * 1024))}mb"
         assert (
             pos.target_utils.create_volume_multiple(

@@ -68,7 +68,7 @@ def test_volumes_data_integrity(num_vols):
         assert pos.cli.list_array()[0] == True
         for index, array_name in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{int(array_size // (1024 * 1024) / num_vols[index])}mb"  # Volume Size in MB
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -123,7 +123,7 @@ def test_max_size_volume_data_integrity():
         assert pos.cli.list_array()[0] == True
         for index, array_name in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{int(array_size // (1024 * 1024))}mb"  # Volume Size in MB
             vol_name = "POS_VOL"
             assert (

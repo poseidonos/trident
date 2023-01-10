@@ -123,7 +123,7 @@ def test_hetero_multi_array_max_size_volume_FIO(test_id):
                                        write_back=write_back)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             vol_name = f"{array_name}_pos_vol"
             assert pos.cli.volume_create(vol_name, vol_size, array_name=array_name)[0] == True
@@ -221,7 +221,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                 assert pos.cli.array_unmount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
-                array_size = int(pos.cli.array_info[array_name].get("size"))
+                array_size = int(pos.cli.array_data[array_name].get("size"))
                 vol_size = f"{int(array_size / (1024 * 1024) / num_vols)}mb"  # Volume Size in MB
                 vol_name = "pos_vol"
 

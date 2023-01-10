@@ -184,7 +184,7 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
 
             for id in range(2):
                 array_size = int(
-                    pos.cli.array_info[f"array{id +1}"].get("size"))
+                    pos.cli.array_data[f"array{id +1}"].get("size"))
                 # Volume Size in MB
                 vol_size = f"{array_size // (1024 * 1024)}MB"
                 vol_size_list.append(vol_size)
@@ -295,7 +295,7 @@ def test_array1_spare_as_array2_data_disk(array_fixture):
         assert (
             pos.cli.array_create(
                 write_buffer=uram_name,
-                data=pos.cli.array_info["array1"]["spare_list"],
+                data=pos.cli.array_data["array1"]["spare_list"],
                 spare=spare_disk_list,
                 raid_type=raid_type,
                 array_name=array_name,
@@ -334,7 +334,7 @@ def test_array1_data_as_array2_spare_disk(array_fixture):
             pos.cli.array_create(
                 write_buffer=uram_name,
                 data=data_disk_array,
-                spare=pos.cli.array_info["array1"]["data_list"],
+                spare=pos.cli.array_data["array1"]["data_list"],
                 raid_type=raid_type,
                 array_name=array_name,
             )[0]
@@ -361,13 +361,13 @@ def test_multiarray_size_after_unmount_mount(array_fixture):
         for id in range(2):
             array_name = f"array{id+1}"
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_size_pre = int(pos.cli.array_info[array_name].get("size"))
+            array_size_pre = int(pos.cli.array_data[array_name].get("size"))
 
             assert pos.cli.unmount_array(array_name=array_name)[0] == True
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_size_post = int(pos.cli.array_info[array_name].get("size"))
+            array_size_post = int(pos.cli.array_data[array_name].get("size"))
 
             assert array_size_pre == array_size_post
 
@@ -390,7 +390,7 @@ def test_array2_unmount_after_detach_spare(array_fixture):
 
         # Array 2 Detach Speare disk
         assert pos.target_utils.device_hot_remove(
-            pos.cli.array_info["array2"]["spare_list"]) == True
+            pos.cli.array_data["array2"]["spare_list"]) == True
 
         array_name = "array2"
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
@@ -615,7 +615,7 @@ def test_multiarray_consume_max_array_capacity(array_fixture):
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
 
-        array_size = int(pos.cli.array_info[array_name].get("size"))
+        array_size = int(pos.cli.array_data[array_name].get("size"))
         # Volume Size in MB
         vol_size = f"{int((array_size // 256) // (1024 * 1024))}mb"
 
@@ -658,11 +658,11 @@ def test_multiarray_unmount_array_effect(array_fixture):
             array_name=f"{array_name_pre}_2")[0] == True
 
         assert pos.cli.array_info(array_name=f"{array_name_pre}_1")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_1"].get(
+        assert pos.cli.array_data[f"{array_name_pre}_1"].get(
             "state") == "NORMAL"
 
         assert pos.cli.array_info(array_name=f"{array_name_pre}_2")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_2"].get(
+        assert pos.cli.array_data[f"{array_name_pre}_2"].get(
             "state") == "OFFLINE"
 
         # Unmount first array and Mount second array
@@ -671,11 +671,11 @@ def test_multiarray_unmount_array_effect(array_fixture):
         assert pos.cli.array_unmount(array_name=f"{array_name_pre}_2")[0] == True
 
         assert pos.cli.array_info(array_name=f"{array_name_pre}_1")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_1"].get(
+        assert pos.cli.array_data[f"{array_name_pre}_1"].get(
             "state") == "OFFLINE"
 
         assert pos.cli.array_info(array_name=f"{array_name_pre}_2")[0] == True
-        assert pos.cli.array_info[f"{array_name_pre}_2"]["state"] == "NORMAL"
+        assert pos.cli.array_data[f"{array_name_pre}_2"]["state"] == "NORMAL"
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -698,12 +698,12 @@ def test_multiarray_unmount_mount_array1(array_fixture):
         array_name = "array1"
         assert pos.cli.unmount_array(array_name=array_name)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        assert pos.cli.array_info[array_name].get("state") == "OFFLINE"
+        assert pos.cli.array_data[array_name].get("state") == "OFFLINE"
 
         # Mount the first array and verify the state
         assert pos.cli.array_unmount(array_name=array_name)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        assert pos.cli.array_info[array_name].get("state") == "NORMAL"
+        assert pos.cli.array_data[array_name].get("state") == "NORMAL"
 
         logger.info(
             " ============================= Test ENDs ======================================"

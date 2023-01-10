@@ -149,7 +149,7 @@ def test_hetero_array_spor(array_raid, num_devs):
         assert pos.cli.array_unmount(array_name=array_name)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
 
-        array_size = int(pos.cli.array_info[array_name].get("size"))
+        array_size = int(pos.cli.array_data[array_name].get("size"))
         vol_size = f"{int(array_size / (1024 * 1024))}mb"  # Volume Size in MB
         vol_name = "pos_vol"
 
@@ -232,7 +232,7 @@ def test_hetero_multi_array_spor(array_raid, num_devs, fio_runtime):
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{int(array_size / (1024 * 1024))}mb"  # Volume Size in MB
             vol_name = f"{array_name}_pos_vol"
             assert pos.cli.volume_create(vol_name, vol_size, 

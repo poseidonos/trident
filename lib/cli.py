@@ -149,7 +149,7 @@ class PosCLI:
         self.ssh_obj = con
         self.data_dict = data_dict
         self.cli_path = pos_cli_path
-        self.array_info = {}
+        self.array_data = {}
         self.cli_history = []
         self.cmd_completion_time = 0
         self.lock = Lock()
@@ -607,7 +607,7 @@ class PosCLI:
                                     
                 self.normal_data_disks = list(
                         [dev for dev in data_dev if "REMOVED" not in dev])
-                self.array_info[array_name] = {
+                self.array_data[array_name] = {
                     "state": array_state,
                     "size": array_size,
                     "situation": array_situation,
@@ -1846,7 +1846,7 @@ class Cli(LinuxCLI, PosCLI):
         PosCLI.__init__(self, con, data_dict, self.cli_path)
 
         # Temp POS Info Storage 
-        self.array_info = {}
+        self.array_data = {}
         self.cli_history = []
 
         self.lock = Lock()

@@ -92,7 +92,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
         for array_name in array_list:
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-            array_cap = int(pos.cli.array_info[array_name]["size"])
+            array_cap = int(pos.cli.array_data[array_name]["size"])
             vol_size = (array_cap * (vol_utilize / 100) / num_volumes)
             vol_size = f"{int(vol_size // (1024 * 1024))}mb"     # Size in mb
 
@@ -247,7 +247,7 @@ def array_disks_hot_remove(pos, array_name, disk_remove_interval_list, delay=2):
         for disk_rebuild in disk_remove_interval_list:
             logger.info(f"REBUILD INTERVAL : {disk_rebuild} ")
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            data_disk_list = pos.cli.array_info[array_name]["data_list"]
+            data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
             random.shuffle(data_disk_list)
             hot_remove_disks = data_disk_list[: len(disk_rebuild)]

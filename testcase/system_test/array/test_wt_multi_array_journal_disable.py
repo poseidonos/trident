@@ -41,7 +41,7 @@ def test_wt_multi_array_disabled_journal(
 
         for id, array_name in enumerate((array_name1, array_name2)):
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             io_size = f"{array_size * 95 // (1024 * 1024 * 100)}mb"  # IO size is 95% of Vol size.
 

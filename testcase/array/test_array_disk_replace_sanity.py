@@ -26,7 +26,7 @@ def test_noraid_array_disk_replace(array_fixture):
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
         assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
@@ -73,7 +73,7 @@ def test_no_spare_array_disk_replace(array_fixture, raid_type):
 
         for array_name in array_list:
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            data_disk_list = pos.cli.array_info[array_name]["data_list"]
+            data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
         status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
