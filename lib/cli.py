@@ -125,6 +125,30 @@ class LinuxCLI:
         """ Method to kill pos with selected signal (defaul is -9) """
         return self.kill_process("poseidonos", signal=signal)
 
+    def check_pos_pid(self) -> str:
+        """ Method to check POS process """
+        command = "ps -aef | grep -i poseidonos"
+        out = self.ssh_obj.execute(command)
+        ps_out = "".join(out)
+        if "bin/poseidonos" not in ps_out:
+            logger.info("POS IS NOT RUNNING")
+            return True
+        else:
+            logger.warning("POS IS RUNNING")
+            return False
+        
+    def check_pos_service(self) -> str:
+        """ Method to check POS service status """
+        cmd = 'systemctl is-active  poseidonos.service'
+        out = self.ssh_obj.execute(cmd, get_pty=True)
+        if "active" in out[0]:
+            logger.info("POS IS RUNNING")
+            return False
+        else:
+              logger.warning("POS IS NOT RUNNING")
+              return True
+
+
 class PosCLI:
     """
     The PosCli class execute commands to POS cli
@@ -1922,3 +1946,16 @@ class Cli(LinuxCLI, PosCLI):
         except Exception as e:
             logger.error(f"POS stop failed due to {e}")
             return False, jout
+
+    def check_pos_exit(self) -> bool:
+        """ 
+        Method to check pos running status
+
+        Returns:
+            Bool: True if pos is not running else False
+        """
+        if self.pos_as_service:
+            return self.check_pos_service()
+        else:
+            return self.check_pos_pid()
+ 
