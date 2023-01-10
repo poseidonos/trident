@@ -14,7 +14,7 @@ def create_array_and_volumes(pos, raid_types, data_disks, spare_disks, num_array
 
     assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
 
     assert pos.target_utils.get_subsystems_list() == True
 

@@ -109,7 +109,7 @@ def test_array_cap_with_volumes(setup_cleanup_array_function, array_mount):
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert pos.cli.subsystem_list()[0] == True
@@ -153,15 +153,15 @@ def test_array_mount_unmount(setup_cleanup_array_function, raid_type, num_disk, 
                                        0, mount_order[0], auto_create) == True
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         assert volume_create_and_mount_random(pos, array_list) == True
 
         for array_mount in mount_order[1:]:
             write_back = True if array_mount == "WB" else False
             array_name = array_list[0]
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
-            assert pos.cli.array_unmount(array_name=array_name, 
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name, 
                                        write_back=write_back)[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"

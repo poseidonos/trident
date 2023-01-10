@@ -86,7 +86,7 @@ def test_hetero_degraded_array_unmount(array_fixture):
             assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       
         # Unmount the degraded array
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         # Get the array info for both array
         for array_name in pos.cli.array_dict.keys():
@@ -111,7 +111,7 @@ def array_create_and_list(pos):
                                        array_index=array_index, array_unmount="WT", 
                                        array_info=True) == True
  
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
     except Exception as e:
         logger.error(f"Array create and list failed due to {e}")
         traceback.print_exc()

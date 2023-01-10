@@ -26,11 +26,11 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     for array in pos.cli.array_dict.keys():
         assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
+            assert pos.cli.array_mount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
@@ -86,16 +86,16 @@ def test_hetero_multi_array_npor_mounted_array(raid_type, num_devs, repeat_ops):
                                             spare=spare_drives, raid_type=raid_type,
                                             array_name=array_name)[0] == True
 
-                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_mount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
             assert pos.target_utils.Npor() == True
 
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             for array in pos.cli.array_dict.keys():
                 assert pos.cli.array_info(array_name=array)[0] == True
                 if pos.cli.array_dict[array].lower() == "mounted":
-                    assert pos.cli.unmount_array(array_name=array)[0] == True
+                    assert pos.cli.array_unmount(array_name=array)[0] == True
                 assert pos.cli.array_delete(array_name=array)[0] == True
 
     except Exception as e:
@@ -146,7 +146,7 @@ def test_hetero_array_spor(array_raid, num_devs):
                                     spare=spare_drives, raid_type=array_raid,
                                     array_name=array_name)[0] == True
 
-        assert pos.cli.array_unmount(array_name=array_name)[0] == True
+        assert pos.cli.array_mount(array_name=array_name)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
 
         array_size = int(pos.cli.array_data[array_name].get("size"))
@@ -229,7 +229,7 @@ def test_hetero_multi_array_spor(array_raid, num_devs, fio_runtime):
                                         spare=spare_drives, raid_type=array_raid,
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_data[array_name].get("size"))

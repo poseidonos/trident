@@ -31,7 +31,7 @@ def setup_function():
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     for array_name in pos.cli.array_dict.keys():
         assert pos.cli.array_info(array_name=array_name)[0] == True
         if pos.cli.array_dict[array_name].lower() == "mounted":
@@ -41,7 +41,7 @@ def teardown_function():
                     pos.cli.volume_info(array_name=array_name, vol_name=vol)[0] == True
                 )
 
-                if pos.cli.volume_info[array_name][vol]["status"] == "Mounted":
+                if pos.cli.volume_data[array_name][vol]["status"] == "Mounted":
                     assert (
                         pos.cli.volume_unmount(volumename=vol, array_name=array_name)[0]
                         == True
@@ -72,7 +72,7 @@ def test_unsupported_volumes(num_vols):
         )
         assert pos.target_utils.get_subsystems_list() == True
         subsystem_list = pos.target_utils.ss_temp_list
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for index, array_name in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.array_info(array_name=array_name)[0] == True
             array_size = int(pos.cli.array_data[array_name].get("size"))

@@ -33,7 +33,7 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 

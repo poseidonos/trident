@@ -28,12 +28,12 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
         assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
+            assert pos.cli.array_unmount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
@@ -193,7 +193,7 @@ def test_hetero_multi_array_delete_mounted_vols():
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
             vol_size = "1G"
@@ -204,7 +204,7 @@ def test_hetero_multi_array_delete_mounted_vols():
             nqn=ss_list[0]
             assert pos.cli.volume_mount(vol_name, array_name, nqn)[0] == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             vol_name = f"{array_name}_pos_vol"
             # Delete mounted volume
@@ -262,10 +262,10 @@ def test_hetero_faulty_array_create_delete_vols():
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
@@ -370,9 +370,9 @@ def test_hetero_multi_array_mount_vol_to_same_subs():
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for id, array_name in enumerate(pos.cli.array_dict.keys()):
             vol_size = "1G"
             vol_name = f"{array_name}_pos_vol"

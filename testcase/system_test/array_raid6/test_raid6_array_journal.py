@@ -118,7 +118,7 @@ def test_raid6_longetivity_npor_spor_journal_enabled(journal_setup_cleanup,por):
                                       raid_types = ("RAID6","RAID6"),num_data_disks=(4,4),
                                       num_spare_disk=(1,1),auto_create=(True,True),array_mount=("WT","WT")) == True
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         assert volume_create_and_mount_multiple(pos=pos, num_volumes=1, array_list=pos.cli.array_dict.keys(),
                                                       subs_list=pos.target_utils.ss_temp_list) == True

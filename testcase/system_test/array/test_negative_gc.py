@@ -24,7 +24,7 @@ def setup_module():
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     if len(array_list) == 0:
         logger.info("No array found in the config")
@@ -32,7 +32,7 @@ def teardown_function():
         for array in array_list:
             assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
 
     logger.info("==========================================")
 

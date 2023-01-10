@@ -62,13 +62,13 @@ def single_array_data_setup(data_dict: dict, raid_type: str,
 
 def array_unmount_and_delete(pos, unmount=True, delete=True, array_info=False):
     try:
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             if array_info:
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
             if unmount and pos.cli.array_dict[array_name].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array_name)[0] == True
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
             
             if delete:
                 assert pos.cli.array_delete(array_name=array_name)[0] == True
@@ -82,7 +82,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
                                      array_list=None, mount_vols=True, subs_list=[]):
     try:
         if not array_list:
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = list(pos.cli.array_dict.keys())
 
         if not subs_list:
@@ -118,7 +118,7 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
 def volume_unmount_and_delete_multiple(pos, array_list=None):
     try:
         if not array_list:
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = list(pos.cli.array_dict.keys())
         for array_name in array_list:
             assert pos.cli.volume_list(array_name=array_name)[0] == True
@@ -136,7 +136,7 @@ def volume_unmount_and_delete_multiple(pos, array_list=None):
 def volume_create_and_mount_random(pos, array_list=None, subsyste_list=None, arr_cap_vol_list=None):
     try:
         if not array_list:
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = list(pos.cli.array_dict.keys())
 
         if not subsyste_list:
@@ -297,7 +297,7 @@ def pos_system_restore_stop(pos, array_info=True, array_unmount=True, array_dele
             if pos.client.ctrlr_list()[1] is not None:
                 assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             if array_info:
                 assert pos.cli.array_info(array_name=array_name)[0] == True
@@ -313,7 +313,7 @@ def pos_system_restore_stop(pos, array_info=True, array_unmount=True, array_dele
 
             if ((array_delete or array_unmount) and 
                         pos.cli.array_dict[array_name].lower() == "mounted"):
-                assert pos.cli.unmount_array(array_name=array_name)[0] == True
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
             if array_delete:
                 assert pos.cli.array_delete(array_name=array_name)[0] == True

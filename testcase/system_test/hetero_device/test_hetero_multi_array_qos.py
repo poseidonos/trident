@@ -26,11 +26,11 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     for array in pos.cli.array_dict.keys():
         assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
+            assert pos.cli.array_unmount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
@@ -117,7 +117,7 @@ def test_hetero_multi_array_qos_matrix(array_raid, num_devs, qos_matrix):
         else:
             iops_bw_values = [(100, 100), (50, 50), (10, 10)]
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for max_iops, max_bw in iops_bw_values:
             for array_name in pos.cli.array_dict.keys():
                 assert pos.cli.qos_create_volume_policy(vol_name, array_name,

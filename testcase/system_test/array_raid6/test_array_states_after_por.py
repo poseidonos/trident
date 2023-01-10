@@ -37,14 +37,14 @@ def test_post_por_array_state(array_fixture,array1_num_drive, array2_num_drive,p
                                       auto_create=(True, True),
                                       array_mount=("WT", "WT")) == True
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         assert volume_create_and_mount_multiple(pos=pos, num_volumes=1, array_list=pos.cli.array_dict.keys(),
                                                 subs_list=pos.target_utils.ss_temp_list) == True
 
         run_io(pos)
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_names = list(pos.cli.array_dict.keys())
         num_drive=[array1_num_drive, array2_num_drive]
         for i,array in enumerate(array_names):
@@ -94,14 +94,14 @@ def test_post_por_array_state_mulitple(array_fixture,array1_num_drive, array2_nu
                                       auto_create=(True, True),
                                       array_mount=("WT", "WT")) == True
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         assert volume_create_and_mount_multiple(pos=pos, num_volumes=1, array_list=pos.cli.array_dict.keys(),
                                                 subs_list=pos.target_utils.ss_temp_list) == True
 
         run_io(pos)
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_names = list(pos.cli.array_dict.keys())
         num_drive=[array1_num_drive, array2_num_drive]
         for i,array in enumerate(array_names):

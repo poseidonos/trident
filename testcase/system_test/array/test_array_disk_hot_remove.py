@@ -32,11 +32,11 @@ def setup_function():
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     for array_name in pos.cli.array_dict.keys():
         assert pos.cli.array_info(array_name=array_name)[0] == True
         if pos.cli.array_dict[array_name].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
         assert pos.cli.array_delete(array_name=array_name)[0] == True
 
     logger.info("==========================================")

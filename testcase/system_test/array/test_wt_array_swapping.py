@@ -26,14 +26,14 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     if len(array_list) == 0:
         logger.info("No array found in the config")
     else:
         for array in array_list:
             if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
                 assert pos.cli.array_delete(array_name=array)[0] == True
             else:
                 assert pos.cli.array_delete(array_name=array)[0] == True
@@ -78,7 +78,7 @@ def create_initial_arrays(array_detail):
                 == True
         )
 
-        assert pos.cli.array_unmount(array_name=array_name[array], write_back=False)[0] == True
+        assert pos.cli.array_mount(array_name=array_name[array], write_back=False)[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         if len(pos.target_utils.ss_temp_list) >= len(array_name):
             assert pos.cli.volume_create(array_name=array_name[array],volumename=array_name[array]+'vol',size='1gb')[0] == True
@@ -106,14 +106,14 @@ def run_block_io():
 def test_array_swapping(array_detail):
     create_initial_arrays(array_detail)
     assert run_block_io() == True
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     for array in list(pos.cli.array_dict.keys()):
-        assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.array_unmount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
     swapped_arrays = array_detail[::-1]
     create_initial_arrays(swapped_arrays)
     assert run_block_io() == True
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     arrays = list(pos.cli.array_dict.keys())
     assert pos.cli.array_info(array_name=arrays[0])[0] == True
     remove_drives = [random.choice(pos.cli.array_data[arrays[0]]["data_list"])]
@@ -148,9 +148,9 @@ def test_raid10_creation_with_diff_num_drives(array_detail):
                 )[0]
                 != bool(num_of_drives%2)
         )
-        assert pos.cli.array_unmount(array_name=arrays[array])[0] != bool(num_of_drives % 2)
+        assert pos.cli.array_mount(array_name=arrays[array])[0] != bool(num_of_drives % 2)
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         if len(list(pos.cli.array_dict.keys())) > 0:
             assert pos.cli.volume_create(array_name=arrays[array],volumename=arrays[array]+'vol',size='10gb')[0] == True
             assert pos.cli.volume_mount(array_name=arrays[array],volumename=arrays[array]+'vol',nqn=pos.target_utils.ss_temp_list[array])
@@ -169,7 +169,7 @@ def test_creation_of_raid10_with_same_drives():
     data_disk_list = [system_disks.pop(0) for i in range(num_of_drives)]
     spare_disk_list = []
     assert pos.cli.array_create(write_buffer="uram0",data=data_disk_list,spare=spare_disk_list,raid_type=raid_type,array_name=arrays[0])[0] == True
-    assert pos.cli.array_unmount(array_name=arrays[0])[0] == True
+    assert pos.cli.array_mount(array_name=arrays[0])[0] == True
     assert pos.cli.array_create(write_buffer="uram1",data=data_disk_list,spare=spare_disk_list,raid_type=raid_type,array_name=arrays[1])[0] == False
 
 
@@ -182,12 +182,12 @@ def test_array_create_and_trigger_rebuild():
     config_1 = [("RAID10",4),("RAID10",4)]
     config_2 = [("RAID10",4),("RAID5",3)]
     create_initial_arrays(config_1)
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     assert run_block_io() == True
     assert pos.target_utils.Spor() == True
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
-        assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.array_unmount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
     create_initial_arrays(config_2)
     assert run_block_io() == True

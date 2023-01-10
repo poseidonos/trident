@@ -48,13 +48,13 @@ def test_array_wt_wb_loop(setup_cleanup_array_function, raid_type, nr_data_drive
 
         for i in range(5):
             assert (
-                pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
+                pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
             )
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
             assert (
-                pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
+                pos.cli.array_mount(array_name=array_name, write_back=True)[0] == True
             )
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -97,7 +97,7 @@ def test_array_cli_wt(setup_cleanup_array_function, raid_type, nr_data_drives):
             )[0]
             == True
         )
-        assert pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
+        assert pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )

@@ -120,7 +120,7 @@ def wt_test_multi_array_setup(pos, array_list: list):
             )
 
             assert (
-                pos.cli.array_unmount(array_name=array_name, write_back=write_back)[0]
+                pos.cli.array_mount(array_name=array_name, write_back=write_back)[0]
                 == True
             )
         return True

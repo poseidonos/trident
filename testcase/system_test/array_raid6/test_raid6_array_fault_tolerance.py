@@ -273,7 +273,7 @@ def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
         array_states = ("STOP", "NORMAL")
         array_situation = ("FAULT", "NORMAL")
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for idx, array_name in enumerate(pos.cli.array_dict.keys()): 
             assert pos.cli.array_info(array_name=array_name)[0] == True
             assert pos.cli.array_data[array_name]["situation"] == array_situation[idx]

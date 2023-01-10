@@ -17,7 +17,7 @@ def test_stop_arrray_state(array_fixture, num_drives):
         pos.data_dict["array"]["pos_array"][0]["data_device"] = 4
         pos.data_dict["array"]["pos_array"][0]["spare_device"] = 1
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_name = list(pos.cli.array_dict.keys())[0]
         assert pos.cli.array_info(array_name=array_name)[0] == True
         data_list = pos.cli.array_data[array_name]["data_list"]

@@ -31,18 +31,18 @@ def array_ops(pos):
     if pos.data_dict["array"]["pos_array"][0]["raid_type"] not in ["RAID0", "no-raid"]:
         disklist = [random.choice(pos.cli.dev_type["SSD"])]
         assert pos.target_utils.device_hot_remove(disklist) == True
-        # assert pos.cli.unmount_array(array_name=arrayname)[0] == False
+        # assert pos.cli.array_unmount(array_name=arrayname)[0] == False
         # assert pos.cli.array_delete(array_name=array)[0] == False
         assert pos.target_utils.array_rebuild_wait(array_name=arrayname) == True
 
     assert pos.cli.device_scan()[0] == True
     assert pos.cli.array_info(array_name=arrayname)[0] == True
 
-    assert pos.cli.unmount_array(array_name=arrayname)[0] == True
+    assert pos.cli.array_unmount(array_name=arrayname)[0] == True
     assert pos.cli.array_delete(array_name=arrayname)[0] == True
-    assert pos.cli.unmount_array(array_name="array2")[0] == True
+    assert pos.cli.array_unmount(array_name="array2")[0] == True
     assert pos.cli.array_delete(array_name="array2")[0] == True
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     # assert pos.cli.telemetry_stop()[0] == True
     return True
 
@@ -64,7 +64,7 @@ def negative_tests(pos):
 
     for array in ["array1", "array2"]:
         writechoice = random.choice([True, False])
-        assert pos.cli.array_unmount(array_name=array, write_back=writechoice)[0] == False
+        assert pos.cli.array_mount(array_name=array, write_back=writechoice)[0] == False
         assert pos.cli.array_delete(array_name=array)[0] == False
     return True
 
@@ -115,7 +115,7 @@ def test_SanityArray(array_fixture):
             assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
             assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
             run_io(pos)
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_name = list(pos.cli.array_dict.keys())[0]
             assert pos.cli.array_info(array_name=array_name)[0] == True
             if pos.data_dict["array"]["pos_array"][0]["raid_type"] not in [

@@ -63,7 +63,7 @@ def test_no_spare_array_disk_replace(array_fixture, raid_type):
         assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_random(pos, array_list=array_list,
@@ -121,7 +121,7 @@ def test_array_data_disk_replace(array_fixture, test_param):
         assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 

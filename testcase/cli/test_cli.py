@@ -41,7 +41,7 @@ def qos(pos):
 
 def array(pos):
     logger.info(" ================= ARRAY ===================")
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     volume(pos)
     assert (
         pos.cli.array_addspare(
@@ -58,7 +58,7 @@ def array(pos):
         == True
     )
     for array in list(pos.cli.array_dict.keys()):
-        assert pos.cli.unmount_array(array_name=array)[0] == True
+        assert pos.cli.array_unmount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
 
     assert pos.cli.telemetry_stop()[0] == True

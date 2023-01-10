@@ -19,7 +19,7 @@ def setup_module():
     data_dict["subsystem"]["pos_subsystems"][1]["nr_subsystems"] = 1
     data_dict["volume"]["phase"] = ("false",)
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     assert pos.target_utils.get_subsystems_list() == True
     ss_list = pos.target_utils.ss_temp_list[:2]
@@ -32,7 +32,7 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
         assert pos.cli.volume_list(array_name=array)[0] == True
@@ -108,10 +108,10 @@ def create_delete_vol():
 
 def mount_unmount_array():
     for array_name in array_list:
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
     for array_name in array_list:
-        assert pos.cli.array_unmount(array_name=array_name)[0] == True
+        assert pos.cli.array_mount(array_name=array_name)[0] == True
 
 
 dict_func = {

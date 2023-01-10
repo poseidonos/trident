@@ -9,7 +9,7 @@ fio_cmd = "fio --name=Rand_RW  --runtime=43000 --ramp_time=60  --ioengine=sync  
 
 
 def array_ops(pos):
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_name = list(pos.cli.array_dict.keys())[0]
 
     assert pos.cli.volume_list(array_name=array_name)[0] == True
@@ -17,7 +17,7 @@ def array_ops(pos):
         pos.cli.volume_unmount(volumename=volume, array_name=array_name)
         pos.cli.volume_delete(volumename=volume, array_name=array_name)
     assert pos.cli.array_info(array_name=array_name)[0] == True
-    assert pos.cli.unmount_array(array_name=array_name)[0] == True
+    assert pos.cli.array_unmount(array_name=array_name)[0] == True
     assert pos.cli.array_delete(array_name=array_name)[0] == True
 
 

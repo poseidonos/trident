@@ -37,12 +37,12 @@ def test_multi_array_name(setup_cleanup_array_function, new_name, expected_resul
             )[0]
             == expected_result
         )
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         for array in array_list:
             assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
                 assert pos.cli.array_delete(array_name=array)[0] == True
         logger.info("As expected array creation failed with same array name ")
         logger.info(

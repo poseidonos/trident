@@ -97,7 +97,7 @@ def test_qos_maxiops_maxbw_value(qos_test):
                     == True
                 )
 
-                vol_info = pos.cli.volume_info[array_name][vol_name]
+                vol_info = pos.cli.volume_data[array_name][vol_name]
                 assert vol_info["max_iops"] == max_iops
                 assert vol_info["max_bw"] == max_bw
 
@@ -145,7 +145,7 @@ def test_vol_create_with_qos_value(max_iops, max_bw, exp_result):
                 pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0] == True
             )
 
-            vol_info = pos.cli.volume_info[array_name][vol_name]
+            vol_info = pos.cli.volume_data[array_name][vol_name]
             assert vol_info["max_iops"] == max_iops
             assert vol_info["max_bw"] == max_bw
 

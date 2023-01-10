@@ -28,7 +28,7 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     if len(array_list) == 0:
         logger.info("No array found in the config")
@@ -36,7 +36,7 @@ def teardown_function():
         for array in array_list:
             assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -67,7 +67,7 @@ def por_array_io():
             )[0]
             == True
         )
-        assert pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
+        assert pos.cli.array_mount(array_name=array_name, write_back=True)[0] == True
         assert (
             pos.cli.volume_create(
                 array_name=array_name, size="2000gb", volumename="vol"

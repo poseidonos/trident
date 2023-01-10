@@ -109,7 +109,7 @@ def test_array_cap_with_volumes(array_fixture, array_mount):
 
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert pos.target_utils.get_subsystems_list() == True

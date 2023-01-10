@@ -386,7 +386,7 @@ class PosCLI:
 
 
     ################################ Array   #################################
-    def list_array(self) -> (bool, dict()):
+    def array_list(self) -> (bool, dict()):
         """
         Method to list array
         """
@@ -481,7 +481,7 @@ class PosCLI:
             if num_spare > 0:
                 cmd = f"{cmd} -s {num_spare}"
 
-            if raid.lower() != "no-raid" or raid.lower() != "noraid":
+            if raid.lower() == "no-raid" or raid.lower() == "noraid":
                cmd = f"{cmd} --no-raid"
             else:
                 cmd = f"{cmd} --raid {raid}"
@@ -495,8 +495,8 @@ class PosCLI:
             logger.error(f"Array auto create command failed due to {e}")
             return False, jout
 
-    def array_unmount(self, array_name: str, 
-                      write_back: bool = False) -> (bool, dict()):
+    def array_mount(self, array_name: str, 
+                    write_back: bool = False) -> (bool, dict()):
         """
         Method to mount array
 
@@ -521,7 +521,7 @@ class PosCLI:
             logger.error(f"Array mount comand failed due to {e}")
             return False, jout
 
-    def unmount_array(self, array_name: str) -> (bool, dict()):
+    def array_unmount(self, array_name: str) -> (bool, dict()):
         """
         Method to unmount array
 
@@ -1149,7 +1149,7 @@ class PosCLI:
                 self.vols = []
                 return True, jout
 
-            for vol in out["data"]["volumes"]:
+            for vol in jout["data"]["volumes"]:
                 self.vol_dict[vol["name"]] = {
                     "index": vol["index"],
                     "total": vol["total"],
@@ -1177,7 +1177,7 @@ class PosCLI:
         """
         try:
             self.volume_data = {}
-            self.volume_info[array_name] = {}
+            self.volume_data[array_name] = {}
 
             cmd = f"list -a {array_name} -v {vol_name}"
             cli_rsp, jout = self.run_cli_command(cmd, command_type="volume")
@@ -1187,7 +1187,7 @@ class PosCLI:
 
             if jout["output"]["Response"]["result"]["status"]["code"] == 0:
                 vol_data = jout["data"]
-                self.volume_info[array_name][vol_name] = {
+                self.volume_data[array_name][vol_name] = {
                     "uuid": vol_data["uuid"],
                     "name": vol_data["name"],
                     "total_capacity": vol_data["total"],
@@ -1199,10 +1199,10 @@ class PosCLI:
                     "subnqn": vol_data["subnqn"],
                     "array_name": vol_data["array_name"],
                 }
-                vol_status = self.volume_info[array_name][vol_name]["status"]
+                vol_status = self.volume_data[array_name][vol_name]["status"]
                 if vol_status == "Mounted":
                     cap = vol_data["remain"]
-                    self.volume_info[array_name][vol_name]["remain"] = cap
+                    self.volume_data[array_name][vol_name]["remain"] = cap
             else:
                 logger.error("Failed to execute volume info command")
                 return False, jout

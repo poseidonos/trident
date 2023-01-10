@@ -30,7 +30,7 @@ def test_create_array3_after_array2_delete(array_fixture):
         # Unmount both Arrays
         for id in range(2):
             array_name = f"array{id+1}"
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         # Delete 2nd Array
         array_name = f"array2"
@@ -112,7 +112,7 @@ def test_multiarray_unmount_array_unmount_vol(array_fixture):
         for id in range(num_array):
             array_name = f"array{id+1}"
             vol_name = f"array{id+1}_{vol_name_pre}"
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
             # The volume unmount is expected to fail as array is already unmounted
             # TODO handle exception at API side
@@ -149,7 +149,7 @@ def test_multiarray_delete_array_list_vol(array_fixture):
         for id in range(num_array):
             array_name = f"array{id+1}"
             vol_name = f"array{id+1}_{vol_name_pre}"
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
             assert pos.cli.array_delete(array_name=array_name)[0] == True
 
             # Expected fail for list volume as array is already deleted
@@ -199,7 +199,7 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
             for id in range(2):
                 array_name = f"array{id +1}"
                 vol_name = f"{array_name}_{vol_name_pre}"
-                assert pos.cli.unmount_array(array_name=array_name)[0] == True
+                assert pos.cli.array_unmount(array_name=array_name)[0] == True
                 assert pos.cli.array_delete(array_name=array_name)[0] == True
 
         logger.info(
@@ -223,8 +223,8 @@ def test_multiarray_mount_unmount_loop(array_fixture):
         for loop_counter in range(loop_limit):
             for id in range(2):
                 array_name = f"array{id+1}"
-                assert pos.cli.unmount_array(array_name=array_name)[0] == True
                 assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_mount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
             logger.info("*" * 50)
@@ -250,7 +250,7 @@ def test_unmount_array1_delete_array2(array_fixture):
 
         # Unmount Array 1
         array_name = "array1"
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         # Delete Array 2, Expected to fail
         array_name = "array2"
@@ -260,7 +260,7 @@ def test_unmount_array1_delete_array2(array_fixture):
             logger.info("Should be expected error. Verify from logs")
 
         # Unmount and Delete Array 2
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
         assert pos.cli.array_delete(array_name=array_name)[0] == True
 
         logger.info(
@@ -363,8 +363,8 @@ def test_multiarray_size_after_unmount_mount(array_fixture):
             assert pos.cli.array_info(array_name=array_name)[0] == True
             array_size_pre = int(pos.cli.array_data[array_name].get("size"))
 
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
 
             assert pos.cli.array_info(array_name=array_name)[0] == True
             array_size_post = int(pos.cli.array_data[array_name].get("size"))
@@ -393,7 +393,7 @@ def test_array2_unmount_after_detach_spare(array_fixture):
             pos.cli.array_data["array2"]["spare_list"]) == True
 
         array_name = "array2"
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -531,14 +531,14 @@ def test_multiarray_unmount_unmounted_array(array_fixture):
         pos.data_dict["array"]["pos_array"][1]["mount"] = "false"
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         # Unmount first array. Expected to fail
-        assert pos.cli.unmount_array(array_name="array1")[0] == False
+        assert pos.cli.array_unmount(array_name="array1")[0] == False
 
         # Mount both array
         assert pos.cli.array_unmount(array_name="array1")[0] == True
         assert pos.cli.array_unmount(array_name="array2")[0] == True
 
         # Unmount second array
-        assert pos.cli.unmount_array(array_name="array1")[0] == True
+        assert pos.cli.array_unmount(array_name="array1")[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -654,7 +654,7 @@ def test_multiarray_unmount_array_effect(array_fixture):
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
 
         # Unmount second array and Check the array state
-        assert pos.cli.unmount_array(
+        assert pos.cli.array_unmount(
             array_name=f"{array_name_pre}_2")[0] == True
 
         assert pos.cli.array_info(array_name=f"{array_name_pre}_1")[0] == True
@@ -666,7 +666,7 @@ def test_multiarray_unmount_array_effect(array_fixture):
             "state") == "OFFLINE"
 
         # Unmount first array and Mount second array
-        assert pos.cli.unmount_array(
+        assert pos.cli.array_unmount(
             array_name=f"{array_name_pre}_1")[0] == True
         assert pos.cli.array_unmount(array_name=f"{array_name_pre}_2")[0] == True
 
@@ -696,7 +696,7 @@ def test_multiarray_unmount_mount_array1(array_fixture):
 
         # Unmount first array and verify the state
         array_name = "array1"
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
         assert pos.cli.array_data[array_name].get("state") == "OFFLINE"
 

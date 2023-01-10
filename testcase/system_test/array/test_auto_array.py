@@ -44,7 +44,7 @@ def test_auto_array_with_all_numa(array_fixture):
                 assert pos.cli.array_info(array_name=array_name)[0] == True
                 assert pos.cli.array_data[array_name]["state"] == "OFFLINE"
 
-                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_mount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
                 assert pos.cli.array_data[array_name]["state"] == "NORMAL"
             else:

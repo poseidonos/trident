@@ -27,12 +27,12 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
         assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
+            assert pos.cli.array_unmount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
@@ -119,7 +119,7 @@ def test_hetero_multi_array_max_size_volume_FIO(test_id):
                 if (mount_type != "wb"):
                     logger.warning("Unsupported mount type. Use default Write Back")
 
-            assert pos.cli.array_unmount(array_name=array_name, 
+            assert pos.cli.array_mount(array_name=array_name, 
                                        write_back=write_back)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
@@ -218,7 +218,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                                             spare=spare_drives, raid_type=raid_type,
                                             array_name=array_name)[0] == True
 
-                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_mount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 array_size = int(pos.cli.array_data[array_name].get("size"))
@@ -284,7 +284,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
             if repeat_ops > 1:
                 if pos.client.ctrlr_list()[1]:
                     assert pos.client.nvme_disconnect(ss_list) == True
-                assert pos.cli.list_array()[0] == True
+                assert pos.cli.array_list()[0] == True
                 if additional_ops == "npor":
                     # Perform NPOR
                     assert pos.target_utils.Npor() == True
@@ -297,7 +297,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                             assert pos.cli.volume_delete(vol, array_name=array)[0] == True
                 # Delete bot array Array     
                 for array in pos.cli.array_dict.keys():
-                    assert pos.cli.unmount_array(array_name=array)[0] == True
+                    assert pos.cli.array_unmount(array_name=array)[0] == True
                     assert pos.cli.array_delete(array_name=array)[0] == True
 
     except Exception as e:

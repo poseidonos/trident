@@ -101,10 +101,10 @@ def test_multi_array_unmnt_vol(setup_cleanup_array_function):
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 1) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
-        assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+        assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             if pos.cli.array_dict[array_name].lower() == "unmounted":
                 assert (
@@ -132,9 +132,9 @@ def test_multi_array_del_create_array(setup_cleanup_array_function):
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 1) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_name = list(pos.cli.array_dict.keys())[0]
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
         assert pos.cli.array_delete(array_name=array_name)[0] == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
@@ -168,7 +168,7 @@ def test_multi_array_create_third_array(setup_cleanup_array_function):
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 1) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         assert pos.cli.device_create(
             uram_name="uram3", bufer_size=8388608, strip_size=512, numa=1
         )

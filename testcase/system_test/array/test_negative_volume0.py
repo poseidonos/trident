@@ -151,8 +151,8 @@ def test_rename_vol_after_array_unmnt_mnt():
             )[0]
             == True
         )
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
         assert pos.cli.array_unmount(array_name=array_name)[0] == True
+        assert pos.cli.array_mount(array_name=array_name)[0] == True
         try:
             if pos.cli.vols[0] == "posvol":
                 logger.info("As expected newname matched after array mnt and unmnt")

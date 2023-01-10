@@ -76,7 +76,7 @@ class _Array(POS):
         ]
 
     def current_system_state(self):
-        assert self.cli.list_array()[0] == True
+        assert self.cli.array_list()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
             logger.info(
@@ -90,13 +90,13 @@ class _Array(POS):
             for array in array_list:
                 if self.name == array:
                     assert self.cli.array_info(array_name=self.name)[0] == True
-                    state = self.cli.array_info[self.name]["state"].lower()
-                    situation = self.cli.array_info[self.name]["situation"].lower()
+                    state = self.cli.array_data[self.name]["state"].lower()
+                    situation = self.cli.array_data[self.name]["situation"].lower()
                     array_dict[self.name] = {
                         "state": state,
                         "situatation": situation,
-                        "data": self.cli.array_info[self.name]["data_list"],
-                        "spare": self.cli.array_info[self.name]["spare_list"],
+                        "data": self.cli.array_data[self.name]["data_list"],
+                        "spare": self.cli.array_data[self.name]["spare_list"],
                     }
                     logger.info(
                         f"--------- CURRENT ARRAY STATE : {array_dict} -------------------"
@@ -122,19 +122,19 @@ class _Array(POS):
             out = check_array_in_list(array=self.name)
             if out is True:
                 assert self.cli.array_info(array_name=self.name)[0] == True
-                self.state["current"] = self.cli.array_info[self.name]["state"].lower()
-                self.situation["current"] = self.cli.array_info[self.name][
+                self.state["current"] = self.cli.array_data[self.name]["state"].lower()
+                self.situation["current"] = self.cli.array_data[self.name][
                     "situation"
                 ].lower()
 
                 self.device["data"] = [
                     dev
-                    for dev in self.cli.array_info[self.name]["data_list"]
+                    for dev in self.cli.array_data[self.name]["data_list"]
                     if "[REMOVED]" not in dev
                 ]
                 self.device["spare"] = [
                     dev
-                    for dev in self.cli.array_info[self.name]["spare_list"]
+                    for dev in self.cli.array_data[self.name]["spare_list"]
                     if "[REMOVED]" not in dev
                 ]
 
@@ -156,7 +156,7 @@ class _Array(POS):
             return True
 
         def check_array_in_list(array):
-            assert self.cli.list_array()[0] == True
+            assert self.cli.array_list()[0] == True
 
             array_list = list(self.cli.array_dict.keys())
 
@@ -173,7 +173,7 @@ class _Array(POS):
 
         assert init_obj() == True
         assert self.cli.device_list()[0] == True
-        self.total_data_array = len(self.cli.array_info[self.name]["data_list"])
+        self.total_data_array = len(self.cli.array_data[self.name]["data_list"])
         array_dict = self.data_dict["array"]["pos_array"]
         for array in array_dict:
             if self.name == array["array_name"]:
@@ -505,7 +505,7 @@ class _Array(POS):
         """
 
         self.current_system_state()
-        assert self.cli.list_array()[0] == True
+        assert self.cli.array_list()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if self.func["name"] == "array_delete" and self.func["expected"] == True:
             if len(array_list) == 0:
@@ -524,8 +524,8 @@ class _Array(POS):
                 for array in array_list:
                     if self.name == array:
                         assert self.cli.array_info(array_name=self.name)[0] == True
-                        state = self.cli.array_info[self.name]["state"].lower()
-                        situation = self.cli.array_info[self.name]["situation"].lower()
+                        state = self.cli.array_data[self.name]["state"].lower()
+                        situation = self.cli.array_data[self.name]["situation"].lower()
                         logger.info(
                             "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : FAIL (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                                 self.name,
@@ -556,8 +556,8 @@ class _Array(POS):
                 for array in array_list:
                     if self.name == array:
                         assert self.cli.array_info(array_name=self.name)[0] == True
-                        state = self.cli.array_info[self.name]["state"].lower()
-                        situation = self.cli.array_info[self.name]["situation"].lower()
+                        state = self.cli.array_data[self.name]["state"].lower()
+                        situation = self.cli.array_data[self.name]["situation"].lower()
                         break
                     else:
                         state = None
@@ -679,7 +679,7 @@ class _Array(POS):
 
     def get_buffer_data(self):
         assert self.cli.device_list()[0] == True
-        assert self.cli.list_array()[0] == True
+        assert self.cli.array_list()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
             logger.info("No array Exist all buffer can be overridden")
@@ -691,7 +691,7 @@ class _Array(POS):
             used_bufer = []
             for array in array_list:
                 assert self.cli.array_info(array_name=array)[0] == True
-                used_bufer.append(self.cli.array_info[array]["buffer_list"][0])
+                used_bufer.append(self.cli.array_data[array]["buffer_list"][0])
 
             free_buf = [
                 buf for buf in self.cli.dev_type["NVRAM"] if buf not in used_bufer
@@ -747,7 +747,7 @@ class _Array(POS):
                 out = self.cli.array_info(array_name=self.name)[0]
                 if out is False:
                     return False
-                if self.cli.array_info[self.name]["situation"].lower() == array_status:
+                if self.cli.array_data[self.name]["situation"].lower() == array_status:
                     return True
                 count = count + 1
                 if count > 30 * 60 * 3:
@@ -763,7 +763,7 @@ class _Array(POS):
         dev_name = None
 
         assert self.cli.device_list()[0] == True
-        assert self.cli.list_array()[0] == True
+        assert self.cli.array_list()[0] == True
         array_list = list(self.cli.array_dict.keys())
 
         if len(array_list) == 0:
@@ -857,14 +857,14 @@ class _Array(POS):
 
             if self.func["expected"] == True:
                 assert self.cli.array_info(array_name=self.name)[0] == True
-                if target_dev in self.cli.array_info[self.name]["spare_list"]:
+                if target_dev in self.cli.array_data[self.name]["spare_list"]:
                     logger.info("Successfully check if device is added")
                     return True
                 else:
-                    if target_dev in self.cli.array_info[self.name]["data_list"]:
+                    if target_dev in self.cli.array_data[self.name]["data_list"]:
                         assert self.cli.array_info(array_name=self.name)[0] == True
                         if (
-                            self.cli.array_info[self.name]["situation"].lower()
+                            self.cli.array_data[self.name]["situation"].lower()
                             == "rebuilding"
                         ):
                             logger.info("Successfully check if device is added")
@@ -1045,12 +1045,12 @@ class _Array(POS):
         )
         if self.func["expected"] == True:
             self.client.nvme_disconnect(self.subsystem) == True
-        out = self.cli.unmount_array(array_name=self.name)[0]
+        out = self.cli.array_unmount(array_name=self.name)[0]
         if out != self.func["expected"]:
             if self.situation["current"] == "rebuilding":
                 assert self.cli.array_info(array_name=self.name)[0] == True
-                cur_state = self.cli.array_info[self.name]["state"].lower()
-                cur_situation = self.cli.array_info[self.name]["situation"].lower()
+                cur_state = self.cli.array_data[self.name]["state"].lower()
+                cur_situation = self.cli.array_data[self.name]["situation"].lower()
                 if cur_situation == "default":
                     self.func["expected"] = True
                     self.state["next"] = cur_state

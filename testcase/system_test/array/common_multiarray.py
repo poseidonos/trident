@@ -16,7 +16,7 @@ def volume_create_and_mount_multiple(
 ):
     try:
         if not array_list:
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = list(pos.cli.array_dict.keys())
 
         if not subs_list:

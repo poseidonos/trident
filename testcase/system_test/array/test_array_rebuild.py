@@ -14,7 +14,7 @@ def rebuild_array_state(pos):
         pos.data_dict["array"]["num_array"] = 1
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_name = list(pos.cli.array_dict.keys())[0]
         assert pos.target_utils.get_subsystems_list() == True
         run_io(pos)
@@ -121,7 +121,7 @@ def test_array_unmnt_mnt_rebuild_state(array_fixture):
         assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_data[array_name]
         if pos.cli.array_data[array_name]["situation"] == "REBUILDING":
-            assert pos.cli.unmount_array(array_name=array_name)[0] == False
+            assert pos.cli.array_mount(array_name=array_name)[0] == False
             assert pos.cli.array_unmount(array_name=array_name)[0] == False
         logger.info(
             " ============================= Test ENDs ======================================"

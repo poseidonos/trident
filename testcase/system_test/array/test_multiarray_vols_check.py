@@ -21,7 +21,7 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:
@@ -60,7 +60,7 @@ def test_multi_array_delete_vols(setup_cleanup_array_function):
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:
@@ -94,7 +94,7 @@ def test_multi_array_invalid_vols(setup_cleanup_array_function):
         pos = setup_cleanup_array_function
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:

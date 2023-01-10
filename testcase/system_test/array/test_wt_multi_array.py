@@ -41,7 +41,7 @@ def test_wt_multi_array_256vols(
                 raid_type=raid_type,
             )
             assert res[0] == True
-            assert pos.cli.array_unmount(array_name=array, write_back=False)[0] == True
+            assert pos.cli.array_mount(array_name=array, write_back=False)[0] == True
             assert (
                 pos.target_utils.create_volume_multiple(
                     array_name=array, num_vol=256, size="10gb", vol_name="vol"

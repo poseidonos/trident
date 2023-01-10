@@ -54,7 +54,7 @@ def test_wt_array_Npor_Spor_nobackup(
             == True
         )
 
-        assert pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
+        assert pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
         assert (
             pos.cli.volume_create("pos_vol_1", array_name=array_name, size="2000gb")[0]
             == True

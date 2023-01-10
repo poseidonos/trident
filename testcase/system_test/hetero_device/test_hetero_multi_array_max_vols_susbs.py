@@ -30,7 +30,7 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     if len(array_list) == 0:
         logger.info("No array found in the config")
@@ -38,7 +38,7 @@ def teardown_function():
         for array in array_list:
             assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -102,7 +102,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
                                             spare=spare_drives, raid_type=raid_type,
                                             array_name=array_name)[0] == True
 
-                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_mount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 array_size = int(pos.cli.array_data[array_name].get("size"))
@@ -160,7 +160,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
                 break
 
             # Delete Array In Reverse Order
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = pos.cli.array_dict.keys()
             for array in array_list:
                 assert pos.cli.volume_list(array_name=array)[0] == True
@@ -168,7 +168,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(raid_type, num_disk):
                     assert pos.cli.volume_unmount(vol, array_name=array)[0] == True
                     assert pos.cli.volume_delete(vol, array_name=array)[0] == True
 
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
                 assert pos.cli.array_delete(array_name=array)[0] == True
 
     except Exception as e:

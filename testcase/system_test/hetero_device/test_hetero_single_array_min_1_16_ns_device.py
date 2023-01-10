@@ -63,7 +63,7 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     if len(array_list) == 0:
         logger.info("No array found in the config")
@@ -71,7 +71,7 @@ def teardown_function():
         for array in array_list:
             assert pos.cli.array_info(array_name=array)[0] == True
             if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
             assert pos.cli.array_delete(array_name=array)[0] == True  
         assert pos.cli.devel_resetmbr()[0] == True
     logger.info("==========================================")
@@ -113,9 +113,9 @@ def test_hetero_array_all_raid(raid_type,num_disk):
                                     spare=spare_drives, raid_type=raid_type,
                                     array_name=array_name)[0] == True
         
-        assert pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
+        assert pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
 
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -160,7 +160,7 @@ def test_hetero_array_all_dev_fio(raid_type, mount_type):
 
         write_back = False if mount_type == 'WT' else True
             
-        assert pos.cli.array_unmount(array_name=array_name, write_back=write_back)[0] == True
+        assert pos.cli.array_mount(array_name=array_name, write_back=write_back)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
         array_size = int(pos.cli.array_data[array_name].get("size"))
         vol_size = f"{int(array_size // (1024 * 1024))}mb"  # Volume Size in MB

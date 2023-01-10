@@ -30,7 +30,7 @@ def test_npor_with_half_uram():
     logger.info("================ test_npor_with_half_uram ================")
     try:
         assert pos.target_utils.get_subsystems_list() == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for array in pos.cli.array_dict.keys():
             if pos.cli.array_dict[array].lower() == "mounted":
                 assert pos.cli.volume_list(array_name=array)[0] == True
@@ -55,9 +55,9 @@ def test_npor_with_half_uram():
             )
 
         assert pos.cli.device_scan()[0] == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for array in pos.cli.array_dict.keys():
-            assert pos.cli.array_unmount(array_name=array)[0] == True
+            assert pos.cli.array_mount(array_name=array)[0] == True
             ss_list = [ss for ss in pos.target_utils.ss_temp_list if array in ss]
             assert pos.cli.volume_list(array_name=array)[0] == True
             for vol in pos.cli.vols:

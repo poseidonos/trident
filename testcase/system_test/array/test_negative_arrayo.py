@@ -194,7 +194,7 @@ def test_array_mnt_without_arrays(setup_cleanup_array_function, nr_data_drives=3
     try:
         pos = setup_cleanup_array_function
         assert negative_test_setup_function(pos, nr_data_drives) == True
-        status = pos.cli.array_unmount(array_name=array_name, write_back=False)
+        status = pos.cli.array_mount(array_name=array_name, write_back=False)
         assert status[0] == False
         logger.info(
             "As expected testcases failed due to {}".format(
@@ -229,7 +229,7 @@ def test_mnt_vol_stop_arrray_state(
             )[0]
             == True
         )
-        assert pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
+        assert pos.cli.array_mount(array_name=array_name, write_back=True)[0] == True
         assert pos.target_utils.device_hot_remove(data_disk_list[:2]) == True
         assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_data[array_name]
@@ -275,7 +275,7 @@ def test_rename_vol_stop_arrray_state(
             )[0]
             == True
         )
-        assert pos.cli.array_unmount(array_name=array_name, write_back=True)[0] == True
+        assert pos.cli.array_mount(array_name=array_name, write_back=True)[0] == True
         assert (
             pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol")[
                 0

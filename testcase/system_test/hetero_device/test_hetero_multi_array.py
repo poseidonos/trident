@@ -26,11 +26,11 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     for array in pos.cli.array_dict.keys():
         assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
+            assert pos.cli.array_unmount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
     logger.info("==========================================")
 
@@ -90,7 +90,7 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
 
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
-                assert pos.cli.array_unmount(array_name=array_name)[0] == True
+                assert pos.cli.array_mount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 array_size = pos.cli.array_data[array_name].get("size")
@@ -98,10 +98,10 @@ def test_hetero_multi_array(array1_raid, array1_devs, array2_raid, array2_devs, 
                 logger.info(f"Array Size = {array_size} and Status = {array_state}")
 
             # List Array, Unmount and Delete to goto Cleanup for next iteration
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = list(pos.cli.array_dict.keys())
             for array in array_list:
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
                 assert pos.cli.array_delete(array_name=array)[0] == True
 
     except Exception as e:
@@ -153,7 +153,7 @@ def test_hetero_multi_array_max_size_volume():
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_data[array_name].get("size"))
@@ -216,7 +216,7 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
             array_size = int(pos.cli.array_data[array_name].get("size"))
@@ -237,14 +237,14 @@ def test_hetero_multi_array_diff_states_rename_vol(array_state):
         elif array_state == "OFFLINE":
             unmount_array = True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             if num_disk_remove > 0 :
                 data_dev_list =  pos.cli.array_data[array_name]["data_list"]
                 remove_drives = data_dev_list[:num_disk_remove]
                 assert pos.target_utils.device_hot_remove(device_list=remove_drives)
             elif unmount_array:
-                assert pos.cli.unmount_array(array_name=array_name)
+                assert pos.cli.array_unmount(array_name=array_name)
 
         for array_name in pos.cli.array_dict.keys():
             vol_name = f"{array_size}_pos_vol"
@@ -305,10 +305,10 @@ def test_hetero_degraded_array_create_delete_vols():
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
@@ -372,10 +372,10 @@ def test_hetero_degraded_array_unmount():
                                         spare=spare_drives, raid_type="RAID5",
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
 
         # Hot Remove Disk from first array
         array_name = "array1"
@@ -384,7 +384,7 @@ def test_hetero_degraded_array_unmount():
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       
         # Unmount the degraded array
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         # Get the array info for both array
         for array_name in pos.cli.array_dict.keys():

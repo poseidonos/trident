@@ -36,7 +36,7 @@ def test_wt_autocreate_array(setup_cleanup_array_function, raid_type, nr_data_dr
             )[0]
             == True
         )
-        assert pos.cli.array_unmount(array_name=array_name, write_back=False)[0] == True
+        assert pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )

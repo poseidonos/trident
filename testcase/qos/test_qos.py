@@ -55,7 +55,7 @@ def test_qos_rebuilding_Array(array_fixture):
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         run_io(pos)
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         for index, array in enumerate(list(pos.cli.array_dict.keys())):
             assert pos.cli.array_info(array_name=array)[0] == True
             assert (

@@ -62,7 +62,7 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_random(pos, array_list=array_list,
@@ -121,7 +121,7 @@ def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -181,7 +181,7 @@ def test_array_vol_disk_replace_all_spare(setup_cleanup_array_function, raid_typ
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -210,7 +210,7 @@ def test_array_vol_disk_replace_all_spare(setup_cleanup_array_function, raid_typ
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
         
         
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         #Array disk replace Again using up all spare drives
         assert array_disk_remove_replace(pos, array_list, replace=True) == True
@@ -252,7 +252,7 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, 256, 
@@ -279,11 +279,11 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
 
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
   
         #Retrying  Array disk replace while Quick Rebuild in Progress
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array in array_list:
@@ -337,7 +337,7 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, 256, 
@@ -362,7 +362,7 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
         # Array disk Remove 1 drive 
         # assert array_disk_remove_replace(pos, array_list, replace=True) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array in array_list:

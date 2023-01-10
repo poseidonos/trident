@@ -23,7 +23,7 @@ def teardown_function():
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     if len(array_list) == 0:
         logger.info("No array found in the config")
@@ -32,7 +32,7 @@ def teardown_function():
             assert pos.cli.array_info(array_name=array)[0] == True
             # assert pos.cli.wbt_flush(array_name=array)[0] == True ## for code coverage
             if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
+                assert pos.cli.array_unmount(array_name=array)[0] == True
 
     assert pos.cli.devel_resetmbr()[0] == True
     assert pos.target_utils.pci_rescan() == True

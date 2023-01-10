@@ -35,7 +35,7 @@ def setup_module():
 
 def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_list = list(pos.cli.array_dict.keys())
     if len(array_list) == 0:
         logger.info("No array found in the config")
@@ -50,7 +50,7 @@ def teardown_function():
                         pos.cli.volume_info(array_name=array, vol_name=vol)[0] == True
                     )
 
-                    if pos.cli.volume_info[array_name][vol]["status"] == "Mounted":
+                    if pos.cli.volume_data[array_name][vol]["status"] == "Mounted":
                         assert (
                             pos.cli.volume_unmount(volumename=vol, array_name=array)[0]
                             == True
@@ -325,7 +325,7 @@ def test_volume_create_without_array_mount():
 
         # unmount the array
         assert (
-            pos.cli.unmount_array(
+            pos.cli.array_unmount(
                 array_name=array_name,
             )[0]
             == True
@@ -340,7 +340,7 @@ def test_volume_create_without_array_mount():
 
         # mount the array
         assert (
-            pos.cli.array_unmount(
+            pos.cli.array_mount(
                 array_name=array_name,
             )[0]
             == True
@@ -408,7 +408,7 @@ def test_multiple_volume_create_delete_with_io():
         volume_list = pos.cli.vols
         for vol in volume_list:
             assert pos.cli.volume_info(array_name=array_name, vol_name=vol)
-            if pos.cli.volume_info[array_name][vol]["status"] == "Unmounted":
+            if pos.cli.volume_data[array_name][vol]["status"] == "Unmounted":
                 assert (
                     pos.cli.volume_mount(
                         array_name=array_name,
@@ -495,7 +495,7 @@ def test_unmount_volume():
             == True
         )
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         assert (
             pos.cli.volume_create(
                 volumename="vol_1", size="10gb", array_name="POS_" + array_name
@@ -523,7 +523,7 @@ def test_unmount_volume():
         assert pos.cli.subsystem_list()[0] == True
 
         # Unmounting & Deleting the Array
-        assert pos.cli.unmount_array(array_name="POS_" + array_name)[0] == True
+        assert pos.cli.array_unmount(array_name="POS_" + array_name)[0] == True
         assert pos.cli.array_delete(array_name="POS_" + array_name)[0] == True
 
         logger.info("=============== TEST ENDs ================")

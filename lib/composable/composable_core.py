@@ -243,7 +243,7 @@ def volume_module(target, data_set, config_dict, action, phase=None):
         if not config_dict["phase"][phase]["volume"][action]["valid"]:
             return True
 
-        assert target.cli.list_array()[0] == True
+        assert target.cli.array_list()[0] == True
         array_list = list(target.cli.array_dict.keys())
         array_name = array_list[0]
 
@@ -370,7 +370,7 @@ def npor_recover(target, data_set):
                 == True
             )
 
-        assert target.cli.list_array()[0] == True
+        assert target.cli.array_list()[0] == True
         array_list = list(target.cli.array_dict.keys())
         array_name = array_list[0]
 

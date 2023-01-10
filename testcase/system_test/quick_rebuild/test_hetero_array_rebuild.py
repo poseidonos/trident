@@ -35,11 +35,11 @@ def setup_cleanup_function(setup_cleanup_module):
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     for array in pos.cli.array_dict.keys():
         assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
+            assert pos.cli.array_unmount(array_name=array)[0] == True
         assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
@@ -73,7 +73,7 @@ def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param)
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -145,7 +145,7 @@ def test_array_disk_replace_multiple(setup_cleanup_function, array_disk_type):
             assert create_mount_hetero_arrays(pos, raid_type_list, num_spare_disk, 
                                               hetero_array=hetero_array) == True
 
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = list(pos.cli.array_dict.keys())
 
             assert volume_create_and_mount_random(pos, array_list=array_list,
@@ -208,8 +208,8 @@ def unmount_mount_volume(pos, array_list, subs_list, maxiops, maxbw):
 def unmount_mount_array(pos, array_list, maxiops, maxbw):
     try:
         for array in array_list:
-            assert pos.cli.unmount_array(array_name=array)[0] == True
-            assert pos.cli.array_unmount(array_name=array, write_back=False)[0] == True
+            assert pos.cli.array_unmount(array_name=array)[0] == True
+            assert pos.cli.array_mount(array_name=array, write_back=False)[0] == True
             assert pos.cli.volume_list(array_name=array)[0] == True
             for volname in pos.cli.vols:
                 assert verify_vol_qos_values(pos, array, volname, maxiops, maxbw) == True
@@ -221,8 +221,8 @@ def unmount_mount_array(pos, array_list, maxiops, maxbw):
 def verify_vol_qos_values(pos, array_name, vol_name, maxiops, maxbw):
     try:
         assert pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0] == True
-        assert pos.cli.volume_info[array_name][vol_name]["max_iops"] == maxiops
-        assert pos.cli.volume_info[array_name][vol_name]["max_bw"] == maxbw
+        assert pos.cli.volume_data[array_name][vol_name]["max_iops"] == maxiops
+        assert pos.cli.volume_data[array_name][vol_name]["max_bw"] == maxbw
     except Exception as e:
         logger.info(f"Failed to verify volume qos values due to {e}")
         return False
@@ -264,7 +264,7 @@ def create_mount_hetero_arrays(pos, raid_list, num_spare_disk, hetero_array=True
             assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == True
-            assert pos.cli.array_unmount(array_name=array_name,
+            assert pos.cli.array_mount(array_name=array_name,
                                        write_back=False)[0] == True
     except Exception as e:
         logger.info(f"Failed to create and mount array due to {e}")
