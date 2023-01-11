@@ -143,6 +143,11 @@ class Prometheus(Cli):
         assert self.get_property()[0] == True
         return True
 
+    def docker_restart(self):
+        cmd = "sudo docker restart pos-prometheus"
+        out = self.ssh_obj.execute(cmd)
+        return len(out)
+
     def get_all_metrics(self) -> bool:
         """method to list all the metric info"""
         self.promlist = self.prom.all_metrics()
