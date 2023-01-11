@@ -331,6 +331,8 @@ class Cli:
             cli_error, jout = self.run_cli_command(cmd, command_type="system")
             if cli_error == True:
                 return True, jout
+            else:
+                return False, jout
 
         except Exception as e:
             logger.error("failed due to {}".format(e))
