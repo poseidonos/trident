@@ -5,6 +5,9 @@ It is built on top of pytest framework, The tool contains following test cases t
 - CLI test suite
 - Subsystem, QOS management
 - GC and flush
+- Telemetry and Prometheus
+- Array Disk Replace and Hot Remove
+
 A setup tool is developed to check if setup is ready for test execution.
 
 # Table of contents
@@ -20,6 +23,7 @@ A setup tool is developed to check if setup is ready for test execution.
 
 # Install Prerequisites
 `$pip3 install --upgrade pip`
+
 `$pip3 install -r requirements.txt`
 
 # Download and Build POS
@@ -40,5 +44,5 @@ Please refer docs/UserGuide.md for details
 Please refer docs/UserGuide.md for details
 
 # Notes
-Trident currently supports 0.11.x version of Poseidon OS
+Trident currently supports 0.12.x version of Poseidon OS
 

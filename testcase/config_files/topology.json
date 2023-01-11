@@ -7,10 +7,10 @@
             "server":
             [
                 {
-                    "ip":"10.0.0.2",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
-                    "password":"siso@123",
-                    "Data_Ip": "10.0.0.2"
+                    "password":"password",
+                    "Data_Ip": "127.0.0.0.1"
                 }
             ]
         },
@@ -20,42 +20,42 @@
             "client":
             [
                 {
-                    "ip":"10.0.0.3",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
-                    "password":"siso@123",
-                    "Data_Ip": "10.0.0.3"
+                    "password":"password",
+                    "Data_Ip": "127.0.0.0.1"
                 },{
-                    "ip":"10.0.0.9",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
-                    "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "password":"password",
+                    "Data_Ip": "127.0.0.0.1"
                 },{
-                    "ip":"10.0.0.9",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
-                    "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "password":"password",
+                    "Data_Ip": "127.0.0.0.1"
 		},{
-                    "ip":"10.0.0.9",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
-                    "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "password":"password",
+                    "Data_Ip": "127.0.0.0.1"
                 },{
-                    "ip":"10.0.0.9",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
-                    "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "password":"password",
+                    "Data_Ip": "127.0.0.0.1"
                 },{
-                    "ip":"10.0.0.9",
+                    "ip":"127.0.0.0.1",
                     "username":"root",
-                    "password":"siso@123",
-                    "Data_Ip": "10.0.0.9"
+                    "password":"password",
+                    "Data_Ip": "127.0.0.0.1"
                 }
 
 	    ]
         },
 	"paths": 
 	{
-		"pos_path": "/root/poseidon/ibofos" 
+		"pos_path": "path of compiled POS source code" 
 	}
     }
 }

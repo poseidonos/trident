@@ -36,6 +36,6 @@
     "recovery": {
         "magic_number": "9877",
         "file_name": "target_hetero_setup.pickle",
-        "dir_name": "/root/nehal/trident/logs/"
+        "dir_name": "/root/"
     }
 }
