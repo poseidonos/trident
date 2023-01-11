@@ -260,6 +260,17 @@ class PosCLI:
         )
         return True
 
+    def dump_cli_history(self, clean=True):
+        """
+        Method to dump cli command history for debugging
+        """
+        for cli in self.cli_history:
+            logger.info(f"{cli}")
+
+        if clean:
+            logger.info("Deleting old cli history")
+            self.cli_history = []
+
     def parse_out(self, jsonout, command):
 
         out = json.loads(jsonout)
@@ -406,6 +417,47 @@ class PosCLI:
             return cli_rsp, jout
         except Exception as e:
             logger.error(f"Devel resetmbr command failed due to {e}")
+            return False, jout
+
+    def devel_eventwrr_update(self, name: str, weight: str) -> (bool, dict):
+        """
+        Method to event writer update
+
+        Parameters:
+            name (str): Name of event
+            weight (str): Weight of Event
+
+        Returns:
+            Tuple of (Comamnd Status, Comamnd Response)
+        """
+        try:
+
+            command = f"update-event-wrr --name {name} --weight {weight}"
+            cli_rsp, jout = self.run_cli_command(command, "devel")
+            if cli_rsp == False:
+                raise Exception("CLI Error")
+
+            return cli_rsp, jout
+        except Exception as e:
+            logger.error(f"Devel event writter update failed due to {e}")
+            return False, jout
+
+    def devel_eventwrr_reset(self) -> (bool, dict):
+        """
+        Method to event writer reset
+
+        Returns:
+            Tuple of (Comamnd Status, Comamnd Response)
+        """
+        try:
+            command = "reset-event-wrr"
+            cli_rsp, jout = self.run_cli_command(command, "devel")
+            if cli_rsp == False:
+                raise Exception("CLI Error")
+
+            return cli_rsp, jout
+        except Exception as e:
+            logger.error(f"Devel event writter reset failed due to {e}")
             return False, jout
 
 
@@ -1788,36 +1840,6 @@ class PosCLI:
         except Exception as e:
             logger.error("command execution failed because of  {}".format(e))
             return False, None
-
-    def devel_eventwrr_update(self, name: str, weight: str) -> (bool, dict):
-
-        try:
-
-            command = f"update-event-wrr --name {name} --weight {weight}"
-            cli_rsp, jout = self.run_cli_command(command, "devel")
-            if cli_rsp == True:
-                return True, jout
-            else:
-                raise Exception("CLI Error")
-
-        except Exception as e:
-            logger.error(e)
-            return False, jout
-
-    def devel_eventwrr_reset(self) -> (bool, dict):
-
-        try:
-
-            command = "reset-event-wrr"
-            cli_rsp, jout = self.run_cli_command(command, "devel")
-            if cli_rsp == True:
-                return True, jout
-            else:
-                raise Exception("CLI Error")
-
-        except Exception as e:
-            logger.error(e)
-            return False, jout
 
 
 

@@ -89,7 +89,7 @@ def test_cli_happypath(array_fixture):
         qos(pos)
 
         logger.info("====================GC=====================")
-        pos.cli.wbt_do_gc()
+        pos.cli.wbt_do_gc(array_name="array1")
         pos.cli.wbt_get_gc_status(array_name="array1")
 
         logger.info(" ================== logger ================")

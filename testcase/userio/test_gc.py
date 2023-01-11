@@ -28,6 +28,7 @@ def test_gcMaxvol(array_fixture, raid_type, nr_data_drives):
     """Trigger garbage collection with longevity of I/O"""
     try:
         pos = array_fixture
+        array_name = data_dict["array"]["pos_array"][0]["array_name"]
         pos.data_dict["array"]["pos_array"][0]["raid_type"] = raid_type
         pos.data_dict["array"]["pos_array"][1]["raid_type"] = raid_type
         pos.data_dict["array"]["pos_array"][0]["write_back"] = random.choice(
@@ -46,8 +47,8 @@ def test_gcMaxvol(array_fixture, raid_type, nr_data_drives):
         assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
         run_io(pos)
-        pos.cli.wbt_do_gc()
-        pos.cli.wbt_get_gc_status()
+        pos.cli.wbt_do_gc(array_name=array_name)
+        pos.cli.wbt_get_gc_status(array_name=array_name)
         
 
         logger.info(

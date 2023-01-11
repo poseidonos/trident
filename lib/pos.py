@@ -106,32 +106,29 @@ class POS:
 
         self.client_cnt = self.config_dict["login"]["initiator"]["number"]
         if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:
-            for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):
+            for client_cnt in range(self.client_cnt):
                 self.create_client_objects(client_cnt)
-                
         else:
             assert 0
         
-    def create_client_objects(self,client_cnt):
-        ip = self.config_dict["login"]["initiator"]["client"][client_cnt]["ip"]
-        username = self.config_dict["login"]["initiator"]["client"][client_cnt][
-                    "username"
-                ]
-        password = self.config_dict["login"]["initiator"]["client"][client_cnt][
-                    "password"
-                ]
+    def create_client_objects(self, client_cnt):
+        client_list = self.config_dict["login"]["initiator"]["client"]
+        ip = client_list[client_cnt]["ip"]
+        username = client_list[client_cnt]["username"]
+        password = client_list[client_cnt]["password"]
         client_obj = SSHclient(ip, username, password)
         self.obj_list.append(client_obj)
         self.client_handle.append(Client(client_obj))
+
         if self.client_cnt == 1:
             self.client = self.client_handle[0]
         
-
     def _clearall_objects(self):
         if len(self.obj_list) > 0:
             for obj in self.obj_list:
                 obj.close()
         return True
+
     def _json_reader(self, json_file: str, abs_path=False) -> dict:
         """reads json file from /testcase/config_files
 
@@ -156,46 +153,31 @@ class POS:
             exit()
 
     def exit_handler(self, expected=False, hetero_setup=False):
-        """method to exit out of a test script as per the the result"""
-
+        """ Method to exit out of a test script as per the the result """
         try:
-
             assert self.target_utils.helper.check_system_memory() == True
-            for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):
-                if self.client_handle[client_cnt].ctrlr_list()[1] is not None:
-                    assert self.target_utils.get_subsystems_list() == True
-                    assert (
-                        self.client_handle[client_cnt].nvme_disconnect(
-                            self.target_utils.ss_temp_list
-                        )
-                        == True
-                    )
-            if expected == False:
-                raise Exception(" Test case failed ! Creating core dump and clean up")
+        
+            is_pos_running = False
             if self.target_utils.helper.check_pos_exit() == False:
-                self.cli.system_stop(grace_shutdown=True)
-            self.pos_conf.restore_config()
+                is_pos_running = True
+            
+            # POS Clinet Cleanup
+            for client in self.client_handle:
+                assert client.reset(pos_run_status=is_pos_running) == True
 
             # Reset the target to previous state
+            self.pos_conf.restore_config()
 
-            if hetero_setup:
+            if hetero_setup and not is_pos_running:
                 if not self.target_utils.hetero_setup.reset():
                     raise Exception("Failed to reset the target state")
 
+            if expected == False:
+                raise Exception("Test case failed! Creating core dump and clean up")
         except Exception as e:
-
             logger.error(e)
-            logger.info(
-                "------------------------------------------ CLI HISTORY ------------------------------------------"
-            )
-            for cli_cmd in self.cli.cli_history:
-                logger.info(cli_cmd)
-
-            logger.info(
-                "-------------------------------------------------------------------------------------------------------"
-            )
+            pos.cli.dump_history(clean=True)
             # time.sleep(10000)
             # self.cli.core_dump()
             #self.cli.system_stop(grace_shutdown=False)
-            
             assert 0
