@@ -117,7 +117,7 @@ def test_raid6_longetivity_npor_spor_journal_enabled(journal_setup_cleanup,por):
         assert multi_array_data_setup(data_dict = pos.data_dict,num_array = 2,
                                       raid_types = ("RAID6","RAID6"),num_data_disks=(4,4),
                                       num_spare_disk=(1,1),auto_create=(True,True),array_mount=("WT","WT")) == True
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         assert volume_create_and_mount_multiple(pos=pos, num_volumes=1, array_list=pos.cli.array_dict.keys(),
@@ -127,9 +127,9 @@ def test_raid6_longetivity_npor_spor_journal_enabled(journal_setup_cleanup,por):
         fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw={} --iodepth=64 --direct=1 --numjobs=1 --bs=64k --verify=md5"
         assert setup.run_fio_all_volumes(pos=pos,nvme_devs=pos.client.nvme_list_out,fio_cmd=fio_cmd,size='10g') == True
         if por == "NPOR":
-            assert pos.target_utils.Npor() == True
+            assert pos.target_utils.npor() == True
         else:
-            assert pos.target_utils.Spor(uram_backup=False,write_through=True) == True
+            assert pos.target_utils.spor(uram_backup=False,write_through=True) == True
 
         for array in pos.cli.array_dict.keys():
             disk_interval = [(0,)]

@@ -83,9 +83,9 @@ def test_wt_array_Npor_Spor_nobackup(
             == True
         )
         if por == "Npor":
-            assert pos.target_utils.Npor() == True
+            assert pos.target_utils.npor() == True
         else:
-            assert pos.target_utils.Spor(uram_backup=False) == True
+            assert pos.target_utils.spor(uram_backup=False) == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )

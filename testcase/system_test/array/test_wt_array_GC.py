@@ -21,8 +21,8 @@ def test_wt_array_GC(array_fixture, raid_type, nr_data_drives):
         pos.data_dict["array"]["pos_array"][0]["data_device"] = nr_data_drives
         pos.data_dict["array"]["pos_array"][0]["spare_device"] = 0
         pos.data_dict["array"]["pos_array"][0]["raid_type"] = raid_type
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
 
         run_io(pos)
         assert pos.cli.wbt_do_gc()[0] == False

@@ -23,8 +23,8 @@ def pos_setup(pos, num_array, list_array_obj, data_dict):
     
     
     data_dict["array"]["num_array"] = 2 if num_array == 2 else 1
-    assert pos.target_utils.bringupArray(data_dict = data_dict) == True
-    assert pos.target_utils.bringupVolume(data_dict = data_dict) == True
+    assert pos.target_utils.bringup_array(data_dict = data_dict) == True
+    assert pos.target_utils.bringup_volume(data_dict = data_dict) == True
     assert pos.cli.array_list()[0] == True
     assert pos.target_utils.get_subsystems_list() == True
 

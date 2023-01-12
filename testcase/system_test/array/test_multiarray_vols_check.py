@@ -73,7 +73,7 @@ def test_multi_array_delete_vols(setup_cleanup_array_function):
             assert pos.cli.array_info(array_name=array_name)[0] == True
             array_cap_creation = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_creation))
-            assert pos.target_utils.deleteAllVolumes(arrayname=array_name) == True
+            assert pos.target_utils.delete_all_volumes(arrayname=array_name) == True
             array_cap_creation = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_creation))
             logger.info(

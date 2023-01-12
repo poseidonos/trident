@@ -55,6 +55,14 @@ def nvme_connect(pos):
     assert pos.client.nvme_list() == True
     return True, pos.client.nvme_list_out
 
+def nvme_disconnect(pos):
+    """ Method to do nvme disconnect """
+    is_pos_running = False
+    if pos.target_utils.helper.check_pos_exit() == False:
+        is_pos_running = True
+
+    pos.client.reset(is_pos_running)
+    return True
 
 def run_io(
     pos,
@@ -71,6 +79,7 @@ def run_io(
         )[0]
         == True
     )
+    assert nvme_disconnect(pos) == True
     return True
 
 def common_setup(pos,raid_type, nr_data_drives):
@@ -81,8 +90,8 @@ def common_setup(pos,raid_type, nr_data_drives):
         pos.data_dict["array"]["pos_array"][0]["data_device"] = nr_data_drives
         pos.data_dict["array"]["pos_array"][1]["data_device"] = nr_data_drives
        
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
 
 def multi_array_data_setup(data_dict: dict, num_array: int, raid_types: tuple, 

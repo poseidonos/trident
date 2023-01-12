@@ -129,9 +129,9 @@ def check_pos_and_bringup():
         pos.data_dict["subsystem"]["phase"] = "true"
         pos.data_dict["device"]["phase"] = "true"
         if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.bringupSystem(data_dict=pos.data_dict) == True
-            assert pos.target_utils.bringupDevice(data_dict=pos.data_dict) == True
-            assert pos.target_utils.bringupSubsystem(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringup_system(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringup_device(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringup_subsystem(data_dict=pos.data_dict) == True
             assert pos.target_utils.get_subsystems_list() == True
             array_cleanup()
         else:

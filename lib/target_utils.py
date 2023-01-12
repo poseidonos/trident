@@ -47,15 +47,17 @@ logger = logger.get_logger(__name__)
 class TargetUtils:
     """
     The Class objects will contain supporting methods to configure POS
-    Args:
+
+    Arguments:
         ssh_obj : ssh obj of the Target
         data_dict (dict) : path for POS config
-        
-        array_name (str) : name of the POS array | (default = POS_ARRAY1)
-
     """
 
-    def __init__(self, ssh_obj, cli_obj: object, data_dict: dict, pos_as_service = "true"):
+    def __init__(self, ssh_obj: object, cli_obj: object,
+                 data_dict: dict, pos_as_service: bool = True):
+        """ 
+        TODO
+        """
         self.ssh_obj = ssh_obj
         self.static_dict = data_dict
         self.pos_as_service = pos_as_service
@@ -244,11 +246,13 @@ class TargetUtils:
             logger.error("command execution failed with exception {}".format(e))
             return False, None
         return True, bdf_out
+
     def re_scan(self):
         """method to do pci scan with out POS"""
         re_scan_cmd = "echo 1 > /sys/bus/pci/rescan "
         self.ssh_obj.execute(re_scan_cmd)
         return True
+
     def pci_rescan(self):
         """
         Method to pci rescan
@@ -668,7 +672,7 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    def bringupSystem(self, data_dict: dict) -> bool:
+    def bringup_system(self, data_dict: dict) -> bool:
         """method to bringup system phase"""
         ##TODO set pos path
         #self.setup_core_dump()
@@ -682,7 +686,7 @@ class TargetUtils:
             assert self.cli.subsystem_create_transport()[0] == True
         return True
 
-    def bringupDevice(self, data_dict: dict) -> bool:
+    def bringup_device(self, data_dict: dict) -> bool:
         """method to bringup device"""
         self.static_dict = data_dict
         if self.static_dict["device"]["phase"] == "true":
@@ -702,7 +706,7 @@ class TargetUtils:
             assert self.cli.device_list()[0] == True
         return True
 
-    def bringupSubsystem(self, data_dict: dict) -> bool:
+    def bringup_subsystem(self, data_dict: dict) -> bool:
         """method to bringup subsystem"""
         try:
             self.static_dict = data_dict
@@ -735,7 +739,7 @@ class TargetUtils:
             traceback.print_exc()
             return False
 
-    def bringupArray(self, data_dict: dict) -> bool:
+    def bringup_array(self, data_dict: dict) -> bool:
         """method to bringup array"""
         try:
             self.static_dict = data_dict
@@ -813,7 +817,7 @@ class TargetUtils:
             return False
         return True
 
-    def bringupVolume(self, data_dict: dict) -> bool:
+    def bringup_volume(self, data_dict: dict) -> bool:
         self.static_dict = data_dict
         if self.static_dict["volume"]["phase"] == "true":
             assert self.cli.array_list()[0] == True
@@ -882,11 +886,11 @@ class TargetUtils:
                 self.static_dict = data_dict
             logger.info(self.static_dict)
 
-            assert self.bringupSystem(data_dict=self.static_dict) == True
-            assert self.bringupDevice(data_dict=self.static_dict) == True
-            assert self.bringupSubsystem(data_dict=self.static_dict) == True
-            assert self.bringupArray(data_dict=self.static_dict) == True
-            assert self.bringupVolume(data_dict=self.static_dict) == True
+            assert self.bringup_system(data_dict=self.static_dict) == True
+            assert self.bringup_device(data_dict=self.static_dict) == True
+            assert self.bringup_subsystem(data_dict=self.static_dict) == True
+            assert self.bringup_array(data_dict=self.static_dict) == True
+            assert self.bringup_volume(data_dict=self.static_dict) == True
 
             return True
         except Exception as e:
@@ -1176,7 +1180,7 @@ class TargetUtils:
             traceback.print_exc()
             return False
 
-    def bringupPOR(self, array_list) -> bool:
+    def bringup_npor(self, array_list) -> bool:
 
         assert self.cli.pos_start()[0] == True
         uram_list = [f"uram{str(i)}" for i in range(len(array_list))]
@@ -1197,7 +1201,7 @@ class TargetUtils:
                     logger.info("No volumes found")
         return True
 
-    def Npor(self) -> bool:
+    def npor(self) -> bool:
         """method to perform NPOR
         Returns:
             bool
@@ -1269,7 +1273,7 @@ class TargetUtils:
             traceback.print_exc()
             return False
 
-    def Spor(self, uram_backup=True, write_through=False) -> bool:
+    def spor(self, uram_backup=True, write_through=False) -> bool:
         """
         Method to spor
         uram_backup : If true, run script to take uram backup
@@ -1344,7 +1348,7 @@ class TargetUtils:
             traceback.print_exc()
             return False
 
-    def deleteAllVolumes(self, arrayname):
+    def delete_all_volumes(self, arrayname):
         """method to delete all volumes if any in a given array"""
         try:
             assert self.cli.array_list()[0] == True
@@ -1377,8 +1381,8 @@ class TargetUtils:
         except Exception as e:
             logger.error(e)
             return False
+
     ##TODO update pos path
-    
     def dump_core(self):
         """
         Method to collect core dump by giving different options depending on

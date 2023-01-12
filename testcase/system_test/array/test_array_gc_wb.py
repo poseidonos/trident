@@ -16,9 +16,9 @@ def gc_array_io(pos):
         data_dict["array"]["pos_array"][0]["data_device"] = 3
         data_dict["array"]["pos_array"][0]["spare_device"] = 1
         data_dict["array"]["pos_array"][0]["write_back"] = "true"
-        assert pos.target_utils.bringupArray(data_dict=data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=data_dict) == True
         data_dict["volume"]["pos_volumes"][0]["num_vol"] = 1
-        assert pos.target_utils.bringupVolume(data_dict=data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=data_dict) == True
         assert run_io(
             pos,
             fio_command="fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=30",

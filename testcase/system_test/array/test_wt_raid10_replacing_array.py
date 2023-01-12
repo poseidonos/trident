@@ -107,7 +107,7 @@ def test_array_recreation_to_diff_raid_type():
 
 def test_npor_raid10_arrays():
     assert run_block_io() == True
-    assert pos.target_utils.Npor() == True
+    assert pos.target_utils.npor() == True
     assert pos.cli.array_list()[0] ==True
     array_list = list(pos.cli.array_dict.keys())
     for array in list(pos.cli.array_dict.keys()):

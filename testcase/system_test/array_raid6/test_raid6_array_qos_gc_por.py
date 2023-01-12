@@ -124,10 +124,10 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
 
         for por in por_list:
             if por == "NPOR":
-                assert pos.target_utils.Npor() == True
+                assert pos.target_utils.npor() == True
 
             else:
-                assert pos.target_utils.Spor() == True
+                assert pos.target_utils.spor() == True
 
         if por == "NPOR":
             for nqn in subs_list:

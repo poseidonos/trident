@@ -135,7 +135,7 @@ def test_create_arrays_vol_delete_arrays_vol(array_fixture):
                                       num_spare_disk=(1,1),
                                       auto_create=(True, True),
                                       array_mount=("WT", "WT")) == True
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         num_vols=[1,128,256]

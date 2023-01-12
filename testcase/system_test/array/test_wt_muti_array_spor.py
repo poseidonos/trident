@@ -84,10 +84,10 @@ def test_wt_multi_array_FIO_SPOR_NPOR(setup_cleanup_array_function, array1, arra
         )
 
         # Perfrom SPOR
-        assert pos.target_utils.Spor() == True
+        assert pos.target_utils.spor() == True
 
         # Perform NPOR
-        assert pos.target_utils.Npor() == True
+        assert pos.target_utils.npor() == True
 
         logger.info(
             " ============================= Test ENDs ======================================"

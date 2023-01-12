@@ -287,7 +287,7 @@ def test_hetero_multi_array_512_volume_mix_FIO(raid_type, num_disk, additional_o
                 assert pos.cli.array_list()[0] == True
                 if additional_ops == "npor":
                     # Perform NPOR
-                    assert pos.target_utils.Npor() == True
+                    assert pos.target_utils.npor() == True
                 elif additional_ops == "vol_del_reverse" :
                     for array in pos.cli.array_dict.keys():
                         # Delete volumes in reverse order

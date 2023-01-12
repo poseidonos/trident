@@ -33,7 +33,7 @@ def test_create_raid6_array(array_fixture, array_mount):
             assert single_array_data_setup(pos.data_dict, "RAID6", data_disk,
                                 spare_disk, array_mount, auto_create) == True
 
-            assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == exp_res
+            assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == exp_res
 
             if exp_res:
                 assert array_unmount_and_delete(pos) == True
@@ -72,7 +72,7 @@ def test_auto_create_raid6_array(array_fixture, array_mount):
             assert single_array_data_setup(pos.data_dict, "RAID6", data_disk,
                                 spare_disk, array_mount, auto_create) == True
 
-            assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == exp_res
+            assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == exp_res
 
             if exp_res:
                 array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
@@ -107,7 +107,7 @@ def test_array_cap_with_volumes(array_fixture, array_mount):
         assert single_array_data_setup(pos.data_dict, "RAID6", RAID6_MIN_DISKS,
                                        0, array_mount, auto_create) == True
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
@@ -154,7 +154,7 @@ def test_raid6_array_vols_data_integrity(array_fixture, array_mount, num_vols):
 
         assert single_array_data_setup(pos.data_dict, "RAID6", num_data_disk,
                                     num_spare_disk, array_mount, False) == True
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert volume_create_and_mount_multiple(pos, num_vols) == True
 

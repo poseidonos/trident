@@ -25,7 +25,7 @@ def test_create_array3_after_array2_delete(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         # Unmount both Arrays
         for id in range(2):
@@ -71,7 +71,7 @@ def test_multiarray_add_max_spare(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
@@ -102,11 +102,11 @@ def test_multiarray_unmount_array_unmount_vol(array_fixture):
     try:
         pos = array_fixture
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         pos.data_dict["volume"]["pos_volumes"][0]["size"] = "10gb"
         pos.data_dict["volume"]["pos_volumes"][0]["num_vols"] = 1
         pos.data_dict["volume"]["pos_volumes"][1]["size"] = "10gb"
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
 
         vol_name_pre = "pos_vol"
         for id in range(num_array):
@@ -139,11 +139,11 @@ def test_multiarray_delete_array_list_vol(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         pos.data_dict["volume"]["pos_volumes"][0]["size"] = "10gb"
         pos.data_dict["volume"]["pos_volumes"][0]["num_vols"] = 1
         pos.data_dict["volume"]["pos_volumes"][1]["size"] = "10gb"
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
 
         vol_name_pre = "pos_vol"
         for id in range(num_array):
@@ -177,7 +177,7 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
         pos = array_fixture
         for _ in range(2):
 
-            assert pos.target_utils.bringupArray(
+            assert pos.target_utils.bringup_array(
                 data_dict=pos.data_dict) == True
 
             vol_size_list = []
@@ -192,7 +192,7 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
             pos.data_dict["volume"]["pos_volumes"][0]["size"] = vol_size_list[0]
             pos.data_dict["volume"]["pos_volumes"][0]["num_vols"] = 1
             pos.data_dict["volume"]["pos_volumes"][1]["size"] = vol_size_list[1]
-            assert pos.target_utils.bringupVolume(
+            assert pos.target_utils.bringup_volume(
                 data_dict=pos.data_dict) == True
 
             vol_name_pre = "pos_vol"
@@ -217,7 +217,7 @@ def test_multiarray_mount_unmount_loop(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         loop_limit = 20
         for loop_counter in range(loop_limit):
@@ -246,7 +246,7 @@ def test_unmount_array1_delete_array2(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         # Unmount Array 1
         array_name = "array1"
@@ -280,7 +280,7 @@ def test_array1_spare_as_array2_data_disk(array_fixture):
         pos = array_fixture
         pos.data_dict["array"]["num_array"] = 1
         pos.data_dict["array"]["pos_array"].pop(1)
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
@@ -320,7 +320,7 @@ def test_array1_data_as_array2_spare_disk(array_fixture):
         pos = array_fixture
         pos.data_dict["array"]["num_array"] = 1
         pos.data_dict["array"]["pos_array"].pop(1)
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_array = []
@@ -356,7 +356,7 @@ def test_multiarray_size_after_unmount_mount(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         for id in range(2):
             array_name = f"array{id+1}"
@@ -386,7 +386,7 @@ def test_array2_unmount_after_detach_spare(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         # Array 2 Detach Speare disk
         assert pos.target_utils.device_hot_remove(
@@ -413,7 +413,7 @@ def test_multiarray_different_num_drives(array_fixture):
         pos.data_dict["array"]["pos_array"][0]["data_device"] = 3
         pos.data_dict["array"]["pos_array"][1]["data_device"] = 4
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -432,7 +432,7 @@ def test_second_array_without_uram(array_fixture):
         pos = array_fixture
         pos.data_dict["array"]["num_array"] = 1
         pos.data_dict["array"]["pos_array"].pop(1)
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_array = []
@@ -529,7 +529,7 @@ def test_multiarray_unmount_unmounted_array(array_fixture):
         pos = array_fixture
         pos.data_dict["array"]["pos_array"][0]["mount"] = "false"
         pos.data_dict["array"]["pos_array"][1]["mount"] = "false"
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         # Unmount first array. Expected to fail
         assert pos.cli.array_unmount(array_name="array1")[0] == False
 
@@ -612,7 +612,7 @@ def test_multiarray_consume_max_array_capacity(array_fixture):
         pos = array_fixture
         array_name_pre = "array"
         array_name = "array1"
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
 
         array_size = int(pos.cli.array_data[array_name].get("size"))
@@ -651,7 +651,7 @@ def test_multiarray_unmount_array_effect(array_fixture):
     try:
         pos = array_fixture
         array_name_pre = "array"
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         # Unmount second array and Check the array state
         assert pos.cli.array_unmount(
@@ -692,7 +692,7 @@ def test_multiarray_unmount_mount_array1(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         # Unmount first array and verify the state
         array_name = "array1"
@@ -720,7 +720,7 @@ def test_multiarray_vol_unmount_delete_loop(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         loop_limit = 10
         for loop_counter in range(loop_limit):
@@ -760,7 +760,7 @@ def test_multiarray_mount_mounted_array(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         # Again mount the same array
         assert pos.cli.array_unmount(array_name="array1")[0] == False
@@ -785,8 +785,8 @@ def test_array1_100_vols_array2_257_vols(array_fixture):
         pos.data_dict["volume"]["pos_volumes"][0]["size"] = '1gb'
         pos.data_dict["volume"]["pos_volumes"][1]["size"] = '1gb'
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         # negative test
         assert (
             pos.cli.volume_create(

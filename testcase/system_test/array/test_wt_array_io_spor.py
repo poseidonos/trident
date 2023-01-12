@@ -76,7 +76,7 @@ def test_wt_array_io_spor(array_setup_cleanup, raid_type, nr_data_drives):
             break
 
         # Perfrom SPOR
-        assert pos.target_utils.Spor(uram_backup=False) == True
+        assert pos.target_utils.spor(uram_backup=False) == True
 
         pos.client.check_system_memory()
         logger.info(
@@ -106,7 +106,7 @@ def test_spor_wt_wb(array_setup_cleanup):
             )[0]
             == True
         )
-        assert pos.target_utils.Spor(write_through=True) == True
+        assert pos.target_utils.spor(write_through=True) == True
     except Exception as e:
         pos.exit_handler()
         assert 0
@@ -130,7 +130,7 @@ def test_npor_wt_wb(array_setup_cleanup):
             )[0]
             == True
         )
-        assert pos.target_utils.Npor(write_through=True) == True
+        assert pos.target_utils.npor(write_through=True) == True
     except Exception as e:
         pos.exit_handler()
         assert 0

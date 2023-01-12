@@ -89,7 +89,7 @@ def test_hetero_multi_array_npor_mounted_array(raid_type, num_devs, repeat_ops):
                 assert pos.cli.array_mount(array_name=array_name)[0] == True
                 assert pos.cli.array_info(array_name=array_name)[0] == True
 
-            assert pos.target_utils.Npor() == True
+            assert pos.target_utils.npor() == True
 
             assert pos.cli.array_list()[0] == True
             for array in pos.cli.array_dict.keys():
@@ -171,7 +171,7 @@ def test_hetero_array_spor(array_raid, num_devs):
         assert pos.client.fio_generic_runner(pos.client.nvme_list_out,
                 fio_user_data=fio_cmd)[0] == True
 
-        assert pos.target_utils.Spor(uram_backup=False) == True
+        assert pos.target_utils.spor(uram_backup=False) == True
         
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -256,7 +256,7 @@ def test_hetero_multi_array_spor(array_raid, num_devs, fio_runtime):
         assert pos.client.fio_generic_runner(
                 nvme_devs, fio_user_data=fio_cmd, IO_mode=True)[0] == True
 
-        assert pos.target_utils.Spor() == True
+        assert pos.target_utils.spor() == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

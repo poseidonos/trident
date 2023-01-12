@@ -12,7 +12,7 @@ def create_array_and_volumes(pos, raid_types, data_disks, spare_disks, num_array
                                   auto_create=(True, True),
                                   array_mount=("WT", "WT")) == True
 
-    assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+    assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
     assert pos.cli.array_list()[0] == True
 
@@ -138,9 +138,9 @@ def test_nft_quick_rebuild_with_por(array_fixture,testcase):
             if "POR" in list(TESTCASE_DICT[testcase].keys()):
                 for por in TESTCASE_DICT[testcase]["por"]:
                     if TESTCASE_DICT[testcase]["POR"] == "SPOR":
-                        assert pos.target_utils.Spor(uram_backup=False,write_through=True) == True
+                        assert pos.target_utils.spor(uram_backup=False,write_through=True) == True
                     else:
-                        assert pos.target_utils.Npor() == True
+                        assert pos.target_utils.npor() == True
 
         #Run IO on the volumes
         out, async_io = pos.client.fio_generic_runner(nvme_devs,fio_user_data=fio_cmd, run_async=True)

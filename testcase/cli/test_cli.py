@@ -81,8 +81,8 @@ def test_cli_happypath(array_fixture):
 
     try:
         pos = array_fixture
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
         device(pos)

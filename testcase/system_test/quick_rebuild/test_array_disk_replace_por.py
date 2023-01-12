@@ -93,9 +93,9 @@ def test_arrays_disk_replace_por(setup_cleanup_array_function, por_operation):
 def do_por(pos, por):
     try:
         if (por.lower() == "spor"):
-            assert pos.target_utils.Spor() == True
+            assert pos.target_utils.spor() == True
         elif (por.lower() == "npor"):
-            assert pos.target_utils.Npor() == True
+            assert pos.target_utils.npor() == True
         return True
     except Exception as e:
         logger.error(f"Failed to {por} due to {e}")

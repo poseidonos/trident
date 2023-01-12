@@ -63,8 +63,8 @@ def common_setup(pos, raid_type, nr_data_drives):
     pos.data_dict["volume"]["pos_volumes"][0]["size"] = "200gb"
     pos.data_dict["volume"]["pos_volumes"][1]["size"] = "200gb"
     logger.info("configuring POS")
-    assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-    assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+    assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+    assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
     run_io(pos)
     file_io(pos)
 

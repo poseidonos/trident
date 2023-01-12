@@ -111,7 +111,7 @@ def por_array_io():
 def test_wt_array_single_vol_npor(raid_type, nr_data_drives):
     try:
         assert por_array_io(raid_type, nr_data_drives) == True
-        assert pos.target_utils.Npor() == True
+        assert pos.target_utils.npor() == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -128,7 +128,7 @@ def test_wt_array_single_vol_npor(raid_type, nr_data_drives):
 def test_wt_array_single_vol_spor(raid_type, nr_data_drives):
     try:
         assert por_array_io() == True
-        assert pos.target_utils.Spor() == True
+        assert pos.target_utils.spor() == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )

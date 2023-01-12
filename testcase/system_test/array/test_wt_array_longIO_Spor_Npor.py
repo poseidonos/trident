@@ -38,8 +38,8 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(
         pos.data_dict["volume"]["pos_volumes"][0]["size"] = "200gb"
 
         logger.info("configuring POS as per TC req")
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
 
         dev = [pos.client.nvme_list_out[0]]
@@ -58,9 +58,9 @@ def test_wb_wt_array_long_fileIO_Npor_Spor(
         assert pos.client.delete_FS(mount_point) == True
 
         if por == "Npor":
-            assert pos.target_utils.Npor() == True
+            assert pos.target_utils.npor() == True
         else:
-            assert pos.target_utils.Spor(uram_backup=True) == True
+            assert pos.target_utils.spor(uram_backup=True) == True
 
         logger.info(
             " ============================= Test ENDs ======================================"

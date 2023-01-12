@@ -12,8 +12,8 @@ def test_qos_happy_path(array_fixture):
         pos = array_fixture
         pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 1
         pos.data_dict["array"]["num_array"] = 1
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
     except Exception as e:
         logger.error(e)
@@ -28,8 +28,8 @@ def test_qos_set_reset(array_fixture, num_vol):
         pos = array_fixture
         pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = num_vol
         pos.data_dict["array"]["num_array"] = 1
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
         assert pos.cli.volume_list(array_name="array1")[0] == True
         for vol in pos.cli.vols:
@@ -51,8 +51,8 @@ def test_qos_rebuilding_Array(array_fixture):
         pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 1
         pos.data_dict["array"]["num_array"] = 1
         pos.data_dict["array"]["pos_array"][0]["spare_device"] = 1
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
 
         assert pos.cli.array_list()[0] == True

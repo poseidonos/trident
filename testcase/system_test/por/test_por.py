@@ -96,11 +96,11 @@ def unmount_fs(iomode):
 
 def do_SPOR(wt=False, expected=True, uram_backup=True):
 
-    assert pos.target_utils.Spor(uram_backup=uram_backup, write_through=wt) == expected
+    assert pos.target_utils.spor(uram_backup=uram_backup, write_through=wt) == expected
 
 
 def do_Npor():
-    assert pos.target_utils.Npor() == True
+    assert pos.target_utils.npor() == True
 
 
 def runFIO(io_mode, device_list, ops):

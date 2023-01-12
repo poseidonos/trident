@@ -184,7 +184,7 @@ def test_array_create_and_trigger_rebuild():
     create_initial_arrays(config_1)
     assert pos.cli.array_list()[0] == True
     assert run_block_io() == True
-    assert pos.target_utils.Spor() == True
+    assert pos.target_utils.spor() == True
     array_list = list(pos.cli.array_dict.keys())
     for array in array_list:
         assert pos.cli.array_unmount(array_name=array)[0] == True

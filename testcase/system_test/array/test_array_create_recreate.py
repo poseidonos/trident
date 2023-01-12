@@ -6,12 +6,12 @@ import logger
 logger = logger.get_logger(__name__)
 
 def creation(pos, pos_dict, volume_creation=True, num_vols=2):
-    assert pos.target_utils.bringupArray(pos_dict) == True
+    assert pos.target_utils.bringup_array(pos_dict) == True
     if volume_creation == True:
         pos_dict['volume']['phase'] = 'true'
         for i in range(2):
             pos_dict["volume"]["pos_volumes"][i]["num_vol"] = num_vols
-        assert pos.target_utils.bringupVolume(pos_dict) == True
+        assert pos.target_utils.bringup_volume(pos_dict) == True
     return True
 
 
@@ -257,7 +257,7 @@ def test_write_through_wt_r5(array_fixture):
 @pytest.mark.regression
 def test_write_through_to_write_back(array_fixture):
     pos = array_fixture
-    assert pos.target_utils.bringupSystem(pos.data_dict) == True
+    assert pos.target_utils.bringup_system(pos.data_dict) == True
     pos.data_dict['array']['phase'] = 'true'
     pos.data_dict['array']['num_array'] = 1
     pos.data_dict['array']['pos_array'][0]['write_back'] = 'false'

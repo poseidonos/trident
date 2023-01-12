@@ -38,9 +38,9 @@ def array_ops(pos):
     assert pos.cli.device_scan()[0] == True
     assert pos.cli.array_list()[0] == True
     for array_name in list(pos.cli.array_dict.keys()):
-        assert pos.cli.array_info(array_name=arrayname)[0] == True
-        if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
+        if pos.cli.array_dict[array_name].lower() == "mounted":
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         assert pos.cli.array_delete(array_name=array_name)[0] == True
     assert pos.cli.array_list()[0] == True
@@ -112,8 +112,8 @@ def test_SanityArray(array_fixture):
             )
             por = random.choice([True])
             logger.info(pos.data_dict)
-            assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-            assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
             run_io(pos)
             assert pos.cli.array_list()[0] == True
             array_name = list(pos.cli.array_dict.keys())[0]
@@ -142,10 +142,10 @@ def test_SanityArray(array_fixture):
             negative_tests(pos)
             if por == True:
                 logger.info("Performing SPOR")
-                pos.target_utils.Spor()
+                pos.target_utils.spor()
             else:
                 logger.info("Performing NPOR")
-                pos.target_utils.Npor()
+                pos.target_utils.npor()
 
             array_ops(pos)
             if time.time() > end_time:
@@ -158,7 +158,7 @@ def test_SanityArray(array_fixture):
             time.sleep(2)
 
     except Exception as e:
-
+        logger.error(f"Test failed due to {e}")
         assert 0
 
 
