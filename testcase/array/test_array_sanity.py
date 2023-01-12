@@ -36,14 +36,14 @@ def array_ops(pos):
         assert pos.target_utils.array_rebuild_wait(array_name=arrayname) == True
 
     assert pos.cli.device_scan()[0] == True
-    assert pos.cli.array_info(array_name=arrayname)[0] == True
-
-    assert pos.cli.array_unmount(array_name=arrayname)[0] == True
-    assert pos.cli.array_delete(array_name=arrayname)[0] == True
-    assert pos.cli.array_unmount(array_name="array2")[0] == True
-    assert pos.cli.array_delete(array_name="array2")[0] == True
     assert pos.cli.array_list()[0] == True
-    # assert pos.cli.telemetry_stop()[0] == True
+    for array_name in list(pos.cli.array_dict.keys()):
+        assert pos.cli.array_info(array_name=arrayname)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.unmount_array(array_name=array_name)[0] == True
+
+        assert pos.cli.array_delete(array_name=array_name)[0] == True
+    assert pos.cli.array_list()[0] == True
     return True
 
 

@@ -176,7 +176,7 @@ class POS:
                 raise Exception("Test case failed! Creating core dump and clean up")
         except Exception as e:
             logger.error(e)
-            pos.cli.dump_history(clean=True)
+            self.cli.dump_cli_history(clean=True)
             # time.sleep(10000)
             # self.cli.core_dump()
             #self.cli.system_stop(grace_shutdown=False)

@@ -73,20 +73,22 @@ class Client:
     def _add_nqn_name(self, nqn: str):
         """ Internal Method to add nqn name """
         if nqn in self.nqn_list:
-            raise Exception(f"NQN {nqn} is already added")
-            
+            raise Exception(f"NQN {nqn} is already added {self.nqn_list}")
+
         self.nqn_list.append(nqn)
+        logger.debug(f"Added new nqn name : {nqn}")
 
     def _del_nqn_name(self, nqn: str):
         """ Internal Method to delete nqn name """
         if nqn not in self.nqn_list:
-            raise Exception(f"NQN {nqn} is not added")
+            raise Exception(f"NQN {nqn} is not added {self.nqn_list}")
 
         self.nqn_list.remove(nqn)
+        logger.debug(f"Removed nqn name : {nqn}")
 
     def _add_mount_point(self, device_name: str, mount_point: str):
         """ Internal Method to add mount point """
-        if self.mount_point.exist(device_name):
+        if self.mount_point.get(device_name):
             raise Exception("Device {} is already mounted to {}..".format(
                             device_name, mount_point))
         self.mount_point[device_name] = mount_point
@@ -105,10 +107,14 @@ class Client:
 
     def reset(self, pos_run_status):
         """ Method to reset client """
-        mount_points = list(self.mount_point.values())
-        self.unmount_FS(fs_mount_pt=mount_points)
-        self.nvme_disconnect(nqn=self.nqn_list) 
-        pass
+        try:
+            mount_points = list(self.mount_point.values())
+            self.unmount_FS(fs_mount_pt=mount_points)
+            self.nvme_disconnect(nqn=self.nqn_list) 
+            return True
+        except Exception as e:
+            logger.error("Failed to reset client")
+            return False
 
     def client_cleanup(self):
         """
@@ -727,7 +733,7 @@ class Client:
             if out:
                 raise Exception(f"Failed to delete '{fs_mount_pt}'. Cli Error: '{out}'")
 
-            if self.is_dir_present(fs_mount_pt) is True:
+            if self.is_dir_present(fs_mount_pt) == True:
                 raise Exception("File found after deletion")
             else:
                 return True
@@ -822,7 +828,7 @@ class Client:
             self.ssh_obj.execute(cmd)
         return True
 
-    def nvme_disconnect(self, nqn: list = [], timeout: int = 60) -> bool:
+    def nvme_disconnect(self, nqn: list = [], timeout: int = 60, verify=False) -> bool:
         """
         Method to disconnect nvmf ss
         Args:
@@ -833,38 +839,34 @@ class Client:
 
         """
         try:
-            logger.info("Disconnecting nvme devices from client")
-            count = 0
-            while True:
+            logger.info(f"NQN list : {nqn}")
+            nqn_list = nqn[:]
+            for nqn_name in nqn_list:
+                logger.info(f"Disconnecting Subsystem {nqn_name}")
+                cmd = f"nvme disconnect -n {nqn_name}"
+                out = self.ssh_obj.execute(cmd)
+                res = " ".join(out)
+                logger.info(f"{res}")
+
+                self._del_nqn_name(nqn_name)
+
+            if len(nqn_list) == 0:
                 out = self.ctrlr_list()
-                cmd_list = []
-                if out[1] is not None:
-                    if len(nqn) != 0:
-                        logger.info("Disconnecting Subsystem")
-                        for nqn_name in nqn:
-                            cmd_list.append(f"nvme disconnect -n {nqn_name}")
-                            
-                    else:
-                        for ctrlr in out[1]:
-                            cmd_list.append("nvme disconnect -d {}".format(ctrlr))
-                           
-                threadable_node.sync_parallel_run(self.ssh_obj, cmd_list=cmd_list)
+                for ctrlr in out[1]:
+                    logger.info(f"Disconnecting nvme device {ctrlr}")
+                    cmd = f"nvme disconnect -d {ctrlr}"
+                    out = self.ssh_obj.execute(cmd)
+                
+            if verify:
                 self.nvme_list()
                 if len(self.nvme_list_out) == 0:
                     logger.info("Nvme disconnect passed")
-                    return True
                 else:
-                    logger.info("retrying disconnect in 5 seconds")
-                    count += 5
-                    time.sleep(5)
-                    if count > timeout:
-                        break
-            if len(self.nvme_list_out) != 0:
-                raise Exception("nvme disconnect failed")
+                    raise Exception("nvme disconnect failed")
 
-            self._del_nqn_name(nqn_name)
+            return True
         except Exception as e:
-            logger.error("command failed wth exception {}".format(e))
+            logger.error(f"Subsystem disconnect failed due to {e}")
             logger.error(traceback.format_exc())
             return False
 

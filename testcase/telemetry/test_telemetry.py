@@ -7,7 +7,7 @@ def setup_module():
 
     global pos
     pos = POS()
-    if pos.pos_AsService == "false": 
+    if pos.pos_as_ervice == False: 
         pytest.skip("POS should run as a service for telemetry to work")
 
     assert pos.target_utils.pos_bring_up() == True

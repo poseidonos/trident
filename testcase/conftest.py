@@ -104,8 +104,13 @@ def array_fixture():
     yield pos
 
     logger.info("========== CLEANUP AFTER TEST ==========")
-    assert client_tear_down() == True
-    assert array_tear_down_function() == True
+
+    is_pos_running = False
+    if pos.target_utils.helper.check_pos_exit() == False:
+        is_pos_running = True
+
+    assert client_teardown(is_pos_running) == True
+    assert target_teardown(is_pos_running) == True
     
     end_time = datetime.now()
     logger.info("Test Session End Time : {}".format(
@@ -126,10 +131,9 @@ def check_pos_and_bringup():
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.bringupSystem(data_dict=pos.data_dict) == True
             assert pos.target_utils.bringupDevice(data_dict=pos.data_dict) == True
-            array_cleanup()
             assert pos.target_utils.bringupSubsystem(data_dict=pos.data_dict) == True
-           
             assert pos.target_utils.get_subsystems_list() == True
+            array_cleanup()
         else:
             logger.info("pos is already running")
             array_cleanup()
@@ -140,54 +144,28 @@ def check_pos_and_bringup():
         traceback.print_exc()
         return False
 
-def unmount_fs() -> bool:
-    """if mounted to FS delete FS then disconnect"""
-    if len(list(pos.client.mount_point.keys())) > 0:
-        for dir in list(pos.client.mount_point.values()):
-            if pos.client.is_dir_present(dir_path=dir) == True:
-                assert pos.client.unmount_FS(fs_mount_pt=[dir]) == True
+def client_teardown(is_pos_running: bool) -> bool:
+    """ Teardown function reset client """
+    pos.client.reset(pos_run_status=is_pos_running) 
     return True
 
-
-def client_tear_down() -> bool:
-    """check if nvme controller is present if yes disconnect"""
-
-    if pos.client.ctrlr_list()[1] is not None:
-
-        assert unmount_fs() == True
-        assert pos.client.nvme_disconnect() == True
-    return True
-
-
-def array_tear_down_function():
-    
+def target_teardown(is_pos_running: bool): 
+    """ Teardown function to reset target """
     assert pos.target_utils.helper.check_system_memory() == True
-    
-    if pos.target_utils.helper.check_pos_exit() == False:
-        assert array_cleanup() ==True 
+    if is_pos_running:
+        array_cleanup()
     assert pos.target_utils.re_scan() == True
-        
     return True
 
 def array_cleanup():
-        assert pos.cli.array_list()[0] == True
-        array_list = list(pos.cli.array_dict.keys())
-        if len(array_list) == 0:
-            logger.info("No array found in the config")
-        else:
-            for array in array_list:
-                assert pos.cli.array_info(array_name=array)[0] == True
-                if pos.cli.array_dict[array].lower() == "mounted":
-                    assert volume_cleanup(array) == True
-                    assert pos.cli.array_unmount(array_name=array)[0] == True
-        assert pos.cli.devel_resetmbr()[0] == True
-        return True
-def volume_cleanup(array_name):
-    assert pos.cli.volume_list(array_name=array_name)[0] == True
-    if len(pos.cli.vols) > 0:
-        assert pos.target_utils.deleteAllVolumes(arrayname = array_name) == True
-    return True
-
+    assert pos.cli.array_list()[0] == True
+    for array in list(pos.cli.array_dict.keys()):
+        assert pos.cli.array_info(array_name=array)[0] == True
+        if pos.cli.array_dict[array].lower() == "mounted":
+            assert pos.cli.array_unmount(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
+    
+    assert pos.cli.devel_resetmbr()[0] == True
 
 
 def teardown_session():
@@ -328,21 +306,15 @@ def pytest_configure(config):
 def pytest_sessionfinish(session):
     session_end_time = datetime.now()
     log_path = logging.get_logpath()
-    logger.info(
-        "Test Session End Time : {}".format(
-            session_end_time.strftime("%m/%d/%Y, %H:%M:%S")
-        )
-    )
+    logger.info("Test Session End Time : {}".format(
+                session_end_time.strftime("%m/%d/%Y, %H:%M:%S")))
+
     session_time = session_end_time - session_start_time
     session_minutes = divmod(session_time.seconds, 60)
-    logger.info(
-        "Total Session Time : {} minutes {} seconds".format(
-            session_minutes[0], session_minutes[1]
-        )
-    )
-    logger.info(
-        "Logs and Html report for executed TCs are present in {}".format(log_path)
-    )
+    logger.info("Total Session Time : {} minutes {} seconds".format(
+                 session_minutes[0], session_minutes[1]))
+
+    logger.info(f"Logs and Html report for executed TCs are present in {log_path}")
     copy_dir(log_path)
     try:
         if pos:
