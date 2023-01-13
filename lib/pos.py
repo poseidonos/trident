@@ -109,7 +109,9 @@ class POS:
                 self.create_client_objects(client_cnt)
         else:
             assert 0
-        
+
+        self.collect_pos_core = False # Don't collect core after test fail
+
     def create_client_objects(self, client_cnt):
         client_list = self.config_dict["login"]["initiator"]["client"]
         ip = client_list[client_cnt]["ip"]
@@ -151,18 +153,48 @@ class POS:
             logger.error(f" failed to read {json_file} due to {e}")
             exit()
 
-    def exit_handler(self, expected=False, hetero_setup=False):
+    def set_core_collection(self, collect_pos_core: bool = False):
+        """ Method is to eable core collection on test failure """
+        self.collect_pos_core = collect_pos_core
+
+    def collect_core(self, is_pos_running: bool):
+        """ Method to collect pos log and core dump """ 
+        try:
+            if is_pos_running:
+                assert pos.target_utils.dump_core() == True
+            return True
+        except Exception as e:
+            logger.error("Failed to collect core data due to {e}")
+            return False
+
+    def exit_handler(self, expected=False, hetero_setup=False, dump_cli=True):
         """ Method to exit out of a test script as per the the result """
         try:
             assert self.target_utils.helper.check_system_memory() == True
         
+            if dump_cli:
+                self.cli.dump_cli_history(clean=True)
+
             is_pos_running = False
             if self.target_utils.helper.check_pos_exit() == False:
                 is_pos_running = True
             
-            # POS Clinet Cleanup
+            # POS Client Cleanup
             for client in self.client_handle:
                 assert client.reset(pos_run_status=is_pos_running) == True
+
+            # If system stat is not expected and core collection in enable
+            if expected == False and is_pos_running == True:
+                logger.error("Test case failed!")
+                if self.collect_pos_core:
+                    logger.error("Creating core dump")
+                    assert pos.target_utils.dump_core() == True
+                else:
+                    logger.error("System clean up")
+                    self.cli.pos_stop(grace_shutdown=False)
+            if expected == True and is_pos_running == True:
+                logger.error("System clean up")
+                self.cli.pos_stop(grace_shutdown=False)
 
             # Reset the target to previous state
             self.pos_conf.restore_config()
@@ -172,11 +204,7 @@ class POS:
                     raise Exception("Failed to reset the target state")
 
             if expected == False:
-                raise Exception("Test case failed! Creating core dump and clean up")
+                assert 0
         except Exception as e:
             logger.error(e)
-            self.cli.dump_cli_history(clean=True)
-            # time.sleep(10000)
-            # self.cli.core_dump()
-            #self.cli.system_stop(grace_shutdown=False)
             assert 0

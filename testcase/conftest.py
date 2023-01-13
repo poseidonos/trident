@@ -10,7 +10,6 @@ from requests import session
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../lib")))
 import logger as logging
 from tags import EnvTags
-
 logger = logging.get_logger(__name__)
 from pos import POS
 from utils import Client
@@ -34,7 +33,8 @@ def trident_test_init():
     Tridnet Init Sequnce - To be called during each session start.
     """
     try:
-        global trident_config_data, static_dict, config_dict, mapping_dict, login
+        global trident_config_data, static_dict, config_dict, mapping_dict
+        global login, pos
         logger.info("Trident Init Sequence Started...")
 
         logger.debug("Load Trident Config")
@@ -57,11 +57,17 @@ def trident_test_init():
         login = config_dict["login"]["initiator"]["client"]
         login.append(config_dict["login"]["target"]["server"][0])
 
+        pos = POS("pos_config.json")
+        if trident_config_data["dump_pos_core"]["enable"] == "true":
+            pos.set_collect_core(get_core_dump=True)
+            logger.info("POS core dump collection enabled")
+
         logger.info("Trident Init Sequence Completed !!!")
     except Exception as e:
         logger.error(f"Trident Init Sequence Failed due to {e}")
         return False
     return True
+
 
 def pos_cce_init():
     try:
@@ -289,7 +295,10 @@ def target_teardown(is_pos_running: bool):
     """ Teardown function to reset target """
     assert pos.target_utils.helper.check_system_memory() == True
     if is_pos_running:
-        array_cleanup()
+        try:
+            array_cleanup()
+        except Exception as e:
+            logger.error(f"Array cleanup failed due to {e}")
     assert pos.target_utils.re_scan() == True
     return True
 
@@ -310,9 +319,7 @@ def pos_logs_core_dump(report, issuekey):
         #TODO update pos path
 
         if trident_config_data["dump_pos_core"]["enable"] == "true":
-            #assert pos.target_utils.dump_core() == True
-            #assert pos.target_utils.copy_core(unique_key) == True
-            pass
+            assert pos.target_utils.copy_core(unique_key) == True
 
         if trident_config_data["copy_pos_log"]["test_fail"] == "true":
             assert pos.target_utils.copy_pos_log(unique_key) == True

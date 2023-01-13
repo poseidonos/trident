@@ -76,40 +76,32 @@ def test_SanityArray(array_fixture):
         run_time = int(config_dict["test_ArraySanity"]["runtime"])
         end_time = start_time + (60 * run_time)
         logger.info("RunTime is {} minutes".format(run_time))
+        counter = 0
         while True:
-
+            counter += 1
+            logger.info(f"Iteration {counter} Started")
             pos = array_fixture
+            pos_array = pos.data_dict["array"]["pos_array"]
 
-            pos.data_dict["array"]["pos_array"][0]["raid_type"] = random.choice(
-                list(raid.keys())
-            )
-            pos.data_dict["array"]["pos_array"][1]["raid_type"] = random.choice(
-                list(raid.keys())
-            )
-            pos.data_dict["array"]["pos_array"][0]["write_back"] = random.choice(
-                [True, False]
-            )
-            pos.data_dict["array"]["pos_array"][1]["write_back"] = random.choice(
-                [True, False]
-            )
-            pos.data_dict["array"]["pos_array"][0]["data_device"] = raid[
-                pos.data_dict["array"]["pos_array"][0]["raid_type"]
-            ]["data"]
-            pos.data_dict["array"]["pos_array"][1]["data_device"] = raid[
-                pos.data_dict["array"]["pos_array"][1]["raid_type"]
-            ]["data"]
-            pos.data_dict["array"]["pos_array"][0]["spare_device"] = raid[
-                pos.data_dict["array"]["pos_array"][0]["raid_type"]
-            ]["spare"]
-            pos.data_dict["array"]["pos_array"][1]["spare_device"] = raid[
-                pos.data_dict["array"]["pos_array"][1]["raid_type"]
-            ]["spare"]
-            pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = random.randint(
-                1, 256
-            )
-            pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = random.randint(
-                1, 256
-            )
+            array1_raid = random.choice(list(raid.keys()))
+            array2_raid = random.choice(list(raid.keys()))
+                
+            pos_array[0]["raid_type"] = array1_raid
+            pos_array[1]["raid_type"] = array2_raid
+
+            pos_array[0]["write_back"] = random.choice([True, False])
+            pos_array[1]["write_back"] = random.choice([True, False])
+
+            pos_array[0]["data_device"] = raid[array1_raid]["data"]
+            pos_array[1]["data_device"] = raid[array2_raid]["data"]
+
+            pos_array[0]["spare_device"] = raid[array1_raid]["spare"]
+            pos_array[1]["spare_device"] = raid[array2_raid]["spare"]
+
+            pos_volume = pos.data_dict["volume"]["pos_volumes"]
+            pos_volume[0]["num_vol"] = random.randint(1, 256)
+            pos_volume[1]["num_vol"] = random.randint(1, 256)
+
             por = random.choice([True])
             logger.info(pos.data_dict)
             assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
@@ -118,27 +110,16 @@ def test_SanityArray(array_fixture):
             assert pos.cli.array_list()[0] == True
             array_name = list(pos.cli.array_dict.keys())[0]
             assert pos.cli.array_info(array_name=array_name)[0] == True
-            if pos.data_dict["array"]["pos_array"][0]["raid_type"] not in [
-                "RAID0",
-                "no-raid",
-            ]:
-                assert (
-                    pos.cli.array_addspare(
-                        array_name=array_name,
-                        device_name=pos.cli.array_data["array1"]["data_list"][0],
-                    )[0]
-                    == False
-                )
+            if pos_array[0]["raid_type"] not in ["RAID0", "no-raid"]:
+                spare_disk_name = pos.cli.array_data["array1"]["data_list"][0]
+                assert pos.cli.array_addspare(array_name=array_name,
+                                    device_name=spare_disk_name)[0] == False
+
                 assert pos.cli.device_list()[0] == True
-                assert (
-                    pos.cli.array_addspare(
-                        array_name=array_name, device_name=pos.cli.system_disks[0]
-                    )[0]
-                    == True
-                )
+                assert pos.cli.array_addspare(array_name=array_name, 
+                            device_name=pos.cli.system_disks[0])[0] == True
 
             ## Create3rd array/ duplicate array
-
             negative_tests(pos)
             if por == True:
                 logger.info("Performing SPOR")
@@ -156,10 +137,10 @@ def test_SanityArray(array_fixture):
                 f"Remaining time for the test to be completed is {str(time_left)} minutes"
             )
             time.sleep(2)
-
+            logger.info(f"Iteration {counter} Completed ")
     except Exception as e:
         logger.error(f"Test failed due to {e}")
-        assert 0
+        pos.exit_handler(expected=False)
 
 
 @pytest.mark.sanity
