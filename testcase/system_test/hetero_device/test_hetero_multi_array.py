@@ -28,8 +28,8 @@ def test_hetero_multi_array(array_fixture, array1_raid, array1_devs, array2_raid
         for i in range(repeat_ops):
             assert array_create_and_list(pos) == True
             for array_name in pos.cli.array_dict.keys():
-                array_size = pos.cli.array_info[array_name].get("size")
-                array_state = pos.cli.array_info[array_name].get("state")
+                array_size = pos.cli.array_data[array_name].get("size")
+                array_state = pos.cli.array_data[array_name].get("state")
                 logger.info(f"Array Size = {array_size} and Status = {array_state}")
 
             assert array_unmount_and_delete(pos, info_array=True) == True
@@ -78,11 +78,11 @@ def test_hetero_multi_array_diff_states_rename_vol(array_fixture, array_state):
         assert array_create_and_list(pos) == True
         assert volume_create_and_mount_multiple(pos, num_volumes=1) == True
  
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
 
         vol_dict = {}
         for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             vol_dict[array_name] = pos.cli.vols[0]
 
         num_disk_remove = 0
@@ -169,7 +169,7 @@ def test_hetero_degraded_array_unmount(array_fixture):
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
-            data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+            data_dev_list =  pos.cli.array_data[array_name]["data_list"]
             remove_drives = data_dev_list[:1]
             assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       
@@ -199,7 +199,7 @@ def array_create_and_list(pos):
                                        array_index=array_index, mount_array="WT", 
                                        info_array=True) == True
  
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
     except Exception as e:
         logger.error(f"Array create and list failed due to {e}")
         traceback.print_exc()

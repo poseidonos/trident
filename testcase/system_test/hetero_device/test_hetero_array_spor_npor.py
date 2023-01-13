@@ -30,7 +30,7 @@ def test_hetero_multi_array_npor_mounted_array(array_fixture, raid_type, num_dev
                                        array_index=array_index, array_mount="WT", 
                                        array_info=True) == True
  
-            assert pos.target_utils.Npor() == True
+            assert pos.target_utils.npor() == True
 
             assert array_unmount_and_delete(pos) == True
     except Exception as e:
