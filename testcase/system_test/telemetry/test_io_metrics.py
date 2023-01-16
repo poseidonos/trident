@@ -20,7 +20,7 @@ def array_and_volume_creation(pos,num_array=1,num_vol=1,run_io=True):
 
 
 io_metrics = ["read_iops_device","read_bps_device","write_bps_device","write_iops_device",
-              "read_iops_network","read_bps_network","write_iops_network","write_bps_network",
+              "read_iops_network","read_bps_network","write_iops_network","write_bps_network"
               "read_iops_volume","read_bps_volume","write_iops_volume","write_bps_volume",
               "read_avg_lat_volume","write_avg_lat_volume"]
 @pytest.mark.parametrize("metric",io_metrics)
@@ -28,7 +28,7 @@ def test_io_metric(array_fixture,metric):
     pos = array_fixture
     arrays =  array_and_volume_creation(pos=pos,run_io=False)
     nvme_devs = nvme_connect(pos=pos)[1]
-    fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=randrw --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=10 --verify=md5"
+    fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=randrw --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=100 --verify=md5"
     out, async_io = pos.client.fio_generic_runner(nvme_devs,
                                                   fio_user_data=fio_cmd, run_async=True)
     assert out == True
@@ -84,4 +84,3 @@ def test_volume_io_metrics(array_fixture,testcase):
                                                   fio_user_data=fio_cmd.format(testcase["io"][1],testcase["runtime"]), run_async=True)
     assert pos.prometheus.publish_io_metrics() == True
     assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=10) == True
-
