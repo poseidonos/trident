@@ -851,11 +851,14 @@ class Client:
                 self._del_nqn_name(nqn_name)
 
             if len(nqn_list) == 0:
-                out = self.ctrlr_list()
-                for ctrlr in out[1]:
-                    logger.info(f"Disconnecting nvme device {ctrlr}")
-                    cmd = f"nvme disconnect -d {ctrlr}"
-                    out = self.ssh_obj.execute(cmd)
+                try:
+                    out = self.ctrlr_list()
+                    for ctrlr in out[1]:
+                        logger.info(f"Disconnecting nvme device {ctrlr}")
+                        cmd = f"nvme disconnect -d {ctrlr}"
+                        out = self.ssh_obj.execute(cmd)
+                except:
+                    pass
                 
             if verify:
                 self.nvme_list()

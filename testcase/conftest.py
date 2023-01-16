@@ -278,6 +278,7 @@ def check_pos_and_bringup():
             array_cleanup()
         else:
             logger.info("pos is already running")
+            assert pos.cli.device_scan()[0] == True
             array_cleanup()
             
         return True

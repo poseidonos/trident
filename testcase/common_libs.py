@@ -177,7 +177,7 @@ def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None,
     return True
 
 
-def array_unmount_and_delete(pos, unmount=True, delete=True, info_array=False):
+def array_unmount_and_delete(pos, unmount=True, delete=True, array_info=False):
     """
     Common cleanup function to unmount and delete arrays
     """
