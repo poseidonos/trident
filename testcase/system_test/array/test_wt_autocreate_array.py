@@ -10,18 +10,13 @@ logger = logger.get_logger(__name__)
     "raid_type, nr_data_drives",
     [("no-raid", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 2), ("RAID10", 4)],
 )
-def test_wt_autocreate_array(setup_cleanup_array_function, raid_type, nr_data_drives):
+def test_wt_autocreate_array(array_fixture, raid_type, nr_data_drives):
     logger.info(
         " ==================== Test : test_wt_autocreate_array  ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         array_name = "posarray1"
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.devel_resetmbr()[0] == True
-        assert pos.cli.device_scan()[0] == True
-        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives):
             pytest.skip(

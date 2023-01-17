@@ -13,14 +13,14 @@ logger = logger.get_logger(__name__)
 
 
 @pytest.mark.regression
-def test_multi_array_full_cap(setup_cleanup_array_function):
+def test_multi_array_full_cap(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple_with_io(pos, 1, fio_cmd=None) == True
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -31,14 +31,14 @@ def test_multi_array_full_cap(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_full_cap_data_integrity(setup_cleanup_array_function):
+def test_multi_array_full_cap_data_integrity(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         fio_runner = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k --size=100gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
         assert (
             volume_create_and_mount_multiple_with_io(pos, 1, fio_cmd=fio_runner) == True
@@ -52,14 +52,14 @@ def test_multi_array_full_cap_data_integrity(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_full_cap_max_vols(setup_cleanup_array_function):
+def test_multi_array_full_cap_max_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple_with_io(pos, 256, fio_cmd=None) == True
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -70,14 +70,14 @@ def test_multi_array_full_cap_max_vols(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_max_vol_data_integrity(setup_cleanup_array_function):
+def test_multi_array_max_vol_data_integrity(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         fio_runner = "fio --name=seq_write --ioengine=libaio --rw=write --iodepth=64 --bs=128k --size=100gb --do_verify=1 --verify=pattern --verify_pattern=0x5678"
         assert (
             volume_create_and_mount_multiple_with_io(pos, 256, fio_cmd=fio_runner)
@@ -92,14 +92,14 @@ def test_multi_array_max_vol_data_integrity(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_unmnt_vol(setup_cleanup_array_function):
+def test_multi_array_unmnt_vol(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 1) == True
         assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
@@ -123,14 +123,14 @@ def test_multi_array_unmnt_vol(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_del_create_array(setup_cleanup_array_function):
+def test_multi_array_del_create_array(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 1) == True
         assert pos.cli.array_list()[0] == True
         array_name = list(pos.cli.array_dict.keys())[0]
@@ -159,14 +159,14 @@ def test_multi_array_del_create_array(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_create_third_array(setup_cleanup_array_function):
+def test_multi_array_create_third_array(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 1) == True
         assert pos.cli.array_list()[0] == True
         assert pos.cli.device_create(
@@ -195,14 +195,14 @@ def test_multi_array_create_third_array(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_more_than_max_vols(setup_cleanup_array_function):
+def test_multi_array_more_than_max_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 257) == False
         logger.info("As expected volume creation exceeded the limit and capacity ")
         logger.info(
@@ -214,14 +214,14 @@ def test_multi_array_more_than_max_vols(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_del_vols(setup_cleanup_array_function):
+def test_multi_array_del_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 5) == True
         for array_name in pos.cli.array_dict.keys():
             assert pos.cli.volume_list(array_name=array_name)[0] == True

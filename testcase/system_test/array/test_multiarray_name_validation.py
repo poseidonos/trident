@@ -15,14 +15,15 @@ logger = logger.get_logger(__name__)
 @pytest.mark.parametrize(
     "new_name,expected_result", [("b" * 63, True), ("array1", False), ("a" * 64, False)]
 )
-def test_multi_array_name(setup_cleanup_array_function, new_name, expected_result):
+def test_multi_array_name(array_fixture, new_name, expected_result):
     logger.info(
         " ==================== Test : test_multi_array_name ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 1
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
@@ -51,4 +52,3 @@ def test_multi_array_name(setup_cleanup_array_function, new_name, expected_resul
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
-        assert 0

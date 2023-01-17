@@ -1,12 +1,11 @@
 import pytest
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
 from common_libs import *
 
 
-def gc_array_io(pos):
+def gc_array_io(pos, fio_user_cmd):
     try:
         global array_name
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
@@ -19,22 +18,13 @@ def gc_array_io(pos):
         assert pos.target_utils.bringup_array(data_dict=data_dict) == True
         data_dict["volume"]["pos_volumes"][0]["num_vol"] = 1
         assert pos.target_utils.bringup_volume(data_dict=data_dict) == True
-        assert run_io(
-            pos,
-            fio_command="fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=30",
-        )
-        assert pos.target_utils.get_subsystems_list() == True
 
-        assert (
-            pos.client.fio_generic_runner(
-                pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=read --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=30",
-            )[0]
-            == True
-        )
-        logger.info("GC will fail as 100% IO is not written")
-        pos.cli.wbt_do_gc()
-        pos.cli.wbt_get_gc_status()[0]
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=30"
+        assert run_io(pos, fio_command=fio_cmd) == True
+        assert run_io(pos, fio_command=fio_user_cmd) == True
+
+        assert pos.cli.wbt_do_gc(array_name = array_name)[0] == True
+        assert pos.cli.wbt_get_gc_status(array_name = array_name)[0] == True
         return True
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -47,7 +37,8 @@ def test_gc_diff_bk_size(array_fixture, bs):
     logger.info(" ==================== Test : test_gc_diff_bk_size ================== ")
     try:
         pos = array_fixture
-        assert gc_array_io(pos) == True
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs={}k --time_based --runtime=120".format(bs)
+        assert gc_array_io(pos, fio_cmd) == True
         logger.info(" ============================= Test ENDs ====================")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -61,8 +52,8 @@ def test_gc_after_unmnt_vol(array_fixture):
     )
     try:
         pos = array_fixture
-        assert gc_array_io(pos) == True
-
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=120"
+        assert gc_array_io(pos, fio_cmd) == True
         assert pos.cli.volume_list(array_name=array_name)
         assert (
             pos.cli.volume_unmount(array_name=array_name, volumename=pos.cli.vols[0])[0]
@@ -80,7 +71,8 @@ def test_gc_diff_io_size(array_fixture, mul):
     logger.info(" ==================== Test : test_gc_diff_io_size ================== ")
     try:
         pos = array_fixture
-        assert gc_array_io(pos) == True
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --numjobs=1 --bs=64k --size={}gb --direct=1 --time_based --runtime=300".format(int(mul*2000))
+        assert gc_array_io(pos, fio_cmd) == True
 
         logger.info(
             " ============================= Test ENDs ======================================"

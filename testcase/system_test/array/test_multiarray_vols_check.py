@@ -13,14 +13,14 @@ logger = logger.get_logger(__name__)
 
 
 @pytest.mark.regression
-def test_multi_array_create_vols(setup_cleanup_array_function):
+def test_multi_array_create_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_array_create_vols ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
@@ -52,14 +52,14 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_delete_vols(setup_cleanup_array_function):
+def test_multi_array_delete_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_array_del_vols ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
@@ -86,14 +86,14 @@ def test_multi_array_delete_vols(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_invalid_vols(setup_cleanup_array_function):
+def test_multi_array_invalid_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_array_invalid_vols ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 

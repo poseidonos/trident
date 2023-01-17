@@ -14,13 +14,13 @@ fio_cmd = f"fio --name=sequential_write --ioengine=libaio --rw=write \
 
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type, nr_data_drives", [("RAID0", 2)])
-def test_wt_array_io_spor(array_setup_cleanup, raid_type, nr_data_drives):
+def test_wt_array_io_spor(array_fixture, raid_type, nr_data_drives):
     """The purpose of this test case is to Create one array in Write Through mode. Create and mount 1 volume and run file IO from initiator for 12 hours"""
     logger.info(
         " ==================== Test : test_wt_array_io_spor ================== "
     )
     try:
-        pos = array_setup_cleanup
+        pos = array_fixture
         assert wt_array_setup(pos, raid_type, nr_data_drives, 0) == True
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
 
@@ -89,9 +89,9 @@ def test_wt_array_io_spor(array_setup_cleanup, raid_type, nr_data_drives):
 
 
 @pytest.mark.regression
-def test_spor_wt_wb(array_setup_cleanup):
+def test_spor_wt_wb(array_fixture):
     try:
-        pos = array_setup_cleanup
+        pos = array_fixture
         pos.data_dict["volume"]["phase"] = "true"
         assert pos.target_utils.pos_bring_up() == True
         for ss in pos.target_utils.ss_temp_list:
@@ -108,16 +108,17 @@ def test_spor_wt_wb(array_setup_cleanup):
         )
         assert pos.target_utils.spor(write_through=True) == True
     except Exception as e:
-        pos.exit_handler()
-        assert 0
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
 
 
 @pytest.mark.regression
-def test_npor_wt_wb(array_setup_cleanup):
+def test_npor_wt_wb(array_fixture):
     try:
-        pos = array_setup_cleanup
+        pos = array_fixture
         pos.data_dict["volume"]["phase"] = "true"
-        assert pos.target_utils.pos_bring_up() == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         for ss in pos.target_utils.ss_temp_list:
             assert (
                 pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
@@ -132,5 +133,5 @@ def test_npor_wt_wb(array_setup_cleanup):
         )
         assert pos.target_utils.npor(write_through=True) == True
     except Exception as e:
-        pos.exit_handler()
-        assert 0
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)

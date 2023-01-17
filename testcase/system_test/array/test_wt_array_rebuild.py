@@ -1,10 +1,7 @@
 from array import array
 import pytest
 import random
-from pos import POS
 from common_libs import *
-import json
-import os
 import time
 
 import logger
@@ -24,13 +21,13 @@ logger = logger.get_logger(__name__)
     ],
 )
 def test_wt_array_rebuild_after_FIO(
-    setup_cleanup_array_function, raid_type, nr_data_drives, file_io
+    array_fixture, raid_type, nr_data_drives, file_io
 ):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
         assert pos.client.nvme_list() == True
@@ -86,13 +83,13 @@ def test_wt_array_rebuild_after_FIO(
     ],
 )
 def test_wt_array_rebuild_during_FIO(
-    setup_cleanup_array_function, raid_type, nr_data_drives, file_io
+    array_fixture, raid_type, nr_data_drives, file_io
 ):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.client.nvme_list() == True

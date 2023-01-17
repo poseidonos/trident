@@ -235,6 +235,21 @@ def teardown_session():
  ###################################### Pytest Fixtures ######################
 
 @pytest.fixture(scope="function")
+def system_fixture():
+    logger.info("========== SETUP BEFORE TEST =========")
+
+    # Stop POS if running before test
+    if pos.target_utils.helper.check_pos_exit() == False:
+        assert pos.cli.pos_stop(grace_shutdown = False) == True
+
+    yield pos
+
+    # Stop POS if running after test
+    if pos.target_utils.helper.check_pos_exit() == False:
+        assert pos.cli.pos_stop(grace_shutdown = False) == True
+        
+
+@pytest.fixture(scope="function")
 def array_fixture():
     logger.info("========== SETUP BEFORE TEST =========")
     start_time = datetime.now()

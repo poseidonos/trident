@@ -1,46 +1,16 @@
 import pytest
-import traceback
 
-from pos import POS
 import logger
-import random
-import time
-import pprint
 
 logger = logger.get_logger(__name__)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-    global pos, data_dict, array_name
-    pos = POS("pos_config.json")
+def array_setup(pos):
+    global data_dict, array_name
     data_dict = pos.data_dict
     data_dict["array"]["num_array"] = 1
-    data_dict["volume"]["phase"] = "false"
     array_name = data_dict["array"]["pos_array"][0]["array_name"]
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.array_info(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.array_unmount(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
+    assert pos.target_utils.bringup_array(data_dict=data_dict) == True
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
@@ -54,13 +24,15 @@ def teardown_module():
         (-3, -3, False, False),
     ],
 )
-def test_set_gc_threshold_with_diff_values(
+def test_set_gc_threshold_with_diff_values(array_fixture,
     normal, urgent, expected_result1, expected_result2
 ):
     logger.info(
         " ==================== Test : test_set_gc_threshold_with_diff_values ================== "
     )
     try:
+        pos = array_fixture
+        array_setup(pos)
         assert (
             pos.cli.wbt_set_gc_threshold(
                 array_name=array_name, normal=normal, urgent=urgent
@@ -77,11 +49,13 @@ def test_set_gc_threshold_with_diff_values(
         pos.exit_handler(expected=False)
 
 
-def test_get_gc_without_io():
+def test_get_gc_without_io(array_fixture):
     logger.info(
         " ==================== Test : test_get_gc_without_io ================== "
     )
     try:
+        pos = array_fixture
+        array_setup(pos)
         assert (
             pos.cli.volume_create(
                 array_name=array_name, size="50gb", volumename="vol"
@@ -107,11 +81,13 @@ def test_get_gc_without_io():
         pos.exit_handler(expected=False)
 
 
-def test_gc_without_volume():
+def test_gc_without_volume(array_fixture):
     logger.info(
         " ==================== Test : test_gc_without_volume ================== "
     )
     try:
+        pos = array_fixture
+        array_setup(pos)
         assert pos.cli.wbt_do_gc(array_name=array_name)[0] == False
         logger.info("As expected get gc failed because io is not run")
         logger.info(

@@ -1,5 +1,4 @@
 import pytest
-import traceback
 
 import logger
 
@@ -10,7 +9,7 @@ array = [("NORAID", 1), ("RAID0", 2)]
 @pytest.mark.regression
 @pytest.mark.parametrize("array_raid, array_num_disk", array)
 def test_wt_multi_array_disabled_journal(
-    setup_cleanup_array_function, array_raid, array_num_disk
+    array_fixture, array_raid, array_num_disk
 ):
     """
     Test Multi-Array in combination with WT/WB mount when journal is disable
@@ -20,7 +19,7 @@ def test_wt_multi_array_disabled_journal(
         " ==================== Test : test_wt_multi_array_disabled_journal ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         array_name1, array_name2 = "array1", "array2"
 
         array_writeback_list = (False, True)

@@ -9,12 +9,7 @@ logger = logger.get_logger(__name__)
 def negative_test_setup_function(pos, nr_data_drives: int):
     try:
         global array_name, system_disks, data_disk_list
-        array_name = "posarray1"
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.devel_resetmbr()[0] == True
-        assert pos.cli.device_scan()[0] == True
-        assert pos.cli.device_list()[0] == True
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives):
             pytest.skip(
@@ -31,13 +26,13 @@ def negative_test_setup_function(pos, nr_data_drives: int):
 
 @pytest.mark.regression
 def test_array_invalid_data_disk(
-    setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=3
+    array_fixture, raid_type="RAID5", nr_data_drives=3
 ):
     logger.info(
-        " ==================== Test : test_array_invalid_drives ================== "
+        " ==================== Test : test_array_invalid_data_disk ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         system_disks = ["dummy1", "dummy2", "dummy1"]
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
@@ -64,20 +59,20 @@ def test_array_invalid_data_disk(
 
 @pytest.mark.regression
 def test_create_array_invalid_commands(
-    setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=3
+    array_fixture, raid_type="RAID5", nr_data_drives=3
 ):
     logger.info(
         " ==================== Test : test_create_array_invalid_commands ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         assert (
             pos.cli.array_create(
                 write_buffer="dummy",
                 data=data_disk_list,
                 spare=[],
-                raid_type="RAID5",
+                raid_type=raid_type,
                 array_name=array_name,
             )[0]
             == False
@@ -89,13 +84,13 @@ def test_create_array_invalid_commands(
 
 @pytest.mark.regression
 def test_array_less_data_drive(
-    setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=2
+    array_fixture, raid_type="RAID5", nr_data_drives=2
 ):
     logger.info(
         " ==================== Test : test_array_less_data_drive ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         status = pos.cli.array_create(
             write_buffer="uram0",
@@ -120,13 +115,13 @@ def test_array_less_data_drive(
 
 @pytest.mark.regression
 def test_add_spare_without_array_mount(
-    setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=3
+    array_fixture, raid_type="RAID5", nr_data_drives=3
 ):
     logger.info(
-        " ==================== Test : test_add_spare_without_mount ================== "
+        " ==================== Test : test_add_spare_without_array_mount ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         spare_disk_list = [system_disks.pop()]
         assert (
@@ -155,13 +150,13 @@ def test_add_spare_without_array_mount(
 
 @pytest.mark.regression
 def test_remove_spare_without_array_mount(
-    setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=3
+    array_fixture, raid_type="RAID5", nr_data_drives=3
 ):
     logger.info(
-        " ==================== Test : test_add_spare_without_mount ================== "
+        " ==================== Test : test_remove_spare_without_array_mount ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         spare_disk_list = [system_disks.pop()]
         assert (
@@ -189,10 +184,10 @@ def test_remove_spare_without_array_mount(
 
 
 @pytest.mark.regression
-def test_array_mnt_without_arrays(setup_cleanup_array_function, nr_data_drives=3):
-    logger.info(" ==================== Test : test_array_cli_wt ================== ")
+def test_array_mnt_without_arrays(array_fixture, nr_data_drives=3):
+    logger.info(" ==================== Test : test_array_mnt_without_arrays ================== ")
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         status = pos.cli.array_mount(array_name=array_name, write_back=False)
         assert status[0] == False
@@ -211,13 +206,13 @@ def test_array_mnt_without_arrays(setup_cleanup_array_function, nr_data_drives=3
 
 @pytest.mark.regression
 def test_mnt_vol_stop_arrray_state(
-    setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=3
+    array_fixture, raid_type="RAID5", nr_data_drives=3
 ):
     logger.info(
-        " ==================== Test : test_mnt_vol_fault_arrray_state ================== "
+        " ==================== Test : test_mnt_vol_stop_arrray_state ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         assert (
             pos.cli.array_create(
@@ -257,13 +252,13 @@ def test_mnt_vol_stop_arrray_state(
 
 @pytest.mark.regression
 def test_rename_vol_stop_arrray_state(
-    setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=3
+    array_fixture, raid_type="RAID5", nr_data_drives=3
 ):
     logger.info(
-        " ==================== Test : test_mnt_vol_fault_arrray_state ================== "
+        " ==================== Test : test_rename_vol_stop_arrray_state ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         assert (
             pos.cli.array_create(
@@ -309,12 +304,12 @@ def test_rename_vol_stop_arrray_state(
 
 
 @pytest.mark.regression
-def test_uram_creation_after_scan(setup_cleanup_array_function, nr_data_drives=3):
+def test_uram_creation_after_scan(array_fixture, nr_data_drives=3):
     logger.info(
         " ==================== Test : test_uram_creation_after_scan ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         assert pos.cli.device_scan()[0] == True
         assert (
@@ -333,13 +328,13 @@ def test_uram_creation_after_scan(setup_cleanup_array_function, nr_data_drives=3
 
 @pytest.mark.regression
 def test_delete_create_array(
-    setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=3
+    array_fixture, raid_type="RAID5", nr_data_drives=3
 ):
     logger.info(
-        " ==================== Test : test_add_spare_without_mount ================== "
+        " ==================== Test : test_delete_create_array ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         spare_disk_list = [system_disks.pop()]
         assert (
@@ -373,12 +368,12 @@ def test_delete_create_array(
 
 
 @pytest.mark.regression
-def test_logger_info(setup_cleanup_array_function, raid_type="RAID5", nr_data_drives=3):
+def test_logger_info(array_fixture, raid_type="RAID5", nr_data_drives=3):
     logger.info(
-        " ==================== Test : test_add_spare_without_mount ================== "
+        " ==================== Test : test_logger_info ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
         spare_disk_list = [system_disks.pop()]
         assert (

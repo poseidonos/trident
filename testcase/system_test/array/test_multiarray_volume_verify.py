@@ -13,14 +13,14 @@ logger = logger.get_logger(__name__)
 
 
 @pytest.mark.regression
-def test_multi_create_second_array_with_same_uram(setup_cleanup_array_function):
+def test_multi_create_second_array_with_same_uram(array_fixture):
     logger.info(
         " ==================== Test : test_multi_create_second_array_with_same_uram ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 1
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
@@ -46,15 +46,15 @@ def test_multi_create_second_array_with_same_uram(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_array_num_drives(setup_cleanup_array_function):
+def test_array_num_drives(array_fixture):
     logger.info(
         " ==================== Test : test_array_num_drives ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 0
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(10)]
         spare_disk_list = []
@@ -81,14 +81,14 @@ def test_array_num_drives(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_unmnt_array_while_io(setup_cleanup_array_function):
+def test_unmnt_array_while_io(array_fixture):
     logger.info(
         " ==================== Test : test_unmnt_array_while_io ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple_with_io(pos, 2) == True
         assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
@@ -100,12 +100,12 @@ def test_unmnt_array_while_io(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_mnt_vol_again(setup_cleanup_array_function):
+def test_mnt_vol_again(array_fixture):
     logger.info(" ==================== Test : test_mnt_vol_again ================== ")
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 2) == True
         for array_name in pos.cli.array_dict.keys():
             assert pos.cli.volume_list(array_name=array_name)[0] == True
@@ -124,14 +124,14 @@ def test_mnt_vol_again(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_unmnt_mnt_for_io(setup_cleanup_array_function):
+def test_unmnt_mnt_for_io(array_fixture):
     logger.info(
         " ==================== Test : test_multi_vol_full_cap ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             assert (

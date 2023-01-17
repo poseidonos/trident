@@ -11,19 +11,14 @@ logger = logger.get_logger(__name__)
     [("no-raid", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4), ("RAID10", 2)],
 )
 def test_wt_multi_array_256vols(
-    setup_cleanup_array_function, raid_type, nr_data_drives
+    array_fixture, raid_type, nr_data_drives
 ):
     """The purpose of this test case is to Create 2 array in Write Through mode. Create and mount 256 volume on each array"""
     logger.info(
         " ==================== Test : test_wt_multi_array_256vols ================== "
     )
     try:
-        pos = setup_cleanup_array_function
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.devel_resetmbr()[0] == True
-        assert pos.cli.device_scan()[0] == True
-        assert pos.cli.device_list()[0] == True
+        pos = array_fixture
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives + 1):
             pytest.skip(

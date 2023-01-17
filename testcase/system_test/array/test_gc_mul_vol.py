@@ -1,48 +1,16 @@
 import pytest
-import traceback
 
-from pos import POS
 import logger
-import random
-import time
-import pprint
-
 logger = logger.get_logger(__name__)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, array_name
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict["array"]["num_array"] = 1
-    data_dict["volume"]["phase"] = "false"
-    array_name = data_dict["array"]["pos_array"][0]["array_name"]
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-
-    assert pos.cli.volume_list(array_name=array_name)[0] == True
-    for vol_name in pos.cli.vols:
-        assert pos.cli.volume_delete(vol_name, array_name)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
-def test_gc_vol_create_delete():
+def test_gc_vol_create_delete(array_fixture):
     logger.info(
         " ==================== Test : test_gc_vol_create_delete ================== "
     )
     try:
+        pos = array_fixture
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert (
             pos.target_utils.create_volume_multiple(
                 array_name=array_name, num_vol=4, size="500GB"
@@ -76,24 +44,17 @@ def test_gc_vol_create_delete():
                 pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
                 == True
             )
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=300"
         assert pos.client.nvme_list() == True
-        dev_list = pos.client.nvme_list_out
-        assert (
-            pos.client.fio_generic_runner(
-                pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=300",
-            )[0]
-            == True
-        )
-        assert (
-            pos.client.fio_generic_runner(
-                pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=300",
-            )[0]
-            == True
-        )
-        assert pos.cli.wbt_do_gc()[0] == True
-        assert pos.cli.wbt_get_gc_status()[0] == True
+        nvme_devs = pos.client.nvme_list_out
+        assert pos.client.fio_generic_runner(nvme_devs,
+                                             fio_user_data=fio_cmd)[0] == True
+
+        assert pos.client.fio_generic_runner(nvme_devs,
+                                             fio_user_data=fio_cmd)[0] == True
+
+        assert pos.cli.wbt_do_gc(array_name = array_name)[0] == True
+        assert pos.cli.wbt_get_gc_status(array_name = array_name)[0] == True
         return True
         logger.info(
             " ============================= Test ENDs ======================================"

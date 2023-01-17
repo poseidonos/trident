@@ -12,7 +12,7 @@ array2 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
 @pytest.mark.regression
 @pytest.mark.parametrize("array2", array2)
 @pytest.mark.parametrize("array1", array1)
-def test_wt_multi_array_FIO_SPOR_NPOR(setup_cleanup_array_function, array1, array2):
+def test_wt_multi_array_FIO_SPOR_NPOR(array_fixture, array1, array2):
     """
     Test Multi-Array in all RAID combination with WT/WB mount.
     1. Run Write Block IO for an hour.
@@ -23,7 +23,7 @@ def test_wt_multi_array_FIO_SPOR_NPOR(setup_cleanup_array_function, array1, arra
         " ==================== Test : test_wt_multi_array_FIO_SPOR_NPOR ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         array_name1 = "array1"
         array_name2 = "array2"
 

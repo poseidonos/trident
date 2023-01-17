@@ -20,14 +20,14 @@ logger = logger.get_logger(__name__)
     ],
 )
 def test_wt_array_Npor_Spor_nobackup(
-    setup_cleanup_array_function, raid_type, nr_data_drives, por
+    array_fixture, raid_type, nr_data_drives, por
 ):
 
     logger.info(
         " ==================== Test : test_wt_array_Npor_Spor_nobackup ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
         assert pos.cli.devel_resetmbr()[0] == True
