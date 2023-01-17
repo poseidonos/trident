@@ -12,6 +12,7 @@ def gc_array_io(pos, fio_user_cmd):
         assert pos.cli.device_list()[0] == True
         data_dict = pos.data_dict
         data_dict["array"]["num_array"] = 1
+        data_dict["array"]["pos_array"][0]["raid_type"] = "RAID5"
         data_dict["array"]["pos_array"][0]["data_device"] = 3
         data_dict["array"]["pos_array"][0]["spare_device"] = 1
         data_dict["array"]["pos_array"][0]["write_back"] = "true"

@@ -16,7 +16,7 @@ def test_array_after_disk_remove(array_fixture):
         assert pos.target_utils.device_hot_remove([hot_remove_disks])
 
         pos.data_dict["array"]["num_array"] = 1
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )
