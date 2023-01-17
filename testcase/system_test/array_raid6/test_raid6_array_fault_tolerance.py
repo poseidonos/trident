@@ -6,7 +6,7 @@ import logger
 logger = logger.get_logger(__name__)
 
 @pytest.mark.parametrize("array_mount", ["WT", "WB"])
-def test_raid6_array_disk_fail(setup_cleanup_array_function, array_mount):
+def test_raid6_array_disk_fail(array_fixture, array_mount):
     """
     The purpose of this test is to create a RAID6 array Mounted as WT or WB. 
     Create 16 volumes and run Block IO. Fail data disks in different rebuild interval.
@@ -15,7 +15,7 @@ def test_raid6_array_disk_fail(setup_cleanup_array_function, array_mount):
     logger.info(
         f" ==================== Test : test_raid6_array_disk_fail[{array_mount}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_vols = 16
         assert pos.cli.device_list()[0] == True
@@ -26,7 +26,7 @@ def test_raid6_array_disk_fail(setup_cleanup_array_function, array_mount):
         num_spare_disk = len(pos.cli.system_disks) - RAID6_MIN_DISKS
         assert single_array_data_setup(pos.data_dict, "RAID6", num_data_disk,
                                     num_spare_disk, array_mount, False) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
@@ -67,7 +67,7 @@ def test_raid6_array_disk_fail(setup_cleanup_array_function, array_mount):
         pos.exit_handler(expected=False)
 
 @pytest.mark.parametrize("write_mix_read", [80, 20, 50])
-def test_raid6_array_disk_fail_random_io(setup_cleanup_array_function, write_mix_read):
+def test_raid6_array_disk_fail_random_io(array_fixture, write_mix_read):
     """
     The purpose of this test is to create two RAID6 arrays with 4 data and 2 spare drives Mounted as WT or WB.
     Create 16 volumes and run Block IO Mix of Random Write and Read IO. Fail data disks in different rebuild 
@@ -77,7 +77,7 @@ def test_raid6_array_disk_fail_random_io(setup_cleanup_array_function, write_mix
     logger.info(
         f" ==================== Test : test_raid6_array_disk_fail_random_io[{write_mix_read}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_vols = 16
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
@@ -88,7 +88,7 @@ def test_raid6_array_disk_fail_random_io(setup_cleanup_array_function, write_mix
         assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", "RAID6"), 
                                       arrays_num_disks, (2, 2), ("WT", "WB"),
                                       (False, False)) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
@@ -131,7 +131,7 @@ def test_raid6_array_disk_fail_random_io(setup_cleanup_array_function, write_mix
         pos.exit_handler(expected=False)
 
 @pytest.mark.parametrize("raid_type", ["RAID5", "RAID10"])
-def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
+def test_raid6_array_max_disk_fail(array_fixture, raid_type):
     """
     The purpose of this test is to create a RAID6 array with other raid types (RAID5, RAID10)
     Mounted as WT or WB. Create 16 volumes and run Block IO Mix of Random Write and Read IO.
@@ -141,7 +141,7 @@ def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
     logger.info(
         f" ==================== Test : test_raid6_array_max_disk_fail[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_vols = 16
         num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
@@ -153,7 +153,7 @@ def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
         assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", raid_type), 
                                       arrays_num_disks, (0, 0), ("WT", "WB"),
                                       (False, False)) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
@@ -210,7 +210,7 @@ def test_raid6_array_max_disk_fail(setup_cleanup_array_function, raid_type):
         pos.exit_handler(expected=False)
 
 
-def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
+def test_raid6_array_three_disk_fail_during_io(array_fixture):
     """
     The purpose of this test is to create two RAID6 arrays Mounted as WT or WB. Create 16 volumes and
     run Block IO Mix of Random Write and Read IO. Fail three data disks in different rebuild interval.
@@ -219,7 +219,7 @@ def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
     logger.info(
         f" ==================== Test : test_raid6_array_three_disk_fail_during_io ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_vols = 16
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
@@ -230,7 +230,7 @@ def test_raid6_array_three_disk_fail_during_io(setup_cleanup_array_function):
         assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", "RAID6"), 
                                       arrays_num_disks, (1, 1), ("WT", "WB"),
                                       (False, False)) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list

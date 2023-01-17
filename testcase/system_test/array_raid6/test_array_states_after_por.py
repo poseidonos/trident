@@ -1,14 +1,9 @@
 import pytest
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
 
 from common_libs import *
-
-
-import random
-import time
 
 @pytest.mark.parametrize(
     "array1_num_drive, array2_num_drive,por",
@@ -24,7 +19,7 @@ import time
         (2, 3, "Npor"),   # SPS-4615
     ],
 )
-def test_post_por_array_state(array_fixture,array1_num_drive, array2_num_drive,por):
+def test_post_por_array_state(array_fixture, array1_num_drive, array2_num_drive,por):
     logger.info(
         f" ==================== Test : test_post_{por}_array_state ================== "
     )
@@ -122,7 +117,9 @@ def test_post_por_array_state_mulitple(array_fixture,array1_num_drive, array2_nu
 
             for array in pos.cli.array_dict.keys():
                 assert pos.cli.array_info(array_name=array)[0] == True
-                logger.info("{} State : {} and {} Situation : {}".format(array,pos.cli.array_data[array]['state'],array,pos.cli.array_data[array]['situation']))
+                logger.info("{} State : {} and {} Situation : {}".format(array,
+                                     pos.cli.array_data[array]['state'], array,
+                                     pos.cli.array_data[array]['situation']))
         logger.info(
             " ============================= Test ENDs ======================================"
         )

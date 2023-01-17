@@ -7,29 +7,11 @@ import logger
 logger = logger.get_logger(__name__)
 
 import common_libs as setup
-@pytest.fixture(scope="module")
-def pos_connection():
-    logger.info("========= SETUP MODULE ========")
-    pos = POS()
-
-    yield pos
-
-    
-
-    logger.info("========= CLEANUP MODULE ========")
-    del pos
 
 @pytest.fixture(scope="function")
-def journal_setup_cleanup(pos_connection):
+def journal_setup_cleanup(system_fixture):
     logger.info("========== SETUP TEST =========")
-    pos = pos_connection
-    if not pos.target_utils.helper.check_pos_exit():
-        assert pos.cli.system_stop()[0] == True
-
-    data_dict = pos.data_dict
-    data_dict['system']['phase'] = "true"
-    data_dict['subsystem']['phase'] = "true"
-    data_dict['device']['phase'] = "true"
+    pos = system_fixture
 
     yield pos
 
@@ -43,14 +25,13 @@ def journal_setup_cleanup(pos_connection):
 def pos_bringup(pos):
     try:
         data_dict = pos.data_dict
-        data_dict['array']['phase'] = "false"
-        data_dict['volume']['phase'] = "false"
-        assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
-        data_dict['system']['phase'] = "false"
-        data_dict['subsystem']['phase'] = "false"
-        data_dict['device']['phase'] = "false"
-        data_dict['array']['phase'] = "true"
+        data_dict = pos.data_dict
+        data_dict['system']['phase'] = "true"
+        data_dict['subsystem']['phase'] = "true"
+        data_dict['device']['phase'] = "true"
+        assert pos.target_utils.bringup_system(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_device(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_subsystem(data_dict=pos.data_dict) == True
         return True
     except Exception as e:
         logger.error(f"Failed to bringup pos due to {e}")
@@ -77,7 +58,6 @@ def test_raid6_arrays_journal_enable(journal_setup_cleanup, raid_type, jouranl_e
                                           update_now=True) == True
 
         assert pos_bringup(pos) == True
-
         num_vols = 8
         num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         arrays_num_disks = (RAID6_MIN_DISKS, num_disk)
@@ -88,7 +68,7 @@ def test_raid6_arrays_journal_enable(journal_setup_cleanup, raid_type, jouranl_e
         assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", raid_type), 
                                       arrays_num_disks, (0, 0), ("WT", "WB"),
                                       (False, False)) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, num_vols) == True
         subs_list = pos.target_utils.ss_temp_list
 

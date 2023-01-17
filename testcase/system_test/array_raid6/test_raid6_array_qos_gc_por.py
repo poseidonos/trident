@@ -7,7 +7,7 @@ import logger
 logger = logger.get_logger(__name__)
 
 @pytest.mark.parametrize("raid_type", ARRAY_ALL_RAID_LIST)
-def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
+def test_raid6_arrays_qos(array_fixture, raid_type):
     """
     The purpose of this test is to create two arrays and atleast 1 should be RAID 6. 
     Create and mount 2 volumes and utilize its capacity. Set QOS values to volumes.
@@ -16,7 +16,7 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
     logger.info(
         f" ==================== Test : test_raid6_arrays_qos[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_vols = 2
         num_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
@@ -28,7 +28,7 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
         assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", raid_type),
                                       arrays_num_disks, (0, 0), ("WT", "WB"),
                                       (False, False)) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
@@ -75,7 +75,7 @@ def test_raid6_arrays_qos(setup_cleanup_array_function, raid_type):
 
 
 @pytest.mark.parametrize("por_operation", ["SPOR", "NPOR", "POR_LOOP"])
-def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
+def test_raid6_arrays_por(array_fixture, por_operation):
     """
     The purpose of this test is to create two RAID6 arrays. Create and mount 2 volumes
     and utilize its full capacity. Run Block IO with known data pattern. Do SPOR-NPOR.
@@ -85,7 +85,7 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
     logger.info(
         f" ==================== Test : test_raid6_arrays_por[{por_operation}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_vols = 2
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
@@ -96,7 +96,7 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
         assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", "RAID6"),
                                       arrays_num_disks, (0, 0), ("WT", "WB"),
                                       (False, False)) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
@@ -145,7 +145,7 @@ def test_raid6_arrays_por(setup_cleanup_array_function, por_operation):
         pos.exit_handler(expected=False)
 
 @pytest.mark.parametrize("gc_operation", ["normal", "wbt"])
-def test_raid6_arrays_gc(setup_cleanup_array_function, gc_operation):
+def test_raid6_arrays_gc(array_fixture, gc_operation):
     """
     The purpose of this test is to create two rAID6 arrays. Mounted in WT and WB mode.
     Create and mount 2 volumes and utilize its capacity. Run Random Block IO (30, 70).
@@ -155,7 +155,7 @@ def test_raid6_arrays_gc(setup_cleanup_array_function, gc_operation):
     logger.info(
         f" ==================== Test : test_raid6_arrays_gc[{gc_operation}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_vols = 2
         arrays_num_disks = (RAID6_MIN_DISKS, RAID6_MIN_DISKS)
@@ -166,7 +166,7 @@ def test_raid6_arrays_gc(setup_cleanup_array_function, gc_operation):
         assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", "RAID6"),
                                       arrays_num_disks, (0, 0), ("WT", "WB"),
                                       (False, False)) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
