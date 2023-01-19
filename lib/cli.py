@@ -1930,7 +1930,7 @@ class Cli(LinuxCLI, PosCLI):
         """
         try:
             if grace_shutdown:
-                assert self.list_array()[0] == True
+                assert self.array_list()[0] == True
                 array_list = list(self.array_dict.keys())
                 for array in array_list:
                     if self.array_dict[array].lower() == "mounted":
