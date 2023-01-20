@@ -300,6 +300,7 @@ def check_pos_and_bringup():
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
+        assert pos.cli.pos_stop(grace_shutdown=False)[0] == True
         return False
 
 def client_teardown(is_pos_running: bool) -> bool:
@@ -315,6 +316,8 @@ def target_teardown(is_pos_running: bool):
             array_cleanup()
         except Exception as e:
             logger.error(f"Array cleanup failed due to {e}")
+            # Stop POS as array cleanup failed
+            assert pos.cli.pos_stop(grace_shutdown=False)[0] == True
     assert pos.target_utils.re_scan() == True
     return True
 
