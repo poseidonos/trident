@@ -464,7 +464,7 @@ def pos_system_restore_stop(pos, array_info=True, array_unmount=True, array_dele
             if array_info:
                 assert pos.cli.array_info(array_name=array_name)[0] == True
             
-            assert pos.cli.volume_list()[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             for vol_name in pos.cli.vols:
                 if ((vol_unmount or vol_delete) and 
                         pos.cli.vol_dict[vol_name]["status"].lower() == "mounted"):

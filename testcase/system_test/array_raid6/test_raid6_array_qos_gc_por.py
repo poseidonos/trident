@@ -58,7 +58,7 @@ def test_raid6_arrays_qos(array_fixture, raid_type):
 
         fio_out = {}
         fio_out["iops"] = pos.client.fio_par_out["write"]["iops"]
-        fio_out["bw"] = pos.client.fio_par_out["write"]["bw"] / 1000  # Conver to MB
+        fio_out["bw"] = pos.client.fio_par_out["write"]["bw"] / 1024  # Conver to MB
 
         # Verify the QOS Throttling
         assert pos.client.fio_verify_qos({"max_iops":maxiops, "max_bw":maxbw},
@@ -123,8 +123,9 @@ def test_raid6_arrays_por(array_fixture, por_operation):
 
         for por in por_list:
             if por == "NPOR":
-                assert pos.target_utils.npor() == True
+                assert pos.client.nvme_disconnect(nqn=subs_list) == True
 
+                assert pos.target_utils.npor() == True
             else:
                 assert pos.target_utils.spor() == True
 

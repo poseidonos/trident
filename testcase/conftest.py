@@ -240,13 +240,13 @@ def system_fixture():
 
     # Stop POS if running before test
     if pos.target_utils.helper.check_pos_exit() == False:
-        assert pos.cli.pos_stop(grace_shutdown = False) == True
+        assert pos.cli.pos_stop(grace_shutdown = False)[0] == True
 
     yield pos
 
     # Stop POS if running after test
     if pos.target_utils.helper.check_pos_exit() == False:
-        assert pos.cli.pos_stop(grace_shutdown = False) == True
+        assert pos.cli.pos_stop(grace_shutdown = False)[0] == True
         
 
 @pytest.fixture(scope="function")
