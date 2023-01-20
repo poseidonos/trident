@@ -1,7 +1,6 @@
 import pytest
 
-from pos import POS
-from common_raid6_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)

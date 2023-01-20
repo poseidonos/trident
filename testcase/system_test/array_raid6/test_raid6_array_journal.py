@@ -1,7 +1,6 @@
 import pytest
 
-from pos import POS
-from common_raid6_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
@@ -17,7 +16,9 @@ def journal_setup_cleanup(system_fixture):
 
     logger.info("========== CLEANUP AFTER TEST =========")
 
-    assert pos_system_restore_stop(pos) == True
+    if pos.target_utils.helper.check_pos_exit() == False:
+        assert pos.client.reset(pos_run_status=True) == True
+        assert pos_system_restore_stop(pos) == True
     assert pos.pos_conf.restore_config() == True
 
     logger.info("==========================================")
@@ -83,7 +84,7 @@ def test_raid6_arrays_journal_enable(journal_setup_cleanup, raid_type, jouranl_e
 
 
 @pytest.mark.parametrize("por",["NPOR","SPOR"])
-def test_raid6_longetivity_npor_spor_journal_enabled(journal_setup_cleanup,por):
+def test_raid6_longetivity_npor_spor_journal_enabled(journal_setup_cleanup, por):
     '''
     The purpose of this testcase is to test NPOR and SPOR scenarios with journal enabled
     '''

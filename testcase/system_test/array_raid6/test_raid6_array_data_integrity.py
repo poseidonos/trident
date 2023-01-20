@@ -1,6 +1,6 @@
 import pytest
 
-from common_raid6_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
@@ -29,7 +29,7 @@ def test_raid6_multi_arrays_data_integrity(array_fixture, raid_type, num_disk, n
         assert multi_array_data_setup(pos.data_dict, 2, ("RAID6", raid_type), 
                                       arrays_num_disks, (0, 0), ("WT", "WB"),
                                       (False, False)) == True
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
@@ -55,7 +55,7 @@ def test_raid6_multi_arrays_data_integrity(array_fixture, raid_type, num_disk, n
 
 
 # Num of Volumes, IO (Write, Rand Write, Read, Random Read))
-io_profiler = [(32, ("write", "rand_write", "read", "rand_read"))]
+io_profiler = [(32, ("write", "randwrite", "read", "randread"))]
 
 @pytest.mark.parametrize("io_profiler", io_profiler)
 def test_raid6_arrays_block_io_profile(array_fixture, io_profiler):
