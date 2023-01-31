@@ -236,7 +236,7 @@ def teardown_session():
 
 @pytest.fixture(scope="function")
 def system_fixture():
-    logger.info("========== SETUP BEFORE TEST =========")
+    start_time = test_setup_msg()
 
     # Stop POS if running before test
     if pos.target_utils.helper.check_pos_exit() == False:
@@ -244,24 +244,20 @@ def system_fixture():
 
     yield pos
 
+    test_cleanup_msg(start_time)
     # Stop POS if running after test
     if pos.target_utils.helper.check_pos_exit() == False:
         assert pos.cli.pos_stop(grace_shutdown = False)[0] == True
         
 
 @pytest.fixture(scope="function")
-def array_fixture():
-    logger.info("========== SETUP BEFORE TEST =========")
-    start_time = datetime.now()
-    logger.info("Test Session Start Time : {}".format(
-                 start_time.strftime("%m/%d/%Y, %H:%M:%S")))
-
+def array_fixture(test_setup_cleanup_msg):
+    start_time = test_setup_msg()
     assert check_pos_and_bringup() == True
 
     yield pos
 
-    logger.info("========== CLEANUP AFTER TEST ==========")
-
+    test_cleanup_msg(start_time)
     is_pos_running = False
     if pos.target_utils.helper.check_pos_exit() == False:
         is_pos_running = True
@@ -269,6 +265,34 @@ def array_fixture():
     assert client_teardown(is_pos_running) == True
     assert target_teardown(is_pos_running) == True
     
+
+@pytest.fixture(scope="function")
+def volume_fixture():
+    start_time = test_setup_msg()
+    assert check_pos_and_bringup() == True
+    assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+
+    yield pos
+
+    test_cleanup_msg(start_time)
+    is_pos_running = False
+    if pos.target_utils.helper.check_pos_exit() == False:
+        is_pos_running = True
+
+    assert client_teardown(is_pos_running) == True
+    assert target_teardown(is_pos_running) == True
+
+ ###################################### Functions ############################
+def test_setup_msg():
+    logger.info("========== SETUP BEFORE TEST =========")
+    start_time = datetime.now()
+    logger.info("Test Session Start Time : {}".format(
+                 start_time.strftime("%m/%d/%Y, %H:%M:%S")))
+    
+    return start_time
+
+def test_cleanup_msg(start_time):
+    logger.info("========== CLEANUP AFTER TEST =========")
     end_time = datetime.now()
     logger.info("Test Session End Time : {}".format(
                  end_time.strftime("%m/%d/%Y, %H:%M:%S")))
@@ -278,7 +302,6 @@ def array_fixture():
     logger.info("Total Test Session Time : {} minutes {} seconds".format(
                  session_minutes[0], session_minutes[1]))
 
- ###################################### Functions ############################
 
 def check_pos_and_bringup():
     try:

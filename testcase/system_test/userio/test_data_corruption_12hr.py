@@ -4,7 +4,7 @@ import common_libs as setup
 logger = logger.get_logger(__name__)
 
 @pytest.mark.parametrize("io_type",["write","read","randwrite","randread"])
-def test_verify_data_corruption_seq_write(array_fixture,io_type):
+def test_verify_data_corruption_seq_write(array_fixture, io_type):
 
     pos = array_fixture
 

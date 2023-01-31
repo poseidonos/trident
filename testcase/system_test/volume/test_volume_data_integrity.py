@@ -1,70 +1,18 @@
 import pytest
 
-from pos import POS
-
 import logger
-
 logger = logger.get_logger(__name__)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def setup_function():
-    data_dict = pos.data_dict
-    if pos.target_utils.helper.check_pos_exit() == True:
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-
-    data_dict["system"]["phase"] = "false"
-    data_dict["device"]["phase"] = "false"
-    data_dict["subsystem"]["phase"] = "false"
-    data_dict["array"]["phase"] = "false"
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.cli.array_list()[0] == True
-    for array_name in pos.cli.array_dict.keys():
-        assert pos.cli.array_info(array_name=array_name)[0] == True
-        if pos.cli.array_dict[array_name].lower() == "mounted":
-            assert pos.cli.volume_list(array_name=array_name)[0] == True
-            for vol in pos.cli.vols:
-                assert (
-                    pos.cli.volume_info(array_name=array_name, vol_name=vol)[0] == True
-                )
-
-                if pos.cli.volume_data[array_name][vol]["status"] == "Mounted":
-                    assert (
-                        pos.cli.volume_unmount(volumename=vol, array_name=array_name)[0]
-                        == True
-                    )
-                assert (
-                    pos.cli.volume_delete(volumename=vol, array_name=array_name)[0]
-                    == True
-                )
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
 
 
 @pytest.mark.regression
 @pytest.mark.parametrize("num_vols", [(5, 10), (20, 40), (128, 64)])
-def test_volumes_data_integrity(num_vols):
+def test_volumes_data_integrity(volume_fixture, num_vols):
     """The purpose of test is to create and mount multiple volumes on each array. Run IO and verify data integrity"""
     logger.info("================ Test: test_volumes_data_integrity ================")
     try:
+        pos = volume_fixture
         assert pos.cli.array_list()[0] == True
         for index, array_name in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.array_info(array_name=array_name)[0] == True
@@ -114,12 +62,13 @@ def test_volumes_data_integrity(num_vols):
 
 
 @pytest.mark.regression
-def test_max_size_volume_data_integrity():
+def test_max_size_volume_data_integrity(volume_fixture):
     """The purpose of test is to create and mount max_capacty volume on each array. Run IO and verify data integrity"""
     logger.info(
         "================ Test: test_max_size_volume_data_integrity ================"
     )
     try:
+        pos = volume_fixture
         assert pos.cli.array_list()[0] == True
         for index, array_name in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.array_info(array_name=array_name)[0] == True

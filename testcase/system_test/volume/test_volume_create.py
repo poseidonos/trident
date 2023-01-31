@@ -1,11 +1,9 @@
 import pytest
-import logger
 import random
 import string
 import time
 
-from pos import POS
-
+import logger
 logger = logger.get_logger(__name__)
 
 
@@ -13,60 +11,6 @@ def generate_volume_name(len_name):
     '''Generate random name of length "len_name"'''
 
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=len_name))
-
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, array_name, nr_data_drives
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-
-    data_dict["array"]["num_array"] = 1
-    data_dict["volume"]["phase"] = "false"
-    data_dict["subsystem"]["pos_subsystems"][0]["nr_subsystems"] = 1
-    data_dict["subsystem"]["pos_subsystems"][1]["nr_subsystems"] = 0
-    array_name = data_dict["array"]["pos_array"][0]["array_name"]
-    nr_data_drives = data_dict["array"]["pos_array"][0]["data_device"]
-
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-
-    else:
-        for array in array_list:
-            assert pos.cli.array_info(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.volume_list(array_name=array)[0] == True
-                for vol in pos.cli.vols:
-                    assert (
-                        pos.cli.volume_info(array_name=array, vol_name=vol)[0] == True
-                    )
-
-                    if pos.cli.volume_data[array_name][vol]["status"] == "Mounted":
-                        assert (
-                            pos.cli.volume_unmount(volumename=vol, array_name=array)[0]
-                            == True
-                        )
-                    assert (
-                        pos.cli.volume_delete(volumename=vol, array_name=array)[0]
-                        == True
-                    )
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
 
 # Testcase Parameters for test_volume_create
 
@@ -96,16 +40,16 @@ volume_create_tests["t7"] = {
 }
 
 test_list = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"]
-
-
 @pytest.mark.regression
 @pytest.mark.parametrize("volume_create_test", test_list)
-def test_volume_create(volume_create_test):
+def test_volume_create(volume_fixture, volume_create_test):
     """The purpose of testcase is to create volume with different names"""
 
     logger.info("================= Test: test_volume_create  =================")
-
     try:
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         vol_name = volume_create_tests[volume_create_test]["volume_name_gen"]
         expected_res = volume_create_tests[volume_create_test]["result"]
 
@@ -143,11 +87,14 @@ def test_volume_create(volume_create_test):
 
 @pytest.mark.regression
 @pytest.mark.parametrize("volnum", [255, 257])
-def test_multiple_volume_create(volnum):
+def test_multiple_volume_create(volume_fixture, volnum):
     """The purpose of test is to create multiple volumes"""
 
     logger.info("================ Test : test_multiple_volume =================")
     try:
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         if volnum > 256:
             assert (
                 pos.target_utils.create_volume_multiple(
@@ -180,7 +127,7 @@ def test_multiple_volume_create(volnum):
 
 
 @pytest.mark.regression
-def test_volume_create_duplicate_name():
+def test_volume_create_duplicate_name(volume_fixture):
     """The purpose is to create volume with duplicate names"""
 
     logger.info(
@@ -188,7 +135,9 @@ def test_volume_create_duplicate_name():
     )
 
     try:
-
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         assert (
             pos.cli.volume_create(
                 array_name=array_name, size="10gb", volumename="vol-duplicate"
@@ -224,13 +173,16 @@ def test_volume_create_duplicate_name():
 
 
 @pytest.mark.regression
-def test_volume_create_lt_aligned_blocksize():
+def test_volume_create_lt_aligned_blocksize(volume_fixture):
     """The purpose of test is to create volume less than aligned block size"""
 
     logger.info(
         "================ Test : test_volume_create_size_lt_aligned ================="
     )
     try:
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         # 1MB = 1024 * 1024 Bytes
         # Less than 1MB => Unaligned blocksize
         assert (
@@ -248,13 +200,16 @@ def test_volume_create_lt_aligned_blocksize():
 
 
 @pytest.mark.regression
-def test_volume_create_gt_max_array_capacity():
+def test_volume_create_gt_max_array_capacity(volume_fixture):
     """The purpose of test is to create volume exceeding max array capacity"""
 
     logger.info(
         "================ Test : test_volume_gt_array_capacity ================="
     )
     try:
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         num_vol = 255
         assert pos.cli.array_info(array_name=array_name)[0] == True
         array_size = int(pos.cli.array_data[array_name].get("size"))
@@ -284,17 +239,20 @@ def test_volume_create_gt_max_array_capacity():
 
 
 @pytest.mark.regression
-def test_array_create_with_invalid_uram():
+def test_array_create_with_invalid_uram(system_fixture):
     """The pupose of testcase is to create an array with invalid uram"""
 
     logger.info(
         "================ Test : test_array_create_with_invalid_uram ================="
     )
     try:
+        pos = system_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         assert pos.cli.device_scan()[0] == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
-        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
+        data_disk_list = [system_disks.pop(0) for i in range(4)]
 
         assert (
             pos.cli.array_create(
@@ -315,14 +273,16 @@ def test_array_create_with_invalid_uram():
 
 
 @pytest.mark.regression
-def test_volume_create_without_array_mount():
+def test_volume_create_without_array_mount(volume_fixture):
     """The purpose of test is to create a volume on unmounted array"""
 
     logger.info(
         "================ Test : test_volume_create_without_array_mount ================="
     )
     try:
-
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         # unmount the array
         assert (
             pos.cli.array_unmount(
@@ -355,7 +315,7 @@ def test_volume_create_without_array_mount():
 
 
 @pytest.mark.regression
-def test_multiple_volume_create_delete_with_io():
+def test_multiple_volume_create_delete_with_io(volume_fixture):
     """The purpose of test is to create and delete volume in loop.
     Run IO on the active volumes with data integrity check.'
     """
@@ -363,6 +323,9 @@ def test_multiple_volume_create_delete_with_io():
         "================ Test : test_multiple_volume_create_delete_with_io ================="
     )
     try:
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         pos.target_utils.get_subsystems_list()
         assert (
             pos.target_utils.create_volume_multiple(
@@ -467,54 +430,33 @@ def test_multiple_volume_create_delete_with_io():
 
 
 @pytest.mark.regression
-def test_unmount_volume():
+def test_unmount_volume(volume_fixture):
     """The purpose of test is to unmount the volume from target"""
 
     logger.info("================ Test : test_unmount_volume =================")
     try:
-        assert pos.cli.device_scan()[0] == True
-        assert pos.cli.device_list()[0] == True
-        system_disks = pos.cli.system_disks
-        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-
-        assert (
-            pos.cli.array_create(
-                write_buffer="uram1",
-                data=data_disk_list,
-                spare=None,
-                raid_type="RAID5",
-                array_name="POS_" + array_name,
-            )[0]
-            == True
-        )
-
-        assert (
-            pos.cli.array_unmount(
-                array_name="POS_" + array_name,
-            )[0]
-            == True
-        )
-
+        pos = volume_fixture
         assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         assert (
             pos.cli.volume_create(
-                volumename="vol_1", size="10gb", array_name="POS_" + array_name
+                volumename="vol_1", size="10gb", array_name=array_name
             )[0]
             == True
         )
         assert (
-            pos.cli.volume_info(array_name="POS_" + array_name, vol_name="vol_1")[0]
+            pos.cli.volume_info(array_name=array_name, vol_name="vol_1")[0]
             == True
         )
 
         assert (
-            pos.cli.volume_mount(array_name="POS_" + array_name, volumename="vol_1")[0]
+            pos.cli.volume_mount(array_name=array_name, volumename="vol_1")[0]
             == True
         )
         assert pos.cli.subsystem_list()[0] == True
 
         assert (
-            pos.cli.volume_unmount(array_name="POS_" + array_name, volumename="vol_1")[
+            pos.cli.volume_unmount(array_name=array_name, volumename="vol_1")[
                 0
             ]
             == True
@@ -523,8 +465,8 @@ def test_unmount_volume():
         assert pos.cli.subsystem_list()[0] == True
 
         # Unmounting & Deleting the Array
-        assert pos.cli.array_unmount(array_name="POS_" + array_name)[0] == True
-        assert pos.cli.array_delete(array_name="POS_" + array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
+        assert pos.cli.array_delete(array_name=array_name)[0] == True
 
         logger.info("=============== TEST ENDs ================")
 
@@ -534,7 +476,7 @@ def test_unmount_volume():
 
 
 @pytest.mark.regression
-def test_unmount_volume_connected():
+def test_unmount_volume_connected(volume_fixture):
     """The purpose of test is to unmount the connected volume from target"""
 
     logger.info(
@@ -542,6 +484,9 @@ def test_unmount_volume_connected():
     )
 
     try:
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         assert (
             pos.cli.volume_create(
                 array_name=array_name, size="10gb", volumename="vol1"
@@ -595,7 +540,7 @@ def test_unmount_volume_connected():
 
 
 @pytest.mark.regression
-def test_volume_mount_invalid_name():
+def test_volume_mount_invalid_name(volume_fixture):
     """The purpose of test is to mount a volume with non-existing volume name"""
 
     logger.info(
@@ -603,7 +548,9 @@ def test_volume_mount_invalid_name():
     )
 
     try:
-
+        pos = volume_fixture
+        assert pos.cli.array_list()[0] == True
+        array_name = list(pos.cli.array_dict.keys())[0]
         assert (
             pos.cli.volume_mount(array_name=array_name, volumename="non_existing_vol")[
                 0
