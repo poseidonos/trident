@@ -14,10 +14,10 @@ def test_get_smart_stats(array_fixture, metric):
     pos = array_fixture
     assert pos.cli.pos_exporter(operation='start')[0] == True
     assert pos.prometheus.set_telemetry_configs() == True
-    assert pos.cli.scan_device()[0] == True
-    assert pos.cli.list_device()
+    assert pos.cli.device_scan()[0] == True
+    assert pos.cli.device_list()
     disk = pos.cli.system_disks[0]
-    assert pos.cli.smart_log_device(devicename=disk)[0] == True
+    assert pos.cli.device_smart_log(devicename=disk)[0] == True
     logger.info(pos.cli.smart_log_dict[disk])
     if metric == 'criticalTemperatureTime':
         time.sleep(60)
