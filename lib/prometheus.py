@@ -86,16 +86,12 @@ class Prometheus(Cli):
         self.deviceUnsafeShutdowns = {}
         self.telemetryDeviceInfo = {}
         self.deviceControllerBusyTime = {}
-<<<<<<< HEAD
         self.result = {}
-
-=======
         self.device_io_metric = {}
         self.network_io_metric = {}
         self.volume_io_metric = {}
         self.result = {'temperature' : '',}
         
->>>>>>> Commiting new telemetry testcases
     def check_pos_exporter(self) -> str:
         cmd = 'systemctl is-active pos-exporter.service'
         out = self.ssh_obj.execute(cmd, get_pty=True)
