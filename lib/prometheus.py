@@ -87,7 +87,11 @@ class Prometheus(Cli):
         self.telemetryDeviceInfo = {}
         self.deviceControllerBusyTime = {}
         self.result = {}
-
+        self.device_io_metric = {}
+        self.network_io_metric = {}
+        self.volume_io_metric = {}
+        self.result = {'temperature' : '',}
+        
     def check_pos_exporter(self) -> str:
         cmd = 'systemctl is-active pos-exporter.service'
         out = self.ssh_obj.execute(cmd, get_pty=True)
@@ -134,6 +138,11 @@ class Prometheus(Cli):
         assert self.set_property()[0] == True
         assert self.get_property()[0] == True
         return True
+
+    def docker_restart(self):
+        cmd = "sudo docker restart pos-prometheus"
+        out = self.ssh_obj.execute(cmd)
+        return len(out)
 
     def get_all_metrics(self) -> bool:
         """method to list all the metric info"""
@@ -315,12 +324,102 @@ class Prometheus(Cli):
         assert self.get_unrecoverable_MediaErrors(device_name=device_name) == True
         return True
 
-    def publish_IO_metrics(self) -> bool:
-        """method to publish IO METRIC data"""
-        metric_data = ['read_bps_device', 'read_iops_device', 'write_bps_device', 'write_iops_device']
-        # TODO verify the publshed data
-        logger.info("currently only data is published as no verification point is set")
-        for metric in metric_data:
-            data = self.prom.get_current_metric_value(metric_name=metric)
-            logger.info(data)
+    def get_read_iops_device(self):
+        self.device_io_metric['read_iops_device'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='read_iops_device')]
         return True
+
+    def get_read_bps_device(self):
+        self.device_io_metric['read_bps_device'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='read_bps_device')]
+        return True
+
+    def get_write_iops_device(self):
+        self.device_io_metric['write_iops_device'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='write_iops_device')]
+        return True
+
+    def get_write_bps_device(self):
+        self.device_io_metric['write_bps_device'] = [item['value'][1] for item in self.prom.get_current_metric_value(metric_name='write_bps_device')]
+        return True
+
+    def publish_device_metric(self):
+        assert self.get_read_iops_device() == True
+        assert self.get_read_bps_device() == True
+        assert self.get_write_bps_device() == True
+        assert self.get_write_iops_device() == True
+        return True
+
+    def get_read_iops_network(self):
+        self.network_io_metric['read_iops_network'] = [item['value'][1] for item in
+                                                     self.prom.get_current_metric_value(metric_name='read_iops_network')]
+        return True
+
+    def get_read_bps_network(self):
+        self.network_io_metric['read_bps_network'] = [item['value'][1] for item in
+                                                     self.prom.get_current_metric_value(metric_name='read_bps_network')]
+        return True
+
+    def get_write_iops_network(self):
+        self.network_io_metric['write_iops_network'] = [item['value'][1] for item in
+                                                     self.prom.get_current_metric_value(metric_name='write_iops_network')]
+        return True
+
+    def get_write_bps_network(self):
+        self.network_io_metric['write_bps_network'] = [item['value'][1] for item in
+                                                           self.prom.get_current_metric_value(metric_name='write_bps_network')]
+        return True
+
+    def publish_network_metrics(self):
+        assert self.get_read_iops_network() == True
+        assert self.get_read_bps_network() == True
+        assert self.get_write_iops_network() == True
+        assert self.get_write_bps_network() == True
+        return True
+
+    def get_read_iops_volume(self):
+        self.volume_io_metric['read_iops_volume'] = [item['value'][1] for item in
+                                                           self.prom.get_current_metric_value(metric_name='read_iops_volume')]
+        return True
+
+    def get_read_bps_volume(self):
+        self.volume_io_metric['read_iops_volume'] = [item['value'][1] for item in
+                                                          self.prom.get_current_metric_value(metric_name='read_iops_volume')]
+        return True
+
+    def get_write_iops_volume(self):
+        self.volume_io_metric['write_iops_volume'] = [item['value'][1] for item in
+                                                          self.prom.get_current_metric_value( metric_name='write_iops_volume')]
+        return True
+
+    def get_write_bps_volume(self):
+        self.volume_io_metric['write_bps_volume'] = [item['value'][1] for item in
+                                                          self.prom.get_current_metric_value(metric_name='write_bps_volume')]
+        return True
+
+    def get_read_avg_lat_volume(self):
+        self.volume_io_metric['read_avg_lat_volume'] = [item['value'][1] for item in
+                                                          self.prom.get_current_metric_value(
+                                                              metric_name='read_avg_lat_volume')]
+        return True
+
+    def get_write_avg_lat_volume(self):
+        self.volume_io_metric['write_avg_lat_volume'] = [item['value'][1] for item in
+                                                             self.prom.get_current_metric_value(
+                                                                 metric_name='write_avg_lat_volume')]
+        return True
+
+    def publish_volume_io_metrics(self):
+        assert self.get_read_iops_volume() == True
+        assert self.get_read_bps_volume() == True
+        assert self.get_write_iops_volume() == True
+        assert self.get_write_bps_volume() == True
+        assert self.get_read_avg_lat_volume() == True
+        assert self.get_write_avg_lat_volume() == True
+        return True
+
+    def publish_io_metrics(self):
+        assert self.publish_device_metric() == True
+        time.sleep(20)
+        assert self.publish_network_metrics() == True
+        time.sleep(20)
+        assert self.publish_volume_io_metrics()
+        return True
+
