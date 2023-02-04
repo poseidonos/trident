@@ -58,7 +58,7 @@ def trident_test_init():
         login.append(config_dict["login"]["target"]["server"][0])
 
         pos = POS("pos_config.json")
-        if trident_config_data["dump_pos_core"]["enable"] == "true":
+        if trident_config_data["dump_pos_core"]["enable"] == True:
             pos.set_collect_core(get_core_dump=True)
             logger.info("POS core dump collection enabled")
 
@@ -71,7 +71,7 @@ def trident_test_init():
 
 def pos_cce_init():
     try:
-        if trident_config_data["code_coverage"]["enable"] == "true":
+        if trident_config_data["code_coverage"]["enable"] == True:
             logger.debug("Init POS code coverage extraction...")
             global cc
             cce_config_file = trident_config_data["code_coverage"]["config_file"]
@@ -148,7 +148,7 @@ def pytest_runtest_protocol(item, nextitem):
 
     target_ip = login[-1]["ip"]
 
-    if trident_config_data["elk_log_stage"]["enable"] == "true":
+    if trident_config_data["elk_log_stage"]["enable"] == True:
         tags_info(target_ip, method, start_time, driver, issuekey)
 
     yield
@@ -163,7 +163,7 @@ def pytest_runtest_protocol(item, nextitem):
         )
     )
 
-    if (trident_config_data["code_coverage"]["enable"] == "true" 
+    if (trident_config_data["code_coverage"]["enable"] == True
         and trident_config_data["code_coverage"]["scope"] == "function"):
         if issuekey == "No mapping found":
             issuekey = "No_Mapping"
@@ -220,7 +220,7 @@ def pytest_sessionfinish(session):
     except NameError:
         return "Exiting"
     
-    if (trident_config_data["code_coverage"]["enable"] == "true" 
+    if (trident_config_data["code_coverage"]["enable"] == True
         and trident_config_data["code_coverage"]["scope"] == "session"):
 
         issuekey = trident_config_data["issue_key"]
@@ -251,7 +251,7 @@ def system_fixture():
         
 
 @pytest.fixture(scope="function")
-def array_fixture(test_setup_cleanup_msg):
+def array_fixture():
     start_time = test_setup_msg()
     assert check_pos_and_bringup() == True
 
@@ -360,14 +360,14 @@ def pos_logs_core_dump(report, issuekey):
     if (report.when == 'call' and report.outcome == 'failed'):
         #TODO update pos path
 
-        if trident_config_data["dump_pos_core"]["enable"] == "true":
+        if trident_config_data["dump_pos_core"]["enable"] == True:
             assert pos.target_utils.copy_core(unique_key) == True
 
-        if trident_config_data["copy_pos_log"]["test_fail"] == "true":
+        if trident_config_data["copy_pos_log"]["test_fail"]:
             assert pos.target_utils.copy_pos_log(unique_key) == True
 
     elif (report.when == 'call' and report.outcome == 'passed' and
-        trident_config_data["copy_pos_log"]["test_pass"] == "true"):
+        trident_config_data["copy_pos_log"]["test_pass"] == True):
             assert pos.target_utils.copy_pos_log(unique_key) == True
     return True
 

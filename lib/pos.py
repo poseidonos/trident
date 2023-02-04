@@ -83,8 +83,12 @@ class POS:
             self.data_dict = self._json_reader(data_path, abs_path=True)[1]
         else:
             self.data_dict = self._json_reader(data_path)[1]
+
         self.config_dict = self._json_reader(config_path)[1]
-        self.pos_as_service = self._json_reader(trident_config)[1]["pos_as_a_service"]["enable"]
+        self.trident_config = self._json_reader(trident_config)[1]
+        self.pos_as_service = self.trident_config["pos_as_a_service"]["enable"]
+
+        logger.info(f"Installed POS as Service : {self.pos_as_service}")
        
         self.target_ssh_obj = SSHclient(
             self.config_dict["login"]["target"]["server"][0]["ip"],
@@ -92,8 +96,13 @@ class POS:
             self.config_dict["login"]["target"]["server"][0]["password"],
         )
         self.obj_list.append(self.target_ssh_obj)
+        pos_path = None
+        if not self.pos_as_service:
+            pos_path = self.config_dict["paths"]["pos_path"]
+
         self.cli = Cli(self.target_ssh_obj, data_dict=self.data_dict,
-                       pos_as_service=self.pos_as_service)
+                       pos_as_service=self.pos_as_service,
+                       pos_source_path=pos_path)
 
         self.target_utils = TargetUtils(self.target_ssh_obj, self.cli,
                                         self.data_dict,
@@ -101,7 +110,8 @@ class POS:
          
         self.pos_conf = POS_Config(self.target_ssh_obj)
         self.pos_conf.load_config()
-        self.prometheus = Prometheus(self.target_ssh_obj, self.data_dict)
+        if self.pos_as_service:
+            self.prometheus = Prometheus(self.target_ssh_obj, self.data_dict)
 
         self.client_cnt = self.config_dict["login"]["initiator"]["number"]
         if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:

@@ -1855,7 +1855,7 @@ class Cli(LinuxCLI, PosCLI):
     """
 
     def __init__(self, con, data_dict: dict,
-                pos_as_service: bool=False, 
+                pos_as_service: bool = False,
                 pos_source_path: str = None) -> None:
         """
         The constructor for Cli class
