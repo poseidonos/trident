@@ -35,7 +35,7 @@ def test_hetero_multi_array_qos_matrix(array_fixture, array_raid, num_devs, qos_
 
             array_name = f"array{id+1}"
             raid_type = array_raid
-            uram_name = data_dict["device"]["uram"][id]["uram_name"]
+            uram_name = pos.data_dict["device"]["uram"][id]["uram_name"]
 
             if raid_type.lower() == "raid0" and num_devs == 2:
                 data_device_conf = {'mix': 2}

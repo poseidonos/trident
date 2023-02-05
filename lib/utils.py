@@ -120,8 +120,8 @@ class Client:
         """
         method to do client clean up
         """
-        self.nvme_disconnect()
         self.load_drivers()
+        self.nvme_disconnect()
         self.dmesg_clear()
 
     def dmesg_clear(self):
@@ -822,7 +822,7 @@ class Client:
     def load_drivers(self) -> bool:
         """method to load drivers"""
 
-        driver_list = ["tcp", "nvme"]
+        driver_list = ["tcp", "nvme", "nvme_tcp"]
         for drive in driver_list:
             cmd = f"modprobe {drive}"
             self.ssh_obj.execute(cmd)

@@ -6,29 +6,16 @@ import logger
 
 logger = logger.get_logger(__name__)
 
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
-def test_npor_with_half_uram():
+def test_npor_with_half_uram(system_fixture):
     """Test to perform NPOR with different uram
     Returns:
         bool
     """
     logger.info("================ test_npor_with_half_uram ================")
     try:
+        pos = system_fixture
+        data_dict = pos.data_dict
+        assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.array_list()[0] == True
         for array in pos.cli.array_dict.keys():
@@ -40,8 +27,8 @@ def test_npor_with_half_uram():
                             0
                         ] == True
 
-        assert pos.cli.system_stop()[0] == True
-        assert pos.cli.system_start()[0] == True
+        assert pos.cli.pos_stop()[0] == True
+        assert pos.cli.pos_start()[0] == True
         uram_list = pos.data_dict["device"]["uram"]
 
         for uram in uram_list:

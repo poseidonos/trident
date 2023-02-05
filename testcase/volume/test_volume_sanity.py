@@ -1,6 +1,5 @@
 import pytest
 import random
-from pos import POS
 
 import logger
 logger = logger.get_logger(__name__)
@@ -23,7 +22,6 @@ def random_string(length):
 )  # None means max size of the array/num of vols per array
 def test_SanityVolume(array_fixture, numvol, volsize):
     try:
-
         logger.info(
             f" ============== Test : volsize {volsize} numvol {numvol}  ============="
         )

@@ -45,7 +45,7 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(array_fixture, raid_type, num
                                 f"Required minimum {(num_array - id) * num_disk}")
 
                 array_name = f"array{id+1}"
-                uram_name = data_dict["device"]["uram"][id]["uram_name"]
+                uram_name = pos.data_dict["device"]["uram"][id]["uram_name"]
 
                 if raid_type.lower() == "raid0" and num_disk == 2:
                     data_device_conf = {'mix': 2}

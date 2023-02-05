@@ -1,7 +1,6 @@
 import pytest
 import traceback
 
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
@@ -10,15 +9,15 @@ logger = logger.get_logger(__name__)
 MIN_HETERO_DEV = 1
 MIN_16_NS_DEV = 1
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
+@pytest.fixture(scope="function")
+def hetero_setup(system_fixture):
 
-    global pos, data_dict, min_hetero_dev
-    pos = POS("pos_config.json")
+    global data_dict, min_hetero_dev
+    pos = system_fixture
 
     # TODO replace with relative path
     tgt_setup_file = "hetero_setup.json"
-    conf_dir = "/root/nehal/trident/testcase/config_files/"
+    conf_dir = "../../config_files/"
 
     data_path = f"{conf_dir}{tgt_setup_file}"
     tgt_conf_data = pos._json_reader(data_path, abs_path=True)[1]
@@ -57,35 +56,17 @@ def setup_module():
 
     yield pos
 
-
-def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.array_info(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.array_unmount(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
+    assert pos.cli.pos_stop()[0] == True
+    assert pos.target_utils.hetero_setup.reset() == True
 
 
 @pytest.mark.hetero_setup
 @pytest.mark.regression
-def test_hetero_array_all_raid():
+def test_hetero_array_all_raid(hetero_setup):
     """
     Test to create one array of all RAID type using minimum required devices of 
     different size. Atleast one device of size 20 GiB.
@@ -94,6 +75,7 @@ def test_hetero_array_all_raid():
         " ==================== Test : test_hetero_array_all_raid ================== "
     )
     try:
+        pos = hetero_setup
         array_name = "array1"
         uram_name = data_dict["device"]["uram"][0]["uram_name"]
 

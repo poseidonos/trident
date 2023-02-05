@@ -2,7 +2,6 @@ from time import time
 import traceback
 import pytest
 
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
@@ -73,11 +72,14 @@ qos_test_list = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"]
 
 @pytest.mark.regression
 @pytest.mark.parametrize("qos_test", qos_test_list)
-def test_qos_maxiops_maxbw_value(qos_test):
+def test_qos_maxiops_maxbw_value(volume_fixture, qos_test):
     logger.info(
         f" ==================== Test : test_qos_maxiops_maxbw_value[{qos_test}] ================== "
     )
     try:
+        pos = volume_fixture
+        array_name = data_dict["array"]["pos_array"][0]["array_name"]
+        vol_name = "POS_Vol"
         qos_values = qos_tests[qos_test]["iops_bw"]
         exp_result = qos_tests[qos_test]["result"]
 
@@ -127,12 +129,15 @@ qos_iops_bw_res = [
 
 @pytest.mark.regression
 @pytest.mark.parametrize("max_iops, max_bw, exp_result", qos_iops_bw_res)
-def test_vol_create_with_qos_value(max_iops, max_bw, exp_result):
+def test_vol_create_with_qos_value(volume_fixture, max_iops, max_bw, exp_result):
     logger.info(
         f" ================== Test : test_vol_create_with_qos_value"
         f"[{max_iops}-{max_bw}-{exp_result}] ===================== "
     )
     try:
+        pos = volume_fixture
+        array_name = data_dict["array"]["pos_array"][0]["array_name"]
+        vol_name = "POS_Vol"
         assert (
             pos.cli.volume_create(
                 vol_name, "10GB", array_name, iops=max_iops, bw=max_bw

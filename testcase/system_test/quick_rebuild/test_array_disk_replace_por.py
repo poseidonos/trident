@@ -1,8 +1,7 @@
 from time import sleep
 import pytest
 
-from pos import POS
-from common_test_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
@@ -29,7 +28,7 @@ test_por_operations = {
     }
 
 @pytest.mark.parametrize("por_operation", test_por_operations)
-def test_arrays_disk_replace_por(setup_cleanup_array_function, por_operation):
+def test_arrays_disk_replace_por(array_fixture, por_operation):
     """
     The purpose of this test is to create a NO-RAID array with 1 data drive.   
     Verification: POS CLI
@@ -37,7 +36,7 @@ def test_arrays_disk_replace_por(setup_cleanup_array_function, por_operation):
     logger.info(
         f" ==================== Test : test_arrays_disk_replace_por[{por_operation}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         arrays_raid = test_por_operations[por_operation][0]
         por_list = test_por_operations[por_operation][1]

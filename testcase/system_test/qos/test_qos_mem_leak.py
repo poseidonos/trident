@@ -1,51 +1,9 @@
 from time import time
 import pytest
 
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, raid_type, nr_data_drives, num_array, array_list, ss_list, vol_name_pre, num_vols, vol_size
-    vol_name_pre = "pos_vol"
-    num_vols, vol_size = 2, "500gb"
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict["subsystem"]["pos_subsystems"][0]["nr_subsystems"] = 1
-    data_dict["subsystem"]["pos_subsystems"][1]["nr_subsystems"] = 1
-    data_dict["volume"]["phase"] = ("false",)
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    assert pos.target_utils.get_subsystems_list() == True
-    ss_list = pos.target_utils.ss_temp_list[:2]
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    for array in array_list:
-        assert pos.cli.volume_list(array_name=array)[0] == True
-        for vol_name in pos.cli.vols:
-            if pos.cli.vol_dict[vol_name]["status"] == "Mounted":
-                assert pos.cli.volume_unmount(vol_name, array_name=array)[0] == True
-            assert pos.cli.volume_delete(vol_name, array_name=array)[0] == True
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
 
 
 loop_action = [
@@ -125,12 +83,20 @@ dict_func = {
 
 @pytest.mark.regression
 @pytest.mark.parametrize("action", loop_action)
-def test_qos_mem_leak(action):
+def test_qos_mem_leak(volume_fixture, action):
     logger.info(
         f" ==================== Test : test_qos_mem_leak[{action}] ================== "
     )
     try:
+        global pos, data_dict, raid_type, nr_data_drives, num_array, array_list, ss_list, vol_name_pre, num_vols, vol_size
+        pos = volume_fixture
 
+        vol_name_pre = "pos_vol"
+        num_vols, vol_size = 2, "500gb"
+        assert pos.cli.array_list()[0] == True
+        array_list = list(pos.cli.array_dict.keys())
+        assert pos.target_utils.get_subsystems_list() == True
+        ss_list = pos.target_utils.ss_temp_list[:2]
         for id, array_name in enumerate(array_list):
             assert (
                 pos.target_utils.create_volume_multiple(

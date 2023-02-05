@@ -1,8 +1,7 @@
 import pytest
 import traceback
 
-from pos import POS
-from common_test_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
@@ -51,7 +50,7 @@ test_operations = {"t0": ("hetero", "RAID5", "RAID6", "vol_rename"),
                    "t3": ("normal", "RAID5", "RAID6", "vol_unmount_mount")}
 @pytest.mark.regression
 @pytest.mark.parametrize("test_param", test_operations)
-def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param):
+def test_hetero_array_qos_after_disk_replace(array_fixture, test_param):
     """
     Test to create two arrays RAID5, RAID6 arrays with minimum number of supported devices.
     Create and mount 2 volumes and set qos values. 
@@ -60,7 +59,7 @@ def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param)
         f" ==================== Test :  test_hetero_array_qos_after_disk_replace[{test_param}] ================== "
     )
     try:
-        pos = setup_cleanup_function
+        pos = array_fixture
         array_type, aray1_raid, array2_raid, action = test_operations[test_param]
         raid_type_list = (aray1_raid, array2_raid)
         num_spare_disk = 2
@@ -120,7 +119,7 @@ def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param)
 
 @pytest.mark.regression
 @pytest.mark.parametrize("array_disk_type", ["hetero", "normal"])
-def test_array_disk_replace_multiple(setup_cleanup_function, array_disk_type):
+def test_array_disk_replace_multiple(array_fixture, array_disk_type):
     """
     Test to create two arrays RAID5, RAID6 arrays with minimum number of supported devices.
     Create and mount 2 volumes. During IO fail a data disk. 
@@ -129,7 +128,7 @@ def test_array_disk_replace_multiple(setup_cleanup_function, array_disk_type):
         f" ==================== Test :  test_array_disk_replace_multiple[{array_disk_type}] ================== "
     )
     try:
-        pos = setup_cleanup_function
+        pos = array_fixture
         raid_type_list = [("RAID5", "RAID6"), ("RAID6", "RAID10")]
         num_spare_disk = 2
         array_cap_volumes = [(32, 100), (128, 100), (256, 100)]

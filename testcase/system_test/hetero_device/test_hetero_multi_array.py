@@ -1,9 +1,8 @@
 import pytest
 import traceback
-
 from common_libs import *
-import logger
 
+import logger
 logger = logger.get_logger(__name__)
 
 array = [("RAID5", 3),]
@@ -26,7 +25,8 @@ def test_hetero_multi_array(array_fixture, array1_raid, array1_devs, array2_raid
         num_devs = (array1_devs, array2_devs)
 
         for i in range(repeat_ops):
-            assert array_create_and_list(pos) == True
+            assert array_create_and_list(pos, raid_list=raid_types,
+                                         num_devs=num_devs) == True
             for array_name in pos.cli.array_dict.keys():
                 array_size = pos.cli.array_data[array_name].get("size")
                 array_state = pos.cli.array_data[array_name].get("state")
@@ -190,12 +190,13 @@ def test_hetero_degraded_array_unmount(array_fixture):
     )
 
 
-def array_create_and_list(pos):
+def array_create_and_list(pos, raid_list=["RAID5", "RAID5"], 
+                          num_devs=[RAID5_MIN_DISKS, RAID5_MIN_DISKS]):
     try:
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         for array_index in range(2):
-            data_disk_req = {'mix': 2, 'any': 1}
-            assert create_hetero_array(pos, "RAID5", data_disk_req, 
+            data_disk_req = {'mix': num_devs[array_index] - 1, 'any': 1}
+            assert create_hetero_array(pos, raid_list[array_index], data_disk_req, 
                                        array_index=array_index, mount_array="WT", 
                                        info_array=True) == True
  

@@ -9,7 +9,7 @@ def por_array_io(pos, raid_type, nr_data_drives):
         array_name = array1["array_name"]
         buffer_dev = array1["uram0"]
         system_disks = pos.cli.system_disks
-        data_disk_list = [system_disks.pop(0) for i in range(1)]
+        data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
         assert pos.cli.array_create(array_name=array_name,
                                     write_buffer=buffer_dev,
                                     data=data_disk_list,

@@ -1,51 +1,12 @@
 import pytest
 import traceback
 
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, min_hetero_dev
-    pos = POS("pos_config.json")
-
-    data_dict = pos.data_dict
-
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.devel_resetmbr()[0] == True
-
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    for array in array_list:
-        assert pos.cli.array_info(array_name=array)[0] == True
-        if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.array_unmount(array_name=array)[0] == True
-        assert pos.cli.array_delete(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
 @pytest.mark.regression
-def test_hetero_three_raid5_array():
+def test_hetero_three_raid5_array(array_fixture):
     """
     Test to create three RAID5 arrays using hetero devices. 
     """
@@ -53,6 +14,8 @@ def test_hetero_three_raid5_array():
         " ==================== Test : test_hetero_three_raid5_array ================== "
     )
     try:
+        pos = array_fixture
+        data_dict = pos.data_dict
         # Loop 3 times to create 3 arrays of RAID5 using hetero device
         num_array = 3
         for id in range(num_array):
@@ -103,7 +66,7 @@ def test_hetero_three_raid5_array():
 
 
 @pytest.mark.regression
-def test_hetero_offline_array_vol_create():
+def test_hetero_offline_array_vol_create(array_fixture):
     """
     Test two RAID5 arrays using hetero devices, Create max size volume from Offline array.
     """
@@ -111,6 +74,8 @@ def test_hetero_offline_array_vol_create():
         " ==================== Test : test_hetero_offline_array_vol_create ================== "
     )
     try:
+        pos = array_fixture
+        data_dict = pos.data_dict
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         num_array = 2
         assert pos.cli.device_scan()[0] == True
@@ -155,7 +120,7 @@ def test_hetero_offline_array_vol_create():
 
 
 @pytest.mark.regression
-def test_hetero_multi_array_delete_mounted_vols():
+def test_hetero_multi_array_delete_mounted_vols(array_fixture):
     """
     Test two RAID5 arrays using hetero devices, Delete mounted volumes.
     """
@@ -163,6 +128,8 @@ def test_hetero_multi_array_delete_mounted_vols():
         " ==================== Test : test_hetero_multi_array_delete_mounted_vols ================== "
     )
     try:
+        pos = array_fixture
+        data_dict = pos.data_dict
         assert pos.target_utils.get_subsystems_list() == True
         ss_temp_list = pos.target_utils.ss_temp_list
         assert pos.cli.device_scan()[0] == True
@@ -227,7 +194,7 @@ def test_hetero_multi_array_delete_mounted_vols():
 
 
 @pytest.mark.regression
-def test_hetero_faulty_array_create_delete_vols():
+def test_hetero_faulty_array_create_delete_vols(array_fixture):
     """
     Test two RAID5 arrays using hetero devices, Make it fault and create and delete volume on each array.
     """
@@ -235,6 +202,8 @@ def test_hetero_faulty_array_create_delete_vols():
         " ==================== Test : test_hetero_faulty_array_create_delete_vols ================== "
     )
     try:
+        pos = array_fixture
+        data_dict = pos.data_dict
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         num_array = 2
         assert pos.cli.device_scan()[0] == True
@@ -292,7 +261,7 @@ def test_hetero_faulty_array_create_delete_vols():
     )
 
 @pytest.mark.regression
-def test_hetero_array_no_raid_without_uram():
+def test_hetero_array_no_raid_without_uram(array_fixture):
     """
     Test to create one array of all RAID type using minimum required devices of 
     different size. Atleast one device of size 20 GiB.
@@ -301,6 +270,7 @@ def test_hetero_array_no_raid_without_uram():
         " ==================== Test : test_hetero_array_all_raid ================== "
     )
     try:
+        pos = array_fixture
         array_name = "array1"
         assert pos.cli.device_scan()[0] == True
         assert pos.cli.device_list()[0] == True
@@ -331,7 +301,7 @@ def test_hetero_array_no_raid_without_uram():
     )
 
 @pytest.mark.regression
-def test_hetero_multi_array_mount_vol_to_same_subs():
+def test_hetero_multi_array_mount_vol_to_same_subs(array_fixture):
     """
     Test two RAID5 arrays using hetero devices, Create 1 volume and mount to same subsystem.
     """
@@ -339,6 +309,7 @@ def test_hetero_multi_array_mount_vol_to_same_subs():
         " ==================== Test : test_hetero_multi_array_mount_vol_to_same_subs ================== "
     )
     try:
+        pos = array_fixture
         assert pos.target_utils.get_subsystems_list() == True
         ss_temp_list = pos.target_utils.ss_temp_list
         nqn = ss_temp_list[0]
@@ -355,7 +326,7 @@ def test_hetero_multi_array_mount_vol_to_same_subs():
                             f"Required minimum {3 * (num_array - id)} disk to create array")
 
             array_name = f"array{id+1}"
-            uram_name = data_dict["device"]["uram"][id]["uram_name"]
+            uram_name = pos.data_dict["device"]["uram"][id]["uram_name"]
 
             data_device_conf = {'mix': 2, 'any': 1}
 

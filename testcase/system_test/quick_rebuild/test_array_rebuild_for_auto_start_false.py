@@ -1,17 +1,14 @@
 import pytest
 
-from pos import POS
-from common_test_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
 
 @pytest.fixture(scope="module")
-def setup_module():
+def setup_module(system_fixture):
     logger.info("========= SETUP MODULE ========")
-    pos = POS()
-    if not pos.target_utils.helper.check_pos_exit():
-        assert pos.cli.system_stop()[0] == True
+    pos = system_fixture
     assert pos.pos_conf.rebuild_auto_start(auto_start=False,
                                            update_now=True) == True
 
@@ -53,7 +50,7 @@ def auto_rebuild_setup_cleanup(setup_module):
 test_opr = ["disk_replace_rebuild", "disk_remove", "disk_remove_rebuild"]
 
 @pytest.mark.parametrize("test_operation", test_opr)
-def test_array_rebuild_auto_start_disable(auto_rebuild_setup_cleanup, test_operation):
+def test_array_rebuild_auto_start_disable(array_fixture, test_operation):
     """
     The purpose of this test is to create RAID5 array with 3 data drive and 1 spare drive. 
     Create and mount 2 multiple volumes to each array and utilize its full capacity.  
@@ -62,7 +59,7 @@ def test_array_rebuild_auto_start_disable(auto_rebuild_setup_cleanup, test_opera
     logger.info(
         f" ==================== Test : test_array_rebuild_auto_start_disable[{test_operation}] ================== "
     )
-    pos = auto_rebuild_setup_cleanup
+    pos = array_fixture
     try:
         raid_type = "RAID5"
         num_vols = 2

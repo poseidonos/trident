@@ -1896,7 +1896,7 @@ class Cli(LinuxCLI, PosCLI):
             if self.pos_as_service:   # POS as service
                 res, jout = self.pos_service_start()
             else:
-                res, jout = self.system_start(timeout=timeout)
+                res, jout = self.system_start()
 
             if res and verify:
                 start_time = time.time()

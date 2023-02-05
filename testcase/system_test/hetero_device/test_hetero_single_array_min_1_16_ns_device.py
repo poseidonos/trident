@@ -1,7 +1,6 @@
 import pytest
 import traceback
-
-from pos import POS
+from common_libs import *
 import logger
 
 logger = logger.get_logger(__name__)
@@ -10,11 +9,11 @@ logger = logger.get_logger(__name__)
 MIN_HETERO_DEV = 1
 MIN_16_NS_DEV = 1
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
+@pytest.fixture(scope="function")
+def hetero_setup(system_fixture):
 
-    global pos, data_dict, min_hetero_dev
-    pos = POS("pos_config.json")
+    global min_hetero_dev
+    pos = system_fixture
 
     tgt_setup_file = "hetero_setup.json"
     conf_dir = "../../config_files/"
@@ -56,35 +55,17 @@ def setup_module():
 
     yield pos
 
-
-def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.array_list()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.array_info(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.array_unmount(array_name=array)[0] == True
-            assert pos.cli.array_delete(array_name=array)[0] == True  
-        assert pos.cli.devel_resetmbr()[0] == True
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
+    assert pos.cli.pos_stop()[0] == True
+    assert pos.target_utils.hetero_setup.reset() == True
 
 array = [("RAID0",2), ("RAID5",3), ("RAID10",4)]
 @pytest.mark.regression
 @pytest.mark.parametrize("raid_type,num_disk", array)
-def test_hetero_array_all_raid(raid_type,num_disk):
+def test_hetero_array_all_raid(hetero_setup, raid_type,num_disk):
     """
     Test to create one array of all RAID type using minimum required devices of 
     different size. Atleast one device of size 20 GiB.
@@ -93,8 +74,9 @@ def test_hetero_array_all_raid(raid_type,num_disk):
         " ==================== Test : test_hetero_array_all_raid ================== "
     )
     try:
-        array_name = "array1"
-        uram_name = data_dict["device"]["uram"][0]["uram_name"]
+        pos = hetero_setup
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        uram_name = pos.data_dict["device"]["uram"][0]["uram_name"]
         assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < num_disk:
             logger.warning("Avilable drive {} is insufficient, required {}".format(
@@ -129,7 +111,7 @@ def test_hetero_array_all_raid(raid_type,num_disk):
 @pytest.mark.regression
 @pytest.mark.parametrize("mount_type", ["WT", "WB"])
 @pytest.mark.parametrize("raid_type", ["RAID0", "RAID5", "RAID10"])
-def test_hetero_array_all_dev_fio(raid_type, mount_type):
+def test_hetero_array_all_dev_fio(hetero_setup, raid_type, mount_type):
     """
     Test to create one array of all RAID type using all available devices of 
     different size. Atleast one device of size 20 GiB.
@@ -138,9 +120,10 @@ def test_hetero_array_all_dev_fio(raid_type, mount_type):
         " ==================== Test : test_hetero_array_all_dev_fio ================== "
     )
     try:
-        array_name = "array1"
+        pos = hetero_setup
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.cli.device_list()[0] == True
-        uram_name = data_dict["device"]["uram"][0]["uram_name"]
+        uram_name = pos.data_dict["device"]["uram"][0]["uram_name"]
         data_device_conf = {'any': len(pos.cli.system_disks)}
 
         if raid_type != "RAID5":

@@ -1,8 +1,7 @@
 from time import sleep
 import pytest
 
-from pos import POS
-from common_test_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
@@ -10,7 +9,7 @@ logger = logger.get_logger(__name__)
 remove_disk = ["spare_disk", "other_data_disk", "same_data_disk", "no_disk"]
 
 @pytest.mark.parametrize("remove_disk", remove_disk)
-def test_array_rebuild_data_integrity(setup_cleanup_array_function, remove_disk):
+def test_array_rebuild_data_integrity(array_fixture, remove_disk):
     """
     The purpose of this test is to create RAID5 array with 3 data drive and 1 spare drive. 
     Create and mount 2 multiple volumes to each array and utilize its full capacity.  
@@ -19,7 +18,7 @@ def test_array_rebuild_data_integrity(setup_cleanup_array_function, remove_disk)
     logger.info(
         f" ==================== Test : test_array_rebuild_data_integrity[{remove_disk}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         raid_type = "RAID5"
         num_vols = 2
@@ -98,7 +97,7 @@ def test_array_rebuild_data_integrity(setup_cleanup_array_function, remove_disk)
 
 
 @pytest.mark.parametrize("raid_type", ["RAID5", "RAID6", "RAID10"])
-def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
+def test_disk_replace_degraded_array(array_fixture, raid_type):
     """
     The purpose of this test is to create two RAID5/RAID6 array with minimum required
     data drives. Create and mount 2 multiple volumes to each array and utilize its full
@@ -110,7 +109,7 @@ def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
     logger.info(
         f" ==================== Test : test_disk_replace_degraded_array[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_disks = RAID_MIN_DISK_REQ_DICT[raid_type]
         arrays_num_disks = (num_disks, num_disks)
@@ -183,7 +182,7 @@ def test_disk_replace_degraded_array(setup_cleanup_array_function, raid_type):
         pos.exit_handler(expected=False)
 
 @pytest.mark.parametrize("raid_type", ["RAID5", "RAID6", "RAID10"])
-def test_spare_disk_fail_during_disk_replace(setup_cleanup_array_function, raid_type):
+def test_spare_disk_fail_during_disk_replace(array_fixture, raid_type):
     """
     The purpose of this test is to create a RAID5/RAID6/RAID10 array with minimum required
     data drives and two spare drives. Create and mount multiple volumes to each array and 
@@ -194,7 +193,7 @@ def test_spare_disk_fail_during_disk_replace(setup_cleanup_array_function, raid_
     logger.info(
         f" ==================== Test : test_spare_disk_fail_during_disk_replace[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         num_data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         num_spare_disk = 2
@@ -250,7 +249,7 @@ def test_spare_disk_fail_during_disk_replace(setup_cleanup_array_function, raid_
 
 disk_replace_remove = ["replace", "remove"]
 @pytest.mark.parametrize("disk_replace_remove", disk_replace_remove)
-def test_array_raid6_disk_replace_remove(setup_cleanup_array_function, disk_replace_remove):
+def test_array_raid6_disk_replace_remove(array_fixture, disk_replace_remove):
     """
     The purpose of this test is to create an array of RAID6 with minimum required 
     data drive and 2 spare drive. Create volumes and Run IO. During IO pefrom data
@@ -262,7 +261,7 @@ def test_array_raid6_disk_replace_remove(setup_cleanup_array_function, disk_repl
         f" ==================== Test : test_array_data_disk_replace_remove[{disk_replace_remove}] ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         raid_type = "RAID6"
         num_vols = 16
         data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]

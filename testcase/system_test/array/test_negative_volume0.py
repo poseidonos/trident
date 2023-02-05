@@ -1,36 +1,7 @@
 import pytest
 
 import logger
-
-from pos import POS
 logger = logger.get_logger(__name__)
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict , array_name
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-    data_dict['array']['num_array'] = 1
-    data_dict['volume']['phase'] = "false"
-    array_name = data_dict["array"]["pos_array"][0]["array_name"]
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-
-    assert pos.cli.volume_list(array_name=array_name)[0] == True
-    for vol_name in pos.cli.vols:
-        assert pos.cli.volume_delete(vol_name, array_name)[0] == True
-            
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
 
 @pytest.mark.regression
 @pytest.mark.parametrize(
@@ -45,12 +16,13 @@ def teardown_module():
         ("pos_vol", True),
     ],
 )
-def test_rename_vol_special_char(new_name, expected_result
+def test_rename_vol_special_char(volume_fixture, new_name, expected_result
 ):
     logger.info(
         " ==================== Test : test_rename_vol_special_chars ================== "
     )
     try:
+        pos = volume_fixture
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert (
             pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol")[
@@ -75,11 +47,12 @@ def test_rename_vol_special_char(new_name, expected_result
 
 
 @pytest.mark.regression
-def test_rename_non_exist_vol():
+def test_rename_non_exist_vol(volume_fixture):
     logger.info(
         " ==================== Test : test_rename_vol_doub_char ================== "
     )
     try:
+        pos = volume_fixture
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert (
             pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol")[
@@ -104,9 +77,10 @@ def test_rename_non_exist_vol():
 
 
 @pytest.mark.regression
-def test_vol_mnt_unmnt():
+def test_vol_mnt_unmnt(volume_fixture):
     logger.info(" ==================== Test : test_vol_mnt_unmnt ================== ")
     try:
+        pos = volume_fixture
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert (
             pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol")[
@@ -132,11 +106,12 @@ def test_vol_mnt_unmnt():
 
 
 @pytest.mark.regression
-def test_rename_vol_after_array_unmnt_mnt():
+def test_rename_vol_after_array_unmnt_mnt(volume_fixture):
     logger.info(
         " ==================== Test : test_rename_vol_doub_char ================== "
     )
     try:
+        pos = volume_fixture
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert (
             pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol")[
@@ -168,11 +143,12 @@ def test_rename_vol_after_array_unmnt_mnt():
 
 
 @pytest.mark.regression
-def test_create_vol_larger_array_size():
+def test_create_vol_larger_array_size(volume_fixture):
     logger.info(
         " ==================== Test : test_rename_vol_doub_char ================== "
     )
     try:
+        pos = volume_fixture
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_data[array_name]
@@ -198,11 +174,12 @@ def test_create_vol_larger_array_size():
 
 
 @pytest.mark.regression
-def test_vol_array_normal_states():
+def test_vol_array_normal_states(volume_fixture):
     logger.info(
         " ==================== Test : test_mnt_vol_fault_arrray_state ================== "
     )
     try:
+        pos = volume_fixture
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_data[array_name]

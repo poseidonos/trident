@@ -1,11 +1,9 @@
 
 import pytest
 import traceback
+import time 
 
 import logger
-import time 
-import re
-
 logger = logger.get_logger(__name__)
 
 array_raid_disk = [("RAID5", 12)]
@@ -38,7 +36,7 @@ def test_hetero_multi_array_long_io_mem_leak(array_fixture, raid_type, num_devs)
                             f"Required minimum {(num_arrays - id) * num_devs}")
 
             array_name = f"array{id+1}"
-            uram_name = data_dict["device"]["uram"][id]["uram_name"]
+            uram_name = pos.data_dict["device"]["uram"][id]["uram_name"]
 
             if raid_type.lower() == "raid0" and num_devs == 2:
                 data_device_conf = {'mix': 2}
