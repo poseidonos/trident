@@ -28,6 +28,13 @@ def test_gcMaxvol(array_fixture, raid_type, nr_data_drives):
     """Trigger garbage collection with longevity of I/O"""
     try:
         pos = array_fixture
+
+        assert pos.cli.device_list()[0] == True
+        system_disks = pos.cli.system_disks
+        if (nr_data_drives * 2) > len(system_disks):
+            logger.warning("Insufficient system disks to test array create")
+            pytest.skip("Required disk condition is not met")
+
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         pos.data_dict["array"]["pos_array"][0]["raid_type"] = raid_type
         pos.data_dict["array"]["pos_array"][1]["raid_type"] = raid_type

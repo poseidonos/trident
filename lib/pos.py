@@ -44,6 +44,7 @@ from sys import exit
 import logger
 import pathlib
 import inspect
+from copy import deepcopy
 from threadable_node import threaded
 
 logger = logger.get_logger(__name__)
@@ -83,6 +84,8 @@ class POS:
             self.data_dict = self._json_reader(data_path, abs_path=True)[1]
         else:
             self.data_dict = self._json_reader(data_path)[1]
+
+        self.data_dict_bkp = deepcopy(self.data_dict)
 
         self.config_dict = self._json_reader(config_path)[1]
         self.trident_config = self._json_reader(trident_config)[1]

@@ -2,6 +2,7 @@ import pytest, sys, json, os, shutil
 import uuid
 import traceback
 from time import sleep
+from copy import deepcopy
 
 from datetime import datetime
 
@@ -150,6 +151,9 @@ def pytest_runtest_protocol(item, nextitem):
 
     if trident_config_data["elk_log_stage"]["enable"] == True:
         tags_info(target_ip, method, start_time, driver, issuekey)
+
+    # Update the copy of data dict aka pos config.
+    pos.data_dict = deepcopy(pos.data_dict_bkp)
 
     yield
 
