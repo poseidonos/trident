@@ -90,9 +90,9 @@ def test_hetero_array_all_raid_using_19gib_data_disk(hetero_setup):
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == False
+            assert pos.cli.array_create(array_name=array_name,
+                        write_buffer=uram_name, data=data_drives, 
+                        spare=spare_drives, raid_type=raid_type)[0] == False
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -139,9 +139,9 @@ def test_hetero_array_all_raid_using_19gib_spare_disk(hetero_setup):
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == False
+            assert pos.cli.array_create(array_name=array_name,
+                        write_buffer=uram_name, data=data_drives, 
+                        spare=spare_drives, raid_type=raid_type)[0] == False
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

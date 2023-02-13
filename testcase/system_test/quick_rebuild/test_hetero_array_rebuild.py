@@ -260,9 +260,10 @@ def create_mount_hetero_arrays(pos, raid_list, num_spare_disk, hetero_array=True
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.array_create(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
+            assert pos.cli.array_create(array_name=array_name,
+                        write_buffer=uram_name, data=data_drives, 
+                        spare=spare_drives, raid_type=raid_type)[0] == True
+
             assert pos.cli.array_mount(array_name=array_name,
                                        write_back=False)[0] == True
     except Exception as e:

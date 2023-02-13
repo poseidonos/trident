@@ -1,11 +1,9 @@
-from array import array
 import pytest
 
-import logger as logging
 import time
-import pprint
 from common_libs import *
 
+import logger as logging
 logger = logging.get_logger(__name__)
 
 

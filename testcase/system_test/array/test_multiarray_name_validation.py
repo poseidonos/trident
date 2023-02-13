@@ -1,10 +1,4 @@
 import pytest
-import traceback
-
-from pos import POS
-import random
-import time
-import pprint
 
 import logger
 
@@ -27,17 +21,11 @@ def test_multi_array_name(array_fixture, new_name, expected_result):
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
-        spare_disk_list = []
-        assert (
-            pos.cli.array_create(
-                write_buffer="uram1",
-                data=data_disk_list,
-                spare=spare_disk_list,
-                raid_type="RAID5",
-                array_name=new_name,
-            )[0]
-            == expected_result
-        )
+
+        assert pos.cli.array_create(array_name=new_name,
+                write_buffer="uram1", data=data_disk_list,
+                spare=[], raid_type="RAID5")[0] == expected_result
+
         assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         for array in array_list:

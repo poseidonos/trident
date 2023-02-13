@@ -1934,7 +1934,7 @@ class Cli(LinuxCLI, PosCLI):
                 array_list = list(self.array_dict.keys())
                 for array in array_list:
                     if self.array_dict[array].lower() == "mounted":
-                        assert self.unmount_array(array_name=array)[0] == True
+                        assert self.array_unmount(array_name=array)[0] == True
 
                 if self.pos_as_service:
                     res, jout = self.pos_service_stop()

@@ -7,43 +7,45 @@ logger = logger.get_logger(__name__)
 
 arrays = ["POSARRAY1", "POSARRAY2"]
 nqn_name = "nqn.2022-10-array1.pos:subsystem"
+
 def create_initial_arrays(pos, array_detail):
-    array_name = ["POSARRAY1","POSARRAY2"]
     assert pos.cli.devel_resetmbr()[0] == True
-    for array in range(len(array_name)):
+    for index, array_name in enumerate(arrays):
         assert pos.cli.device_scan()[0] == True 
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (array_detail[array][1]):
+        if len(system_disks) < (array_detail[index][1]):
             pytest.skip(
-                f"Insufficient disk count {system_disks}. Required minimum {array_detail[array][1] + 1}"
+                f"Insufficient disk count {system_disks}. Required minimum {array_detail[index][1] + 1}"
             )
-        if array_detail[array][0] in ["NONE","RAID0"]:
-            data_disk_list = [system_disks.pop(0) for i in range(array_detail[array][1])]
+        if array_detail[index][0] in ["NONE","RAID0"]:
+            data_disk_list = [system_disks.pop(0) for i in range(array_detail[index][1])]
             spare_disk_list = []
         else:
-            data_disk_list = [system_disks.pop(0) for i in range(array_detail[array][1])]
+            data_disk_list = [system_disks.pop(0) for i in range(array_detail[index][1])]
             spare_disk_list = [system_disks.pop(0)]
-        if array == 1:
-            buffer_device = "uram0"
-        else:
-            buffer_device = "uram1"
-        assert (
-                pos.cli.array_create(
-                    write_buffer=buffer_device,
-                    data=data_disk_list,
-                    spare=spare_disk_list,
-                    raid_type=array_detail[array][0],
-                    array_name=array_name[array],
-                )[0]
-                == True
-        )
 
-        assert pos.cli.array_mount(array_name=array_name[array], write_back=False)[0] == True
+        buffer_device = f"uram{index}"
+        raid_type = array_detail[index][0]
+        assert pos.cli.array_create(array_name=array_name,
+                                    write_buffer=buffer_device,
+                                    data=data_disk_list,
+                                    spare=spare_disk_list,
+                                    raid_type=raid_type)[0] == True
+
+        assert pos.cli.array_mount(array_name=array_name,
+                                   write_back=False)[0] == True
         assert pos.target_utils.get_subsystems_list() == True
         if len(pos.target_utils.ss_temp_list) >= len(array_name):
-            assert pos.cli.volume_create(array_name=array_name[array],volumename=array_name[array]+'vol',size='1gb')[0] == True
-            assert pos.cli.volume_mount(array_name=array_name[array],volumename=array_name[array]+'vol',nqn=pos.target_utils.ss_temp_list[array])[0] == True
+            assert pos.cli.volume_create(array_name=array_name,
+                                         volumename=array_name+'vol',
+                                         size='1gb')[0] == True
+            subsys_list = pos.target_utils.ss_temp_list
+            ss_list = [ss for ss in subsys_list if array_name in ss]
+            nqn = ss_list[0]
+            assert pos.cli.volume_mount(array_name=array_name,
+                                        volumename=array_name+'vol',
+                                        nqn=nqn)[0] == True
         else:
             logger.error("Not enough subsystems")
 
@@ -107,20 +109,25 @@ def test_raid10_creation_with_diff_num_drives(array_fixture, array_detail):
             assert pos.target_utils.get_subsystems_list() == True
             assert (
                     pos.cli.array_create(
+                        array_name=arrays[array],
                         write_buffer="uram"+str(array),
                         data=data_disk_list,
                         spare=spare_disk_list,
                         raid_type=raid_type,
-                        array_name=arrays[array],
                     )[0]
                     != bool(num_of_drives%2)
             )
             assert pos.cli.array_mount(array_name=arrays[array])[0] != bool(num_of_drives % 2)
 
             assert pos.cli.array_list()[0] == True
+            
             if len(list(pos.cli.array_dict.keys())) > 0:
-                assert pos.cli.volume_create(array_name=arrays[array],volumename=arrays[array]+'vol',size='10gb')[0] == True
-                assert pos.cli.volume_mount(array_name=arrays[array],volumename=arrays[array]+'vol',nqn=pos.target_utils.ss_temp_list[array])
+                assert pos.cli.volume_create(array_name=arrays[array],
+                                            volumename=arrays[array]+'vol',
+                                            size='10gb')[0] == True
+                assert pos.cli.volume_mount(array_name=arrays[array],
+                                            volumename=arrays[array]+'vol',
+                                            nqn=pos.target_utils.ss_temp_list[array])
                 assert run_block_io(pos) == True
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -139,10 +146,15 @@ def test_creation_of_raid10_with_same_drives(array_fixture):
             pytest.skip(
                 f"Insufficient disk count {system_disks}. Required minimum {num_of_drives + 1}")
         data_disk_list = [system_disks.pop(0) for i in range(num_of_drives)]
-        spare_disk_list = []
-        assert pos.cli.array_create(write_buffer="uram0",data=data_disk_list,spare=spare_disk_list,raid_type=raid_type,array_name=arrays[0])[0] == True
+
+        assert pos.cli.array_create(array_name=arrays[0],
+                        write_buffer="uram0", data=data_disk_list,
+                        spare=[], raid_type=raid_type)[0] == True
+        
         assert pos.cli.array_mount(array_name=arrays[0])[0] == True
-        assert pos.cli.array_create(write_buffer="uram1",data=data_disk_list,spare=spare_disk_list,raid_type=raid_type,array_name=arrays[1])[0] == False
+        assert pos.cli.array_create(array_name=arrays[1],
+                        write_buffer="uram1", data=data_disk_list,
+                        spare=[], raid_type=raid_type)[0] == False
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)

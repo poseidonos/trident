@@ -254,16 +254,9 @@ def test_array_create_with_invalid_uram(system_fixture):
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(4)]
 
-        assert (
-            pos.cli.array_create(
-                write_buffer="uram-invalid",
-                data=data_disk_list,
-                spare=None,
-                raid_type="RAID5",
-                array_name="invalid_" + array_name,
-            )[0]
-            == False
-        )
+        assert pos.cli.array_create(array_name="invalid_" + array_name,
+                        write_buffer="uram-invalid", data=data_disk_list, 
+                        spare=[], raid_type="RAID5")[0] == False
 
         logger.info("=============== TEST ENDs ================")
 

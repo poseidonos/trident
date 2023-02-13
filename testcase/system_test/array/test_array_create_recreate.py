@@ -202,6 +202,7 @@ def test_remove_device_unmount_state(array_fixture):
         pos = array_fixture
         pos.data_dict['array']['phase'] = 'true'
         pos.data_dict['array']['num_array'] = 1
+        pos.data_dict['array']['pos_array'][0]["spare_device"] = 1
         assert creation(pos=pos, pos_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True
         array_name = list(pos.cli.array_dict.keys())[0]
@@ -249,7 +250,7 @@ def test_unmount_array_in_degraded_state(array_fixture):
         assert pos.target_utils.device_hot_remove(device_list=remove_drive) == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
         if pos.cli.array_data[array_name]['situation'].upper() == "DEGRADED":
-            assert pos.cli.array_unmount(array_name=name)[0] == True
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
@@ -321,7 +322,7 @@ def test_write_through_to_write_back(array_fixture):
         for i in range(1):
             assert pos.cli.array_unmount(array_name=arr_name)[0] == True
             assert pos.cli.array_mount(array_name=arr_name,
-                                       write_back=True) == True
+                                       write_back=True)[0] == True
             assert pos.cli.array_unmount(array_name=arr_name)[0] == True
             assert pos.cli.array_mount(array_name=arr_name,
                                        write_back=False)[0] == True

@@ -25,7 +25,7 @@ def array_reset(pos):
     if len(array_list) == 0:
         logger.info("No array found in the config")
     else:
-        for array in array_list:
+        for index, array in enumerate(array_list):
             assert pos.cli.array_unmount(array_name=array)[0] == True
             assert pos.cli.array_delete(array_name=array)[0] == True
             assert pos.cli.device_scan()[0] == True
@@ -35,13 +35,20 @@ def array_reset(pos):
                 pytest.skip(
                     f"Insufficient disk count {system_disks}. Required minimum {4 + 1}")
             data_disk_list = [system_disks.pop(0) for i in range(4)]
-            spare_disk_list = []
-            assert pos.cli.array_create(array_name=array,write_buffer='uram'+str(array_list.index(array)),data=data_disk_list,spare=spare_disk_list,raid_type="RAID10")[0] == True
+            assert pos.cli.array_create(array_name=array,
+                                        write_buffer=f'uram{index}',
+                                        data=data_disk_list, spare=[],
+                                        raid_type="RAID10")[0] == True
             assert pos.cli.array_mount(array_name=array)[0] == True
-            assert pos.target_utils.create_volume_multiple(array_name=array,vol_name='pos_vol',num_vol=2,size='1gb') == True
+
+            assert pos.target_utils.create_volume_multiple(array_name=array,
+                            vol_name='pos_vol', num_vol=2,size='1gb') == True
             assert pos.cli.volume_list(array_name=array)[0] == True
+
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.target_utils.mount_volume_multiple(array_name=array,volume_list=pos.cli.vols,nqn_list=[pos.target_utils.ss_temp_list[array_list.index(array)]]) == True
+            nqn = pos.target_utils.ss_temp_list[index]
+            assert pos.target_utils.mount_volume_multiple(array_name=array,
+                                volume_list=pos.cli.vols, nqn=nqn) == True
     logger.info("==========================================")
 
 
@@ -73,7 +80,7 @@ def test_array_recreation_to_diff_raid_type(array_fixture):
         assert run_block_io(pos) == True
         assert pos.cli.array_list()[0] ==True
         array_list = list(pos.cli.array_dict.keys())
-        for array in list(pos.cli.array_dict.keys()):
+        for index , array in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.array_unmount(array_name=array)[0] == True
             assert pos.cli.array_delete(array_name=array)[0] == True
             assert pos.cli.device_scan()[0] == True
@@ -85,11 +92,18 @@ def test_array_recreation_to_diff_raid_type(array_fixture):
                 )
             data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
             spare_disk_list = [system_disks.pop(0)]
-            assert pos.cli.array_create(array_name=array,raid_type=raid_type,write_buffer='uram'+str(array_list.index(array)),data=data_disk_list,spare=spare_disk_list)[0] == True
+            assert pos.cli.array_create(array_name=array,
+                        write_buffer=f'uram{index}', data=data_disk_list,
+                        spare=spare_disk_list, raid_type=raid_type)[0] == True
+            
             assert pos.cli.array_mount(array_name=array)[0] == True
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.volume_create(volumename=array + 'vol', size='1gb', array_name=array)[0] == True
-            assert pos.cli.volume_mount(array_name=array, volumename=array + 'vol',nqn=pos.target_utils.ss_temp_list[array_list.index(array)])[0] == True
+            vol_name=array + 'vol'
+            assert pos.cli.volume_create(volumename=vol_name, size='1gb',
+                                         array_name=array)[0] == True
+            nqn=pos.target_utils.ss_temp_list[index]
+            assert pos.cli.volume_mount(array_name=array, 
+                                volumename=vol_name, nqn=nqn)[0] == True
         assert run_block_io(pos) == True
         array_reset(pos)
     except Exception as e:

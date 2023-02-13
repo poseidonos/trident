@@ -35,22 +35,16 @@ def volume_create_and_mount_multiple(
                 exp_res = False
 
             vol_name_pre = f"{array_name}_POS_Vol"
-            assert (
-                pos.target_utils.create_volume_multiple(
-                    array_name, num_volumes, vol_name=vol_name_pre, size=vol_size
-                )
-                == exp_res
-            )
+            assert pos.target_utils.create_volume_multiple(array_name,
+                                    num_volumes, vol_name=vol_name_pre,
+                                    size=vol_size) == exp_res
 
             assert pos.cli.volume_list(array_name=array_name)[0] == True
             if mount_vols:
                 ss_list = [ss for ss in subs_list if array_name in ss]
-                assert (
-                    pos.target_utils.mount_volume_multiple(
-                        array_name, pos.cli.vols, ss_list[0]
-                    )
-                    == True
-                )
+                assert pos.target_utils.mount_volume_multiple(array_name,
+                                    pos.cli.vols, ss_list[0]) == exp_res
+
     except Exception as e:
         logger.error(f"Create and Mount Volume Failed due to {e}")
         return False

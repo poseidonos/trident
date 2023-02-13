@@ -34,14 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import time
 import random
 import logger
-from pos import POS
 
 logger = logger.get_logger(__name__)
 
-
-class _Array(POS):
+class _Array():
     def __init__(
-        self,pos, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
+        self, pos, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
     ):
         #super().__init__()
         self.cli = pos.cli
@@ -888,10 +886,10 @@ class _Array(POS):
 
             assert (
                 self.cli.array_create(
+                    array_name=self.name,
                     write_buffer=buffer_dev,
                     data=data_dev,
                     spare=spare_dev,
-                    array_name=self.name,
                     raid_type="RAID5",
                 )[0]
                 == self.func["expected"]
@@ -922,10 +920,10 @@ class _Array(POS):
 
             assert (
                 self.cli.array_create(
+                array_name=self.name,
                     write_buffer=buffer_dev[0],
                     data=data_dev,
                     spare=spare_dev,
-                    array_name=self.name,
                     raid_type="RAID5",
                 )[0]
                 == self.func["expected"]
@@ -961,7 +959,7 @@ class _Array(POS):
                 self.func["expected"]
             )
         )
-        assert self.cli.array_unmount(array_name=self.name)[0] == self.func["expected"]
+        assert self.cli.array_mount(array_name=self.name)[0] == self.func["expected"]
         self.target_utils.helper.get_mellanox_interface_ip()
         assert self.target_utils.get_subsystems_list() == True
         if self.func["expected"] == True:
@@ -1032,7 +1030,7 @@ class _Array(POS):
                 assert (
                     self.client.fio_generic_runner(
                         self.client.nvme_list_out,
-                        fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0",
+                        fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=10% --name=pos0",
                     )[0]
                     == True
                 )

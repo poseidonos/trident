@@ -14,46 +14,30 @@ def gc_array_io(pos):
                 f"Insufficient disk count {system_disks}. Required minimum 4."
             )
         data_disk_list = [system_disks.pop(0) for i in range(3)]
-        assert (
-            pos.cli.array_create(
-                write_buffer="uram0",
-                data=data_disk_list,
-                spare=None,
-                raid_type="RAID5",
-                array_name=array_name,
-            )[0]
-            == True
-        )
-        assert pos.cli.array_mount(array_name=array_name, write_back=True)[0] == True
-        assert (
-            pos.cli.volume_create(
-                array_name=array_name, size="2000gb", volumename="vol"
-            )[0]
-            == True
-        )
+        assert pos.cli.array_create(array_name=array_name,
+                        write_buffer="uram0", data=data_disk_list,
+                        spare=[], raid_type="RAID5")[0] == True
+
+        assert pos.cli.array_mount(array_name=array_name, 
+                                   write_back=True)[0] == True
+        assert pos.cli.volume_create(array_name=array_name,
+                    size="2000gb", volumename="vol")[0] == True
+
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.volume_list(array_name=array_name)[0] == True
-        ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
-        assert (
-            pos.target_utils.mount_volume_multiple(
-                array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
-            )
-            == True
-        )
+        ss_list_all = pos.target_utils.ss_temp_list
+        ss_list = [ss for ss in ss_list_all if array_name in ss]
+        assert pos.target_utils.mount_volume_multiple(array_name=array_name,
+                        volume_list=pos.cli.vols, nqn_list=ss_list) == True
 
+        ip_addr = pos.target_utils.helper.ip_addr[0]
         for ss in pos.target_utils.ss_temp_list:
-            assert (
-                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
-                == True
-            )
+            assert pos.client.nvme_connect(ss, ip_addr, "1158") == True
+
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=300",
         assert pos.client.nvme_list() == True
-        assert (
-            pos.client.fio_generic_runner(
-                pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=300",
-            )[0]
-            == True
-        )
+        assert pos.client.fio_generic_runner(pos.client.nvme_list_out,
+                                        fio_user_data=fio_cmd)[0] == True
         return True
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

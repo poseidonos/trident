@@ -1,10 +1,4 @@
 import pytest
-import traceback
-
-from pos import POS
-import random
-import time
-import pprint
 
 from common_multiarray import *
 import logger

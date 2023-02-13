@@ -42,7 +42,7 @@ def test_wt_multi_array_FIO_SPOR_NPOR(array_fixture, array1, array2):
                 }
             )
 
-        assert wt_test_multi_array_setup(array_list) == True
+        assert wt_test_multi_array_setup(pos, array_list) == True
 
         for id, array_name in enumerate((array_name1, array_name2)):
             assert pos.cli.array_info(array_name=array_name)[0] == True

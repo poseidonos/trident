@@ -49,16 +49,9 @@ def test_gc_delete_array(array_fixture):
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
-        assert (
-            pos.cli.array_create(
-                write_buffer=uram_name,
-                data=data_disk_list,
-                spare=[],
-                raid_type="RAID5",
-                array_name=array_name,
-            )[0]
-            == True
-        )
+        assert pos.cli.array_create(array_name, write_buffer=uram_name,
+                data=data_disk_list, spare=[], raid_type="RAID5")[0] == True
+
         assert pos.cli.array_delete(array_name=array_name)[0] == True
         assert pos.cli.wbt_do_gc(array_name=array_name)[0] == False
         logger.error("As expected gc fails without after deletion of array")

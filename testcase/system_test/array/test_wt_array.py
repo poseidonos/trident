@@ -24,30 +24,21 @@ def test_array_wt_wb_loop(array_fixture, raid_type, nr_data_drives):
             )
 
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-        spare_disk_list = []
-
         if raid_type.upper() == "NORAID":
             raid_type = "no-raid"
 
-        assert (
-            pos.cli.array_create(
-                write_buffer="uram0",
-                data=data_disk_list,
-                spare=spare_disk_list,
-                raid_type=raid_type,
-                array_name=array_name,
-            )[0]
-            == True
-        )
+        assert pos.cli.array_create(array_name=array_name,
+                        write_buffer="uram0", data=data_disk_list,
+                        spare=[], raid_type=raid_type)[0] == True
 
         for i in range(5):
-            assert (
-                pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
-            )
+            assert pos.cli.array_mount(array_name=array_name,
+                                       write_back=False)[0] == True
+
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
-            assert (
-                pos.cli.array_mount(array_name=array_name, write_back=True)[0] == True
-            )
+            assert pos.cli.array_mount(array_name=array_name,
+                                       write_back=True)[0] == True
+
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         logger.info(
@@ -75,18 +66,12 @@ def test_array_cli_wt(array_fixture, raid_type, nr_data_drives):
             )
 
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-        spare_disk_list = []
-        assert (
-            pos.cli.array_create(
-                write_buffer="uram0",
-                data=data_disk_list,
-                spare=spare_disk_list,
-                raid_type=raid_type,
-                array_name=array_name,
-            )[0]
-            == True
-        )
-        assert pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
+        assert pos.cli.array_create(array_name=array_name,
+                        write_buffer="uram0", data=data_disk_list,
+                        spare=[], raid_type=raid_type)[0] == True
+
+        assert pos.cli.array_mount(array_name=array_name,
+                                   write_back=False)[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -112,18 +97,11 @@ def test_array_nouram(array_fixture, raid_type, nr_data_drives):
             )
 
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-        spare_disk_list = []
+
         # creating array without Uram
-        assert (
-            pos.cli.array_create(
-                write_buffer=None,
-                data=data_disk_list,
-                spare=spare_disk_list,
-                raid_type=raid_type,
-                array_name=array_name,
-            )[0]
-            == False
-        )
+        assert pos.cli.array_create(array_name=array_name,
+                        write_buffer=None, data=data_disk_list,
+                        spare=[], raid_type=raid_type)[0] == False
         logger.info(
             " ============================= Test ENDs ======================================"
         )

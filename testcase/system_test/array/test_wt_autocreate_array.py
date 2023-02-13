@@ -22,15 +22,11 @@ def test_wt_autocreate_array(array_fixture, raid_type, nr_data_drives):
             pytest.skip(
                 f"Insufficient disk count {system_disks}. Required minimum {nr_data_drives + 1}"
             )
-        assert (
-            pos.cli.array_autocreate(
-                buffer_name="uram0",
-                num_data=nr_data_drives,
-                raid=raid_type,
-                array_name=array_name,
-            )[0]
-            == True
-        )
+        assert pos.cli.array_autocreate(array_name,
+                        buffer_name="uram0", 
+                        num_data=nr_data_drives,
+                        raid=raid_type)[0] == True
+        
         assert pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"

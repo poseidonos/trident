@@ -93,7 +93,8 @@ def test_spor_wt_wb(array_fixture):
     try:
         pos = array_fixture
         pos.data_dict["volume"]["phase"] = "true"
-        assert pos.target_utils.pos_bring_up() == True
+        assert pos.target_utils.bringup_array(pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(pos.data_dict) == True
         for ss in pos.target_utils.ss_temp_list:
             assert (
                 pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")

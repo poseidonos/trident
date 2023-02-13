@@ -1,7 +1,8 @@
 import pytest
 
-import logger
+from array_test_common import *
 
+import logger
 logger = logger.get_logger(__name__)
 array = [("NORAID", 1), ("RAID0", 2)]
 

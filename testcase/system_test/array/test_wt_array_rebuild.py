@@ -2,6 +2,7 @@ from array import array
 import pytest
 import random
 from common_libs import *
+from array_test_common import *
 import time
 
 import logger

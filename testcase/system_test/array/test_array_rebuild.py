@@ -12,6 +12,7 @@ def rebuild_array_state(pos):
     try:
         global array_name
         pos.data_dict["array"]["num_array"] = 1
+        pos.data_dict["array"]["pos_array"][0]["spare_device"] = 1
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         assert pos.cli.array_list()[0] == True

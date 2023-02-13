@@ -30,16 +30,10 @@ def test_auto_array_with_all_numa(array_fixture):
         for numa_id, num_dev in enumerate(numa_dev_list):
             array_name = f"array{numa_id}"
             if num_dev["ssd"] and num_dev["nvram"]:
-                assert (
-                    pos.cli.array_autocreate(
-                        num_dev["nvram"][0],
-                        1,
-                        "no-raid",
-                        array_name=array_name,
-                        num_spare=0,
-                    )[0]
-                    == True
-                )
+                assert pos.cli.array_autocreate(array_name,
+                            num_dev["nvram"][0], 1,
+                            raid_type="no-raid",
+                            num_spare=0)[0] == True
 
                 assert pos.cli.array_info(array_name=array_name)[0] == True
                 assert pos.cli.array_data[array_name]["state"] == "OFFLINE"
@@ -75,16 +69,9 @@ def test_auto_array_with_insufficient_numa_dev(array_fixture):
         for numa_id, num_dev in enumerate(numa_dev_list):
             array_name = f"array{numa_id}"
             if len(num_dev["ssd"]) >= 3 and num_dev["nvram"]:
-                assert (
-                    pos.cli.array_autocreate(
-                        num_dev["nvram"][0],
-                        len(num_dev["ssd"]) + 1,
-                        "RAID5",
-                        array_name=array_name,
-                        num_spare=0,
-                    )[0]
-                    == False
-                )
+                assert pos.cli.array_autocreate(array_name, 
+                            num_dev["nvram"][0], len(num_dev["ssd"]) + 1,
+                            raid = "RAID5", num_spare=0)[0] == False
             else:
                 logger.info(f"Insufficient device {num_dev} to numa {numa_id}")
 

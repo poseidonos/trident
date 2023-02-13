@@ -28,34 +28,26 @@ def test_wt_multi_array_256vols(
         array_list = ["posarray1", "posarray2"]
         for index, array in enumerate(array_list):
             data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-            res = pos.cli.array_create(
-                write_buffer=f"uram{str(index)}",
-                array_name=array,
-                data=data_disk_list,
-                spare=None,
-                raid_type=raid_type,
-            )
+            res = pos.cli.array_create(array_name=array,
+                                       write_buffer=f"uram{index}", 
+                                       data=data_disk_list,
+                                       spare=[], raid_type=raid_type)
+            
             assert res[0] == True
-            assert pos.cli.array_mount(array_name=array, write_back=False)[0] == True
-            assert (
-                pos.target_utils.create_volume_multiple(
-                    array_name=array, num_vol=256, size="10gb", vol_name="vol"
-                )
-                == True
-            )
+            assert pos.cli.array_mount(array_name=array,
+                                       write_back=False)[0] == True
+            assert pos.target_utils.create_volume_multiple(array_name=array,
+                        num_vol=256, size="10gb", vol_name="vol") == True
+
             assert pos.target_utils.get_subsystems_list() == True
             assert pos.cli.volume_list(array_name=array)[0] == True
-            ss_list = [ss for ss in pos.target_utils.ss_temp_list if "subsystem" in ss]
-            assert (
-                pos.target_utils.mount_volume_multiple(
-                    array_name=array, volume_list=pos.cli.vols, nqn_list=[ss_list[0]]
-                )
-                == True
-            )
+            nqn = pos.target_utils.ss_temp_list[index]
+            assert pos.target_utils.mount_volume_multiple(array_name=array,
+                             volume_list=pos.cli.vols, nqn=nqn) == True
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
-
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)

@@ -35,14 +35,13 @@ def wt_array_setup(
         pos_array["auto_create"] = auto_create
         pos_array["write_back"] = "false"
 
-        assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=data_dict) == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
     except Exception as e:
         logger.error(f"Failed to setup array due to {e}")
         traceback.print_exc()
         return False
     return True
-
 
 def wt_array_volume_setup(
     pos, raid_type: str, num_data_disk: int, num_spare_disk: int, array_index=0
@@ -103,26 +102,16 @@ def wt_test_multi_array_setup(pos, array_list: list):
                                 minimum {nr_data_drives}"
                 )
             data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-            spare_disk_list = []
 
             if raid_type.upper() == "NORAID":
                 raid_type = "no-raid"
 
-            assert (
-                pos.cli.array_create(
-                    write_buffer=buffer_dev,
-                    data=data_disk_list,
-                    spare=spare_disk_list,
-                    raid_type=raid_type,
-                    array_name=array_name,
-                )[0]
-                == True
-            )
-
-            assert (
-                pos.cli.array_mount(array_name=array_name, write_back=write_back)[0]
-                == True
-            )
+            assert pos.cli.array_create(array_name=array_name,
+                            write_buffer=buffer_dev, data=data_disk_list,
+                            spare=[], raid_type=raid_type)[0] == True
+            
+            assert pos.cli.array_mount(array_name=array_name, 
+                                       write_back=write_back)[0] == True
         return True
     except Exception as e:
         logger.error(f"Test setup failed due to {e}")

@@ -1,10 +1,4 @@
 import pytest
-import traceback
-
-from pos import POS
-import random
-import time
-import pprint
 
 from common_multiarray import *
 import logger
@@ -139,17 +133,11 @@ def test_multi_array_del_create_array(array_fixture):
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
-        spare_disk_list = []
-        assert (
-            pos.cli.array_create(
-                write_buffer="uram0",
-                data=data_disk_list,
-                spare=spare_disk_list,
-                raid_type="RAID5",
-                array_name="array3",
-            )[0]
-            == True
-        )
+
+        assert pos.cli.array_create(array_name="array3",
+                    write_buffer="uram0", data=data_disk_list,
+                    spare=[], raid_type="RAID5")[0] == True
+
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -174,17 +162,11 @@ def test_multi_array_create_third_array(array_fixture):
         )
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
-        spare_disk_list = []
-        assert (
-            pos.cli.array_create(
-                write_buffer="uram3",
-                data=data_disk_list,
-                spare=spare_disk_list,
-                raid_type="RAID5",
-                array_name="array3",
-            )[0]
-            == False
-        )
+
+        assert pos.cli.array_create(array_name="array3",
+                    write_buffer="uram3", data=data_disk_list,
+                    spare=[], raid_type="RAID5")[0] == False
+
         logger.info("As expected array creation exceeded the limit ")
         logger.info(
             " ============================= Test ENDs ======================================"
