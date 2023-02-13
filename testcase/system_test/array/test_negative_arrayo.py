@@ -143,7 +143,6 @@ def test_remove_spare_without_array_mount(
 
         assert pos.cli.array_rmspare(array_name=array_name,
                     device_name=spare_disk_list[0])[0] == False
-        )
         logger.info(
             " ============================= Test ENDs ======================================"
         )

@@ -29,6 +29,7 @@ def test_wt_array_rebuild_after_FIO(
     )
     try:
         pos = array_fixture
+        mount_point = None
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
         assert pos.client.nvme_list() == True
@@ -56,7 +57,7 @@ def test_wt_array_rebuild_after_FIO(
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
         assert pos.target_utils.array_rebuild_wait(array_name=array_name)
 
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.delete_FS(mount_point) == True
             assert pos.client.unmount_FS(mount_point) == True
 
@@ -65,7 +66,7 @@ def test_wt_array_rebuild_after_FIO(
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.delete_FS(mount_point) == True
             assert pos.client.unmount_FS(mount_point) == True
         pos.exit_handler(expected=False)
@@ -91,11 +92,12 @@ def test_wt_array_rebuild_during_FIO(
     )
     try:
         pos = array_fixture
+        mount_point = None
         assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.create_File_system(nvme_devs, fs_format="xfs")
             out, mount_point = pos.client.mount_FS(nvme_devs)
             assert out == True
@@ -123,7 +125,7 @@ def test_wt_array_rebuild_during_FIO(
             logger.info("FIO is still running. Wait 30 seconds...")
             time.sleep(30)
 
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.delete_FS(mount_point) == True
             assert pos.client.unmount_FS(mount_point) == True
 
@@ -132,7 +134,7 @@ def test_wt_array_rebuild_during_FIO(
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.delete_FS(mount_point) == True
             assert pos.client.unmount_FS(mount_point) == True
         pos.exit_handler(expected=False)
