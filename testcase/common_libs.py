@@ -520,7 +520,11 @@ def array_disk_remove_replace(pos, array_list, replace=False, verify_rebuild=Fal
 
         if verify_rebuild:
             for array in rebuild_array_list:
-                assert pos.target_utils.check_rebuild_status(array_name=array) == True
+                if pos.target_utils.check_rebuild_status(array_name=array) != True:
+                    logger.info("Rebuild would have completed already. Verify disk.")
+                    verify_disk = True
+                else:
+                    logger.info("Array rebuilding in progress...")
 
         if rebuild_wait:
             assert pos.target_utils.array_rebuild_wait_multiple(rebuild_array_list) == True
