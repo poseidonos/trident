@@ -54,7 +54,7 @@ def negative_tests(pos):
                     num_data=raid[array_raid]["data"],
                     num_spare=raid[array_raid]["spare"],
                     buffer_name=pos.cli.dev_type["NVRAM"][1],
-                    raid=random.choice(list(raid.keys())))[0] == False
+                    raid_type=random.choice(list(raid.keys())))[0] == False
 
     for array in ["array1", "array2"]:
         writechoice = random.choice([True, False])

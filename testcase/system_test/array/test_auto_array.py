@@ -71,7 +71,7 @@ def test_auto_array_with_insufficient_numa_dev(array_fixture):
             if len(num_dev["ssd"]) >= 3 and num_dev["nvram"]:
                 assert pos.cli.array_autocreate(array_name, 
                             num_dev["nvram"][0], len(num_dev["ssd"]) + 1,
-                            raid = "RAID5", num_spare=0)[0] == False
+                            raid_type = "RAID5", num_spare=0)[0] == False
             else:
                 logger.info(f"Insufficient device {num_dev} to numa {numa_id}")
 

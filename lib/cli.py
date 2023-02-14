@@ -537,7 +537,7 @@ class PosCLI:
             return False, jout
 
     def array_autocreate(self, array_name: str, buffer_name: str, 
-                         num_data: int, raid: str = None,
+                         num_data: int, raid_type: str = None,
                          num_spare: int = 0) -> (bool, dict()):
         """
         Method to ameutocreate array
@@ -557,10 +557,10 @@ class PosCLI:
             if num_spare > 0:
                 cmd = f"{cmd} -s {num_spare}"
 
-            if raid.lower() == "no-raid" or raid.lower() == "noraid":
+            if raid_type.lower() == "no-raid" or raid_type.lower() == "noraid":
                cmd = f"{cmd} --no-raid"
             else:
-                cmd = f"{cmd} --raid {raid}"
+                cmd = f"{cmd} --raid {raid_type}"
 
             cli_rsp, jout = self.run_cli_command(cmd, command_type="array")
             if cli_rsp == False:
@@ -1092,7 +1092,7 @@ class PosCLI:
             logger.error(f"Telemetry get-property command failed due to {e}")
             return False, jout
 
-    def telemetry_set_property(self, publication_list_path='/etc/pos/pos-prometheus.yml') -> (bool, dict()):
+    def telemetry_set_property(self, publication_list_path='/etc/pos/publication_list_default.yaml') -> (bool, dict()):
         """
         Method to set telemetry property
 

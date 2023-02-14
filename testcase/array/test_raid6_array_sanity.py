@@ -53,7 +53,7 @@ def test_auto_create_raid6_array(array_fixture, array_mount):
     Verification: POS CLI - Create Array Mount Array and List Array command.
     """
     logger.info(
-        f" ==================== Test : test_create_raid6_array[{array_mount}] ================== "
+        f" ==================== Test : test_auto_create_raid6_array[{array_mount}] ================== "
     )
     pos = array_fixture
     try:

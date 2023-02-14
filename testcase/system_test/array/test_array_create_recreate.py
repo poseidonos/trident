@@ -213,7 +213,7 @@ def test_remove_device_unmount_state(array_fixture):
         assert pos.target_utils.device_hot_remove(device_list=remove_drive) == True
 
         assert pos.cli.array_info(array_name=array_name)[0] == True
-        assert pos.cli.array_unmount(array_name=array_name)[0] == True
+        assert pos.cli.array_mount(array_name=array_name)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
         remove_drive = [random.choice(pos.cli.array_data[array_name]["data_list"])]
         assert pos.target_utils.device_hot_remove(device_list=remove_drive) == True

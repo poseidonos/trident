@@ -25,7 +25,7 @@ def test_wt_autocreate_array(array_fixture, raid_type, nr_data_drives):
         assert pos.cli.array_autocreate(array_name,
                         buffer_name="uram0", 
                         num_data=nr_data_drives,
-                        raid=raid_type)[0] == True
+                        raid_type=raid_type)[0] == True
         
         assert pos.cli.array_mount(array_name=array_name, write_back=False)[0] == True
         logger.info(

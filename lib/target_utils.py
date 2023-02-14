@@ -744,27 +744,16 @@ class TargetUtils:
                         spare_disk_list = [
                             system_disks.pop(0) for i in range(nr_spare_drives)
                         ]
-                        assert (
-                            self.cli.array_create(
-                                array_name,
-                                write_buffer=array["uram"],
-                                data=data_disk_list,
-                                spare=spare_disk_list,
-                                raid_type=array["raid_type"],
-                            )[0]
-                            == True
-                        )
+                        assert self.cli.array_create(array_name,
+                                        write_buffer=array["uram"],
+                                        data=data_disk_list,
+                                        spare=spare_disk_list,
+                                        raid_type=array["raid_type"])[0] == True
                     else:
-                        assert (
-                            self.cli.array_autocreate(
-                                array_name,
-                                array["uram"],
-                                nr_data_drives,
-                                array["raid_type"],
-                                num_spare=nr_spare_drives,
-                            )[0]
-                            == True
-                        )
+                        assert self.cli.array_autocreate(array_name,
+                                        array["uram"], nr_data_drives,
+                                        raid_type=array["raid_type"],
+                                        num_spare=nr_spare_drives)[0] == True
 
                         assert self.cli.array_info(array_name=array_name)[0] == True
                         d_dev = set(self.cli.array_data[array_name]["data_list"])
