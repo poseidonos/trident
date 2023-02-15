@@ -154,3 +154,38 @@ def test_nft_quick_rebuild_with_por(array_fixture,testcase):
         pos.exit_handler(expected=False)
 
 
+@pytest.mark.parametrize("io_type",["block","file"])
+def test_array_disk_removal_with_npor(array_fixture,io_type):
+    pos = array_fixture
+    try:
+        assert create_array_and_volumes(pos=pos, data_disks=(4,4),raid_types=("RAID5","RAID5"),
+                                        spare_disks=(0,0),
+                                        num_array=2) == True
+        arrays = list(pos.cli.array_dict.keys())
+        out, nvme_devs = nvme_connect(pos)
+        assert run_fio_all_volumes(pos=pos,fio_type=io_type,nvme_devs=nvme_devs) == True
+        for iter in range(1):
+            for array in list(arrays):
+                assert array_disks_hot_remove(pos=pos, array_name=array, disk_remove_interval_list=[(0,)]) == True
+        assert pos.target_utils.npor(mount_post_npor=False) == True
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+def test_replace_spare_with_new_disk(array_fixture):
+    pos = array_fixture
+    try:
+        assert create_array_and_volumes(pos=pos, data_disks=(4,),raid_types=("RAID5",),
+                                        spare_disks=(1,),
+                                        num_array=1) == True
+        array = list(pos.cli.array_dict.keys())[0]
+        out, nvme_devs = nvme_connect(pos)
+        assert run_fio_all_volumes(pos=pos,nvme_devs=nvme_devs) == True
+        assert pos.cli.array_info(array_name=array)[0] == True
+        spare_disk_list = pos.cli.array_data[array]["spare_list"]
+        assert pos.target_utils.device_hot_remove(device_list=spare_disk_list) == True
+        assert array_add_spare_disk(pos=pos,array_list=[array]) == True
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
+
