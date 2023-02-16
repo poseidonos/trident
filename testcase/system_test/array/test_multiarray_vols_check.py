@@ -1,10 +1,4 @@
 import pytest
-import traceback
-
-from pos import POS
-import random
-import time
-import pprint
 
 from common_multiarray import *
 import logger
@@ -13,20 +7,20 @@ logger = logger.get_logger(__name__)
 
 
 @pytest.mark.regression
-def test_multi_array_create_vols(setup_cleanup_array_function):
+def test_multi_array_create_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_array_create_vols ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            array_cap_before = pos.cli.array_info[array_name]["size"]
+            assert pos.cli.array_info(array_name=array_name)[0] == True
+            array_cap_before = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_before))
 
         assert (
@@ -37,8 +31,8 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
         )
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            array_cap_after = pos.cli.array_info[array_name]["size"]
+            assert pos.cli.array_info(array_name=array_name)[0] == True
+            array_cap_after = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_after))
 
         logger.info("As expected array size vary before and after volume creation ")
@@ -52,15 +46,15 @@ def test_multi_array_create_vols(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_delete_vols(setup_cleanup_array_function):
+def test_multi_array_delete_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_array_del_vols ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:
@@ -70,11 +64,11 @@ def test_multi_array_delete_vols(setup_cleanup_array_function):
                 )
                 == True
             )
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            array_cap_creation = pos.cli.array_info[array_name]["size"]
+            assert pos.cli.array_info(array_name=array_name)[0] == True
+            array_cap_creation = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_creation))
-            assert pos.target_utils.deleteAllVolumes(arrayname=array_name) == True
-            array_cap_creation = pos.cli.array_info[array_name]["size"]
+            assert pos.target_utils.delete_all_volumes(arrayname=array_name) == True
+            array_cap_creation = pos.cli.array_data[array_name]["size"]
             logger.info("Array capcatity after {}".format(array_cap_creation))
             logger.info(
                 " ============================= Test ENDs ======================================"
@@ -86,26 +80,26 @@ def test_multi_array_delete_vols(setup_cleanup_array_function):
 
 
 @pytest.mark.regression
-def test_multi_array_invalid_vols(setup_cleanup_array_function):
+def test_multi_array_invalid_vols(array_fixture):
     logger.info(
         " ==================== Test : test_multi_array_invalid_vols ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array_name in array_list:
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             assert (
-                pos.cli.create_volume(
+                pos.cli.volume_create(
                     array_name=array_name, volumename="###", size="100gb"
                 )[0]
                 == False
             )
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         logger.info("As expected array size vary before and after volume creation ")
         logger.info(
             " ============================= Test ENDs ======================================"

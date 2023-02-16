@@ -1,10 +1,8 @@
 from array import array
 import pytest
 import random
-from pos import POS
 from common_libs import *
-import json
-import os
+from array_test_common import *
 import time
 
 import logger
@@ -24,13 +22,14 @@ logger = logger.get_logger(__name__)
     ],
 )
 def test_wt_array_rebuild_after_FIO(
-    setup_cleanup_array_function, raid_type, nr_data_drives, file_io
+    array_fixture, raid_type, nr_data_drives, file_io
 ):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
+        mount_point = None
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
         assert pos.client.nvme_list() == True
@@ -53,12 +52,12 @@ def test_wt_array_rebuild_after_FIO(
             == True
         )
 
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
+        assert pos.cli.array_info(array_name=array_name)[0] == True
+        remove_drives = [random.choice(pos.cli.array_data[array_name]["data_list"])]
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
         assert pos.target_utils.array_rebuild_wait(array_name=array_name)
 
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.delete_FS(mount_point) == True
             assert pos.client.unmount_FS(mount_point) == True
 
@@ -67,7 +66,7 @@ def test_wt_array_rebuild_after_FIO(
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.delete_FS(mount_point) == True
             assert pos.client.unmount_FS(mount_point) == True
         pos.exit_handler(expected=False)
@@ -86,18 +85,19 @@ def test_wt_array_rebuild_after_FIO(
     ],
 )
 def test_wt_array_rebuild_during_FIO(
-    setup_cleanup_array_function, raid_type, nr_data_drives, file_io
+    array_fixture, raid_type, nr_data_drives, file_io
 ):
     logger.info(
         " ==================== Test : test_wt_array_rebuild_after_BlockIO ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
+        mount_point = None
         assert wt_array_volume_setup(pos, raid_type, nr_data_drives, 1) == True
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.create_File_system(nvme_devs, fs_format="xfs")
             out, mount_point = pos.client.mount_FS(nvme_devs)
             assert out == True
@@ -115,8 +115,8 @@ def test_wt_array_rebuild_during_FIO(
 
         time.sleep(180)  # Run IO for 3 minutes before Hot Remove
 
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        remove_drives = [random.choice(pos.cli.array_info[array_name]["data_list"])]
+        assert pos.cli.array_info(array_name=array_name)[0] == True
+        remove_drives = [random.choice(pos.cli.array_data[array_name]["data_list"])]
         assert pos.target_utils.device_hot_remove(device_list=remove_drives)
         assert pos.target_utils.array_rebuild_wait(array_name=array_name)
 
@@ -125,7 +125,7 @@ def test_wt_array_rebuild_during_FIO(
             logger.info("FIO is still running. Wait 30 seconds...")
             time.sleep(30)
 
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.delete_FS(mount_point) == True
             assert pos.client.unmount_FS(mount_point) == True
 
@@ -134,7 +134,7 @@ def test_wt_array_rebuild_during_FIO(
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        if file_io:
+        if file_io and mount_point:
             assert pos.client.delete_FS(mount_point) == True
             assert pos.client.unmount_FS(mount_point) == True
         pos.exit_handler(expected=False)

@@ -50,12 +50,12 @@ def test_set_rebuild_perf(array_fixture, test_param):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 2, mount_type, auto_create) == True
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols,  
@@ -81,7 +81,7 @@ def test_set_rebuild_perf(array_fixture, test_param):
         # Array disk hot remove
         assert array_disk_remove_replace(pos, array_list, verify_rebuild=True, rebuild_wait=False) == True
 
-        assert pos.cli.setposproperty_system(rpi_dict["impact"])[0] == True
+        assert pos.cli.system_setproperty(rpi_dict["impact"])[0] == True
 
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
 
@@ -136,12 +136,12 @@ def test_rebuild_perf_impact(array_fixture, test_param):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 2, mount_type, auto_create) == True
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols,  
@@ -182,7 +182,7 @@ def test_rebuild_perf_impact(array_fixture, test_param):
         # Array disk hot remove
         assert array_disk_remove_replace(pos, array_list, verify_rebuild=True, rebuild_wait=False) == True
 
-        assert pos.cli.setposproperty_system(rpi_dict["impact"])[0] == rpi_dict["result"]
+        assert pos.cli.system_setproperty(rpi_dict["impact"])[0] == rpi_dict["result"]
 
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
 

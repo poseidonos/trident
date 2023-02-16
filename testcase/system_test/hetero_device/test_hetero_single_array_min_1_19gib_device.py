@@ -1,16 +1,14 @@
 import pytest
 import traceback
-
-from pos import POS
+from common_libs import *
 import logger
-
 logger = logger.get_logger(__name__)
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
+@pytest.fixture(scope="function")
+def hetero_setup(system_fixture):
 
-    global pos, data_dict, min_hetero_dev
-    pos = POS("pos_config.json")
+    global min_hetero_dev
+    pos = system_fixture
 
     tgt_setup_file = "hetero_setup.json"
     conf_dir = "../../config_files/"
@@ -34,11 +32,11 @@ def setup_module():
     min_19gib_dev = 1
     for index in range(tgt_conf_data["num_test_device"]):
         dev = tgt_conf_data["test_devices"][index]
-        if dev["ns_config"][0]["ns_size"] == "20GiB":
+        if dev["ns_config"][0]["ns_size"] == "19GiB":
             matched += 1
 
     if matched < min_19gib_dev:
-        logger.warning("The setup required atleast {} 20 GiB devices. "
+        logger.warning("The setup required atleast {} 19 GiB devices. "
                     "{} device(s) is/are added in config file".format(
                         min_19gib_dev, matched))
         pytest.skip("Required condition not met. Refer to logs for more details")
@@ -52,34 +50,16 @@ def setup_module():
 
     yield pos
 
-
-def teardown_function():
     logger.info("========== TEAR DOWN AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
-    array_list = list(pos.cli.array_dict.keys())
-    if len(array_list) == 0:
-        logger.info("No array found in the config")
-    else:
-        for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            if pos.cli.array_dict[array].lower() == "mounted":
-                assert pos.cli.unmount_array(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
+    assert pos.cli.pos_stop()[0] == True
+    assert pos.target_utils.hetero_setup.reset() == True
 
 @pytest.mark.hetero_setup
 @pytest.mark.regression
-def test_hetero_array_all_raid_using_19gib_data_disk():
+def test_hetero_array_all_raid_using_19gib_data_disk(hetero_setup):
     """
     Test to create one array of all RAID type using minimum required devices of 
     different size. Atleast one device of size 19 GiB.
@@ -88,12 +68,13 @@ def test_hetero_array_all_raid_using_19gib_data_disk():
         " ==================== Test : test_hetero_array_all_raid_using_19gib_data_disk ================== "
     )
     try:
-        array_name = "array1"
-        uram_name = data_dict["device"]["uram"][0]["uram_name"]
+        pos =  hetero_setup
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        uram_name = pos.data_dict["device"]["uram"][0]["uram_name"]
 
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         raid_list = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
         for raid_type, num_disk in raid_list:
@@ -109,9 +90,9 @@ def test_hetero_array_all_raid_using_19gib_data_disk():
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == False
+            assert pos.cli.array_create(array_name=array_name,
+                        write_buffer=uram_name, data=data_drives, 
+                        spare=spare_drives, raid_type=raid_type)[0] == False
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -124,7 +105,7 @@ def test_hetero_array_all_raid_using_19gib_data_disk():
 
 @pytest.mark.hetero_setup
 @pytest.mark.regression
-def test_hetero_array_all_raid_using_19gib_spare_disk():
+def test_hetero_array_all_raid_using_19gib_spare_disk(hetero_setup):
     """
     Test to create one array of all RAID type using minimum required devices of 
     different size. Atleast one spare device of size 19 GiB.
@@ -133,12 +114,13 @@ def test_hetero_array_all_raid_using_19gib_spare_disk():
         " ==================== Test : test_hetero_array_all_raid_using_19gib_spare_disk ================== "
     )
     try:
-        array_name = "array1"
-        uram_name = data_dict["device"]["uram"][0]["uram_name"]
+        pos = hetero_setup
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        uram_name = pos.data_dict["device"]["uram"][0]["uram_name"]
 
-        assert pos.cli.reset_devel()[0] == True
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         raid_list = [("RAID5", 3), ("RAID10", 4)]
         for raid_type, num_disk in raid_list:
@@ -157,9 +139,9 @@ def test_hetero_array_all_raid_using_19gib_spare_disk():
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == False
+            assert pos.cli.array_create(array_name=array_name,
+                        write_buffer=uram_name, data=data_drives, 
+                        spare=spare_drives, raid_type=raid_type)[0] == False
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

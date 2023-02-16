@@ -4,7 +4,7 @@ import common_libs as setup
 logger = logger.get_logger(__name__)
 
 @pytest.mark.parametrize("io_type",["write","read","randwrite","randread"])
-def test_verify_data_corruption_seq_write(array_fixture,io_type):
+def test_verify_data_corruption_seq_write(array_fixture, io_type):
 
     pos = array_fixture
 
@@ -14,8 +14,8 @@ def test_verify_data_corruption_seq_write(array_fixture,io_type):
                                         num_spare_disk=(0,0),
                                         auto_create=(False,False),
                                         array_mount=("WT","WT")) == True
-    assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-    assert pos.cli.list_array()[0] == True
+    assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+    assert pos.cli.array_list()[0] == True
     assert pos.target_utils.get_subsystems_list() == True
     assert setup.volume_create_and_mount_multiple(pos=pos,
                                                   num_volumes=1,

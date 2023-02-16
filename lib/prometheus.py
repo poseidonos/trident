@@ -69,7 +69,7 @@ class Prometheus(Cli):
     def __init__(self, con, data_dict: dict, array_name: str = "array1"):
         """con : ssh obj of the target"""
         super().__init__(con, data_dict, array_name)
-        assert self.pos_exporter(operation="start")[0] == True
+        assert self.pos_xpo_service_start()[0] == True
         self.prometheus_path = paths.pos_prometheus
         self.ssh_obj = con
         if self.check_pos_exporter() == False:
@@ -134,9 +134,9 @@ class Prometheus(Cli):
 
     def set_telemetry_configs(self) -> bool:
         """method to start and do set-property in telemetry"""
-        assert self.start_telemetry()[0] == True
-        assert self.set_property()[0] == True
-        assert self.get_property()[0] == True
+        assert self.telemetry_start()[0] == True
+        assert self.telemetry_set_property()[0] == True
+        assert self.telemetry_get_property()[0] == True
         return True
 
     def docker_restart(self):

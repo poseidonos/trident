@@ -262,6 +262,7 @@ class SSHclient(object):
         )
         if exit_code != expected_exit_code:
             error = stderr.readlines(), "exit code: {}".format(exit_code)
+            logger.error(f"Stderr : {error} Stdout : {stdoutlines}")
             return error
 
         return stdoutlines

@@ -1,8 +1,7 @@
 from time import sleep
 import pytest
 
-from pos import POS
-from common_test_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
@@ -29,7 +28,7 @@ test_por_operations = {
     }
 
 @pytest.mark.parametrize("por_operation", test_por_operations)
-def test_arrays_disk_replace_por(setup_cleanup_array_function, por_operation):
+def test_arrays_disk_replace_por(array_fixture, por_operation):
     """
     The purpose of this test is to create a NO-RAID array with 1 data drive.   
     Verification: POS CLI
@@ -37,7 +36,7 @@ def test_arrays_disk_replace_por(setup_cleanup_array_function, por_operation):
     logger.info(
         f" ==================== Test : test_arrays_disk_replace_por[{por_operation}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         arrays_raid = test_por_operations[por_operation][0]
         por_list = test_por_operations[por_operation][1]
@@ -50,10 +49,10 @@ def test_arrays_disk_replace_por(setup_cleanup_array_function, por_operation):
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -93,9 +92,9 @@ def test_arrays_disk_replace_por(setup_cleanup_array_function, por_operation):
 def do_por(pos, por):
     try:
         if (por.lower() == "spor"):
-            assert pos.target_utils.Spor() == True
+            assert pos.target_utils.spor() == True
         elif (por.lower() == "npor"):
-            assert pos.target_utils.Npor() == True
+            assert pos.target_utils.npor() == True
         return True
     except Exception as e:
         logger.error(f"Failed to {por} due to {e}")

@@ -53,7 +53,7 @@ def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
         data_dict["volume"]["phase"] = "false"
 
         assert pos.target_utils.pos_bring_up(data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         pos.cli.array_name = array_list[0]
 
@@ -147,15 +147,15 @@ def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
                     == True
                 )
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         if len(array_list) == 0:
             logger.info("No array found in the config")
         else:
             for array in array_list:
-                assert pos.cli.info_array(array_name=array)[0] == True
+                assert pos.cli.array_info(array_name=array)[0] == True
                 if pos.cli.array_dict[array].lower() == "mounted":
-                    assert pos.cli.unmount_array(array_name=array)[0] == True
+                    assert pos.cli.array_unmount(array_name=array)[0] == True
 
     except Exception as e:
         pos.exit_handler(expected=False)

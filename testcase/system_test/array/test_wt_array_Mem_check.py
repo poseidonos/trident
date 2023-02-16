@@ -33,8 +33,8 @@ def test_wt_array_Mem_check(
         pos.data_dict["array"]["pos_array"][0]["data_device"] = nr_data_drives
         pos.data_dict["array"]["pos_array"][1]["data_device"] = nr_data_drives
        
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
         
         if IO == "File":

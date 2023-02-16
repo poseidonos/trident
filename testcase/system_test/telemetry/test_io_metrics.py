@@ -8,8 +8,8 @@ logger = logger.get_logger(__name__)
 def array_and_volume_creation(pos,num_array=1,num_vol=1,run_io=True):
     # Bring up arrays and volumes and run io
     pos.data_dict["array"]["num_array"] = num_array
-    assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-    assert pos.cli.list_array()[0] == True
+    assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+    assert pos.cli.array_list()[0] == True
     arrays = list(pos.cli.array_dict.keys())
     assert pos.target_utils.get_subsystems_list() == True
     assert volume_create_and_mount_multiple(pos=pos, num_volumes=num_vol, array_list=[arrays[0]],
@@ -79,7 +79,7 @@ def test_volume_io_metrics(array_fixture,testcase):
     assert pos.prometheus.publish_io_metrics() == True
     assert wait_sync_fio([], nvme_devs, None, async_io, sleep_time=10) == True
     if "unmount" in testcase.keys():
-        assert pos.cli.unmount_array(array_name=arrays[0])[0] == True
+        assert pos.cli.array_unmount(array_name=arrays[0])[0] == True
     out, async_io = pos.client.fio_generic_runner(nvme_devs,
                                                   fio_user_data=fio_cmd.format(testcase["io"][1],testcase["runtime"]), run_async=True)
     assert pos.prometheus.publish_io_metrics() == True

@@ -34,14 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import time
 import random
 import logger
-from pos import POS
 
 logger = logger.get_logger(__name__)
 
-
-class _Array(POS):
+class _Array():
     def __init__(
-        self,pos, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
+        self, pos, array_name="POSARRAY1", data_dict: dict = None, cli_history: list = []
     ):
         #super().__init__()
         self.cli = pos.cli
@@ -76,7 +74,7 @@ class _Array(POS):
         ]
 
     def current_system_state(self):
-        assert self.cli.list_array()[0] == True
+        assert self.cli.array_list()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
             logger.info(
@@ -89,14 +87,14 @@ class _Array(POS):
             array_dict = {}
             for array in array_list:
                 if self.name == array:
-                    assert self.cli.info_array(array_name=self.name)[0] == True
-                    state = self.cli.array_info[self.name]["state"].lower()
-                    situation = self.cli.array_info[self.name]["situation"].lower()
+                    assert self.cli.array_info(array_name=self.name)[0] == True
+                    state = self.cli.array_data[self.name]["state"].lower()
+                    situation = self.cli.array_data[self.name]["situation"].lower()
                     array_dict[self.name] = {
                         "state": state,
                         "situatation": situation,
-                        "data": self.cli.array_info[self.name]["data_list"],
-                        "spare": self.cli.array_info[self.name]["spare_list"],
+                        "data": self.cli.array_data[self.name]["data_list"],
+                        "spare": self.cli.array_data[self.name]["spare_list"],
                     }
                     logger.info(
                         f"--------- CURRENT ARRAY STATE : {array_dict} -------------------"
@@ -110,31 +108,31 @@ class _Array(POS):
         list_func = [
             "mount_system",
             "unmount_array",
-            "delete_array",
-            "create_array",
+            "array_delete",
+            "array_create",
             "wait_for_rebuild",
             "add_spare",
             "hot_swap",
         ]
 
         def init_obj():
-            assert self.cli.list_device()[0] == True
+            assert self.cli.device_list()[0] == True
             out = check_array_in_list(array=self.name)
             if out is True:
-                assert self.cli.info_array(array_name=self.name)[0] == True
-                self.state["current"] = self.cli.array_info[self.name]["state"].lower()
-                self.situation["current"] = self.cli.array_info[self.name][
+                assert self.cli.array_info(array_name=self.name)[0] == True
+                self.state["current"] = self.cli.array_data[self.name]["state"].lower()
+                self.situation["current"] = self.cli.array_data[self.name][
                     "situation"
                 ].lower()
 
                 self.device["data"] = [
                     dev
-                    for dev in self.cli.array_info[self.name]["data_list"]
+                    for dev in self.cli.array_data[self.name]["data_list"]
                     if "[REMOVED]" not in dev
                 ]
                 self.device["spare"] = [
                     dev
-                    for dev in self.cli.array_info[self.name]["spare_list"]
+                    for dev in self.cli.array_data[self.name]["spare_list"]
                     if "[REMOVED]" not in dev
                 ]
 
@@ -156,7 +154,7 @@ class _Array(POS):
             return True
 
         def check_array_in_list(array):
-            assert self.cli.list_array()[0] == True
+            assert self.cli.array_list()[0] == True
 
             array_list = list(self.cli.array_dict.keys())
 
@@ -172,8 +170,8 @@ class _Array(POS):
                 return False
 
         assert init_obj() == True
-        assert self.cli.list_device()[0] == True
-        self.total_data_array = len(self.cli.array_info[self.name]["data_list"])
+        assert self.cli.device_list()[0] == True
+        self.total_data_array = len(self.cli.array_data[self.name]["data_list"])
         array_dict = self.data_dict["array"]["pos_array"]
         for array in array_dict:
             if self.name == array["array_name"]:
@@ -378,7 +376,7 @@ class _Array(POS):
                         == True
                     )
 
-        elif "create_array" == self.func["name"]:
+        elif "array_create" == self.func["name"]:
             if None == self.situation["current"]:
                 if len(self.cli.system_disks) < self.total_data_array:
                     assert (
@@ -406,7 +404,7 @@ class _Array(POS):
                     == True
                 )
 
-        elif "delete_array" == self.func["name"]:
+        elif "array_delete" == self.func["name"]:
             if "default" == self.situation["current"]:
                 self.func["param"]["pre_write"] = False
                 assert (
@@ -505,9 +503,9 @@ class _Array(POS):
         """
 
         self.current_system_state()
-        assert self.cli.list_array()[0] == True
+        assert self.cli.array_list()[0] == True
         array_list = list(self.cli.array_dict.keys())
-        if self.func["name"] == "delete_array" and self.func["expected"] == True:
+        if self.func["name"] == "array_delete" and self.func["expected"] == True:
             if len(array_list) == 0:
                 logger.info(
                     "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : PASS (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
@@ -523,9 +521,9 @@ class _Array(POS):
             else:
                 for array in array_list:
                     if self.name == array:
-                        assert self.cli.info_array(array_name=self.name)[0] == True
-                        state = self.cli.array_info[self.name]["state"].lower()
-                        situation = self.cli.array_info[self.name]["situation"].lower()
+                        assert self.cli.array_info(array_name=self.name)[0] == True
+                        state = self.cli.array_data[self.name]["state"].lower()
+                        situation = self.cli.array_data[self.name]["situation"].lower()
                         logger.info(
                             "--- ARRAY NAME : {}--- OPERATION : {} ---- CHECK ARRAY STATE : FAIL (EXPECTED : {}/{}, ACTUAL : {}/{}) -------".format(
                                 self.name,
@@ -555,9 +553,9 @@ class _Array(POS):
             else:
                 for array in array_list:
                     if self.name == array:
-                        assert self.cli.info_array(array_name=self.name)[0] == True
-                        state = self.cli.array_info[self.name]["state"].lower()
-                        situation = self.cli.array_info[self.name]["situation"].lower()
+                        assert self.cli.array_info(array_name=self.name)[0] == True
+                        state = self.cli.array_data[self.name]["state"].lower()
+                        situation = self.cli.array_data[self.name]["situation"].lower()
                         break
                     else:
                         state = None
@@ -678,8 +676,8 @@ class _Array(POS):
                 return False
 
     def get_buffer_data(self):
-        assert self.cli.list_device()[0] == True
-        assert self.cli.list_array()[0] == True
+        assert self.cli.device_list()[0] == True
+        assert self.cli.array_list()[0] == True
         array_list = list(self.cli.array_dict.keys())
         if len(array_list) == 0:
             logger.info("No array Exist all buffer can be overridden")
@@ -690,8 +688,8 @@ class _Array(POS):
         else:
             used_bufer = []
             for array in array_list:
-                assert self.cli.info_array(array_name=array)[0] == True
-                used_bufer.append(self.cli.array_info[array]["buffer_list"][0])
+                assert self.cli.array_info(array_name=array)[0] == True
+                used_bufer.append(self.cli.array_data[array]["buffer_list"][0])
 
             free_buf = [
                 buf for buf in self.cli.dev_type["NVRAM"] if buf not in used_bufer
@@ -705,7 +703,7 @@ class _Array(POS):
         Method to check if device can be included in this array
         device: str (ex. unvme-ns-0)
         """
-        assert self.cli.list_device()[0] == True
+        assert self.cli.device_list()[0] == True
         target_bdf = self.cli.NVMe_BDF[device]["addr"]
         logger.info("check mbr device: {}({})".format(device, target_bdf))
         for array_obj in self.list_array_obj:
@@ -722,13 +720,13 @@ class _Array(POS):
 
     def select_system_device(self, dev_num=None):
         device_list = list()
-        assert self.cli.list_device()[0] == True
+        assert self.cli.device_list()[0] == True
         sys_devices = self.cli.system_disks
         for num in range(dev_num):
             device = random.choice(sys_devices)
             device_list.append(device)
             sys_devices.remove(device)
-        assert self.cli.list_device()[0] == True
+        assert self.cli.device_list()[0] == True
         return device_list
 
     def func0_wait_for_rebuild(self):
@@ -744,10 +742,10 @@ class _Array(POS):
             count = 0
             while True:
                 time.sleep(2)
-                out = self.cli.info_array(array_name=self.name)[0]
+                out = self.cli.array_info(array_name=self.name)[0]
                 if out is False:
                     return False
-                if self.cli.array_info[self.name]["situation"].lower() == array_status:
+                if self.cli.array_data[self.name]["situation"].lower() == array_status:
                     return True
                 count = count + 1
                 if count > 30 * 60 * 3:
@@ -762,12 +760,12 @@ class _Array(POS):
 
         dev_name = None
 
-        assert self.cli.list_device()[0] == True
-        assert self.cli.list_array()[0] == True
+        assert self.cli.device_list()[0] == True
+        assert self.cli.array_list()[0] == True
         array_list = list(self.cli.array_dict.keys())
 
         if len(array_list) == 0:
-            assert self.cli.list_device()[0] == True
+            assert self.cli.device_list()[0] == True
 
             bdf = self.cli.NVMe_BDF[random.choice(self.cli.system_disks)]["addr"]
             dev_name = "".join(
@@ -818,7 +816,7 @@ class _Array(POS):
                 self.func["expected"]
             )
         )
-        assert self.cli.list_device()[0] == True
+        assert self.cli.device_list()[0] == True
         if len(self.cli.system_disks) == 0:
             logger.info("There is no system device to add as spare device")
             return True
@@ -849,22 +847,22 @@ class _Array(POS):
                 self.situation["next"] = self.situation["current"]
                 self.func["expected"] = False
             logger.info(self.name)
-            status = self.cli.addspare_array(
+            status = self.cli.array_addspare(
                 device_name=target_dev, array_name=self.name
             )
             
             assert status[0] == self.func["expected"]
 
             if self.func["expected"] == True:
-                assert self.cli.info_array(array_name=self.name)[0] == True
-                if target_dev in self.cli.array_info[self.name]["spare_list"]:
+                assert self.cli.array_info(array_name=self.name)[0] == True
+                if target_dev in self.cli.array_data[self.name]["spare_list"]:
                     logger.info("Successfully check if device is added")
                     return True
                 else:
-                    if target_dev in self.cli.array_info[self.name]["data_list"]:
-                        assert self.cli.info_array(array_name=self.name)[0] == True
+                    if target_dev in self.cli.array_data[self.name]["data_list"]:
+                        assert self.cli.array_info(array_name=self.name)[0] == True
                         if (
-                            self.cli.array_info[self.name]["situation"].lower()
+                            self.cli.array_data[self.name]["situation"].lower()
                             == "rebuilding"
                         ):
                             logger.info("Successfully check if device is added")
@@ -879,7 +877,7 @@ class _Array(POS):
                 str(self.total_data_array), self.func["expected"]
             )
         )
-        assert self.cli.list_device()[0] == True
+        assert self.cli.device_list()[0] == True
 
         if len(self.cli.system_disks) < self.totalDrivesArray:
             buffer_dev = ["uram{}".format(self.name[-1:])][0]
@@ -887,11 +885,11 @@ class _Array(POS):
             spare_dev = []
 
             assert (
-                self.cli.create_array(
+                self.cli.array_create(
+                    array_name=self.name,
                     write_buffer=buffer_dev,
                     data=data_dev,
                     spare=spare_dev,
-                    array_name=self.name,
                     raid_type="RAID5",
                 )[0]
                 == self.func["expected"]
@@ -921,11 +919,11 @@ class _Array(POS):
                     self.func["expected"] = False
 
             assert (
-                self.cli.create_array(
+                self.cli.array_create(
+                array_name=self.name,
                     write_buffer=buffer_dev[0],
                     data=data_dev,
                     spare=spare_dev,
-                    array_name=self.name,
                     raid_type="RAID5",
                 )[0]
                 == self.func["expected"]
@@ -936,7 +934,7 @@ class _Array(POS):
         logger.info(
             "[Func4] delete array (Expected result : {})".format(self.func["expected"])
         )
-        assert self.cli.delete_array(array_name=self.name)[0] == self.func["expected"]
+        assert self.cli.array_delete(array_name=self.name)[0] == self.func["expected"]
         assert self.target_utils.get_subsystems_list() == True
         if self.func["expected"] == True:
             self.subsystem = self.target_utils.ss_temp_list
@@ -947,7 +945,7 @@ class _Array(POS):
                         if len(self.client.nvme_list_out) != 0:
                             self.client.nvme_disconnect(nqn=[subsystem])
                     assert (
-                        self.cli.delete_subsystem(nqn_name=subsystem)[0]
+                        self.cli.subsystem_delete(nqn_name=subsystem)[0]
                         == self.func["expected"]
                     )
             self.subsystem = list()
@@ -961,11 +959,11 @@ class _Array(POS):
                 self.func["expected"]
             )
         )
-        assert self.cli.mount_array(array_name=self.name)[0] == self.func["expected"]
+        assert self.cli.array_mount(array_name=self.name)[0] == self.func["expected"]
         self.target_utils.helper.get_mellanox_interface_ip()
         assert self.target_utils.get_subsystems_list() == True
         if self.func["expected"] == True:
-            assert self.cli.list_volume(array_name=self.name)[0] == True
+            assert self.cli.volume_list(array_name=self.name)[0] == True
             base_name = "nqn.2022-10." + self.name
 
             self.target_utils.create_subsystems_multiple(
@@ -977,7 +975,7 @@ class _Array(POS):
                 ss for ss in self.target_utils.ss_temp_list if self.name in ss
             ]
             for ss in self.subsystem:
-                self.cli.add_listner_subsystem(
+                self.cli.subsystem_add_listner(
                     ss, self.target_utils.helper.ip_addr[0], "1158"
                 )
             if len(self.cli.vols) != 0:
@@ -1008,7 +1006,7 @@ class _Array(POS):
                     )
                     == True
                 )
-                assert self.cli.list_volume(self.name)[0] == True
+                assert self.cli.volume_list(self.name)[0] == True
                 assert self.target_utils.mount_volume_multiple(
                     array_name=self.name,
                     volume_list=self.cli.vols,
@@ -1032,7 +1030,7 @@ class _Array(POS):
                 assert (
                     self.client.fio_generic_runner(
                         self.client.nvme_list_out,
-                        fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0",
+                        fio_user_data="fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=10% --name=pos0",
                     )[0]
                     == True
                 )
@@ -1045,12 +1043,12 @@ class _Array(POS):
         )
         if self.func["expected"] == True:
             self.client.nvme_disconnect(self.subsystem) == True
-        out = self.cli.unmount_array(array_name=self.name)[0]
+        out = self.cli.array_unmount(array_name=self.name)[0]
         if out != self.func["expected"]:
             if self.situation["current"] == "rebuilding":
-                assert self.cli.info_array(array_name=self.name)[0] == True
-                cur_state = self.cli.array_info[self.name]["state"].lower()
-                cur_situation = self.cli.array_info[self.name]["situation"].lower()
+                assert self.cli.array_info(array_name=self.name)[0] == True
+                cur_state = self.cli.array_data[self.name]["state"].lower()
+                cur_situation = self.cli.array_data[self.name]["situation"].lower()
                 if cur_situation == "default":
                     self.func["expected"] = True
                     self.state["next"] = cur_state
@@ -1070,8 +1068,8 @@ class _Array(POS):
             "wait_for_rebuild": self.func0_wait_for_rebuild,
             "hot_swap": self.func1_hot_swap,
             "add_spare": self.func2_add_spare_dev,
-            "create_array": self.func3_create_array,
-            "delete_array": self.func4_delete_array,
+            "array_create": self.func3_create_array,
+            "array_delete": self.func4_delete_array,
             "mount_system": self.func5_mount_system,
             "unmount_array": self.func6_unmount_array,
         }

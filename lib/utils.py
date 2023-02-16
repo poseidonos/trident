@@ -56,8 +56,9 @@ class Client:
     def __init__(self, ssh_obj, client_cleanup: bool = True):
         
         self.ssh_obj = ssh_obj
-        self.helper = helper.Helper(ssh_obj)
         self.client_clean = client_cleanup
+        self.helper = helper.Helper(ssh_obj)
+        self.nqn_list = []
         self.mount_point = {}
         logger.info(f"creating client object on {ssh_obj.hostname}")
         if self.client_clean == True:
@@ -69,13 +70,58 @@ class Client:
         """
         self.ssh_obj.close()
 
+    def _add_nqn_name(self, nqn: str):
+        """ Internal Method to add nqn name """
+        if nqn in self.nqn_list:
+            raise Exception(f"NQN {nqn} is already added {self.nqn_list}")
+
+        self.nqn_list.append(nqn)
+        logger.debug(f"Added new nqn name : {nqn}")
+
+    def _del_nqn_name(self, nqn: str):
+        """ Internal Method to delete nqn name """
+        if nqn not in self.nqn_list:
+            raise Exception(f"NQN {nqn} is not added {self.nqn_list}")
+
+        self.nqn_list.remove(nqn)
+        logger.debug(f"Removed nqn name : {nqn}")
+
+    def _add_mount_point(self, device_name: str, mount_point: str):
+        """ Internal Method to add mount point """
+        if self.mount_point.get(device_name):
+            raise Exception("Device {} is already mounted to {}..".format(
+                            device_name, mount_point))
+        self.mount_point[device_name] = mount_point
+
+    def _del_mount_point(self, mount_point: str, device_name: str = None):
+        """ Internal Method to remove mount point """
+        if not device_name:
+            for dev, mp in self.mount_point.items():
+                if mp == mount_point:
+                    device_name = dev
+                    break
+        if not device_name:
+            raise Exception("Invalid mount point {mount_point}")
+
+        self.mount_point.pop(device_name)
+
+    def reset(self, pos_run_status):
+        """ Method to reset client """
+        try:
+            mount_points = list(self.mount_point.values())
+            self.unmount_FS(fs_mount_pt=mount_points)
+            self.nvme_disconnect(nqn=self.nqn_list) 
+            return True
+        except Exception as e:
+            logger.error("Failed to reset client")
+            return False
+
     def client_cleanup(self):
         """
         method to do client clean up
         """
-
-        self.nvme_disconnect()
         self.load_drivers()
+        self.nvme_disconnect()
         self.dmesg_clear()
 
     def dmesg_clear(self):
@@ -177,7 +223,6 @@ class Client:
         if new_ssh_obj:
             return new_ssh_obj
         else:
-
             raise ConnectionError("Node failed to come up")
 
     def nvme(self, nvme_cmd: str) -> (bool, list):
@@ -332,7 +377,7 @@ class Client:
             bool, list
         """
         try:
-            logger.info("Executing list-subsys on  the device {} ".format(device_name))
+            logger.info("Executing list-subsys on the device {} ".format(device_name))
             cmd = "nvme list-subsys {} -o json ".format(device_name)
             out = self.ssh_obj.execute(cmd)
             out1 = "".join(out)
@@ -479,7 +524,6 @@ class Client:
         iops: iops
         clat: nsec
         """
-        logger.info("am here")
         cmd = f"cat {self.fio_out_json}"
         str_out = self.ssh_obj.execute(cmd)
         printout = "".join(str_out)
@@ -594,7 +638,7 @@ class Client:
             return False
 
     def mount_FS(
-        self, device_list: list, fs_mount_dir: str = None, options: str = None
+        self, device_list: list, fs_mount_dir: str = "/tmp", options: str = None
     ) -> (bool, list):
         """
         method to Mount Fs to device
@@ -607,63 +651,42 @@ class Client:
         Returns:
             bool, list of dir
         """
-
-        logger.info("device_list={}".format(device_list))
-        if len(device_list) == 0:
-            raise Exception("No devices Passed")
-        else:
-            try:
-                for device in device_list:
-                    device_str = device.split("/dev/")[1]
-                    if fs_mount_dir:
-                        device_str = device.split("/dev/")[1]
-                        fs_mount = "/{}/media_{}".format(fs_mount_dir, device_str)
-                    else:
-                        fs_mount = "/tmp/media_{}".format(device_str)
-                    logger.info(fs_mount)
+        try:
+            logger.info("device_list={}".format(device_list))
+            for device in device_list:
+                device_str = device.split("/dev/")[1]
+                fs_mount = f"{fs_mount_dir}/media_{device_str}"
+                logger.info(f"Mount Point : {fs_mount}")
+                if self.is_dir_present(fs_mount) == True:
+                    logger.error(f"{fs_mount} already exists.. creating a new dir inside")
+                    fs_mount = "{}/{}".format(fs_mount, random.randint(0, 1000))
                     if self.is_dir_present(fs_mount) == True:
-                        logger.error(
-                            "{} found ..creating random dir inside {} to avoid duplication".format(
-                                fs_mount, fs_mount
-                            )
-                        )
-                        fs_mount = "{}/{}".format(
-                            fs_mount, str(random.randint(0, 1000))
-                        )
-                    if self.is_dir_present(fs_mount) == True:
-                        raise Exception(
-                            "{} already Exist, Please Unmount and Try again!".format(
-                                fs_mount
-                            )
-                        )
-                    fs_make = "mkdir -p {}".format(fs_mount)
-                    if options:
-                        f_mount = "mount {} {} {}".format(device, fs_mount, options)
-                    else:
-                        f_mount = "mount {} {}".format(device, fs_mount)
-                    try:
-                        self.ssh_obj.execute(fs_make, get_pty=True)
-                        self.ssh_obj.execute(f_mount, get_pty=True)
-                        mnt_verify_cmd = "mount | grep {} ".format(fs_mount)
-                        verify = self.ssh_obj.execute(mnt_verify_cmd)
-                        if len(verify) == 0:
-                            raise Exception("Mount Failed! PLease try again")
-                        else:
-                            for mount_pts_devices in verify:
-                                if fs_mount in mount_pts_devices:
-                                    self.mount_point[device] = fs_mount
-                    except Exception as e:
-                        logger.error(
-                            "Mounting {} to {} failed due to {}".format(
-                                fs_mount, device, e
-                            )
-                        )
+                        raise Exception("{fs_mount} already exists, Please unmount and try again!")
 
-                        return (False, None)
-            except Exception as e:
-                logger.error("command execution failed with exception {}".format(e))
-                return (False, None)
+                fs_make = f"mkdir -p {fs_mount}"
+                f_mount = f"mount {device} {fs_mount}"
+                if options:
+                    f_mount = f"{f_mount} {options}"
+
+                try:
+                    self.ssh_obj.execute(fs_make, get_pty=True)
+                    self.ssh_obj.execute(f_mount, get_pty=True)
+                    mnt_verify_cmd = "mount | grep {} ".format(fs_mount)
+                    verify = self.ssh_obj.execute(mnt_verify_cmd)
+                    if len(verify) == 0:
+                        raise Exception("Mount Failed! PLease try again")
+                    else:
+                        for mount_pts_devices in verify:
+                            if fs_mount in mount_pts_devices:
+                                self._add_mount_point(device, fs_mount)
+                except Exception as e:
+                    logger.error("Mounting {} to {} failed due to {}".format(
+                                 fs_mount, device, e))
+                    return (False, None)
             return (True, list(self.mount_point.values()))
+        except Exception as e:
+            logger.error("command execution failed with exception {}".format(e))
+            return (False, None)
 
     def unmount_FS(self, fs_mount_pt: list) -> bool:
         """
@@ -676,22 +699,19 @@ class Client:
             bool
         """
         try:
-            if len(fs_mount_pt) == 0:
-                raise Exception("No mount point is specified")
-            else:
-                for mnt in fs_mount_pt:
-                    umount_cmd = "umount {}".format(mnt)
-                    out = self.ssh_obj.execute(umount_cmd)
-                    if out:
-                        raise Exception(
-                            f"Failed to unmount '{mnt}'. Cli Error: '{out}'"
-                        )
-                    else:
-                        logger.info(f"Successfully unmounted '{mnt}'")
+            for mnt in fs_mount_pt:
+                umount_cmd = "umount {}".format(mnt)
+                out = self.ssh_obj.execute(umount_cmd)
+                if out:
+                    raise Exception(f"Failed to unmount '{mnt}'. Cli Error: '{out}'")
+                else:
+                    logger.info(f"Successfully unmounted '{mnt}'")
 
-                    logger.info("Deleting filesystem after unmounting")
-                    assert self.delete_FS(fs_mount_pt=mnt) == True
-                return True
+                logger.info("Deleting filesystem after unmounting")
+                assert self.delete_FS(fs_mount_pt=mnt) == True
+                
+                self._del_mount_point(mnt)
+            return True
         except Exception as e:
             logger.error("Unmount FS failed with exception {}".format(e))
             logger.error(traceback.format_exc())
@@ -712,7 +732,7 @@ class Client:
             if out:
                 raise Exception(f"Failed to delete '{fs_mount_pt}'. Cli Error: '{out}'")
 
-            if self.is_dir_present(fs_mount_pt) is True:
+            if self.is_dir_present(fs_mount_pt) == True:
                 raise Exception("File found after deletion")
             else:
                 return True
@@ -745,13 +765,12 @@ class Client:
             logger.error("error finding directory {}".format(e))
             return False
 
-    def nvme_connect(
-        self, nqn_name: str, mellanox_switch_ip: str, port: str, transport: str = "TCP"
-    ) -> bool:
+    def nvme_connect(self, nqn_name: str, mellanox_switch_ip: str,
+                     port: str, transport: str = "TCP") -> bool:
         """
-        starts Nvme connect at the host
-        Args:
+        Starts Nvme connect at the host
 
+        Args:
         nqn_name (str) :Name of SS
         mellanox_switch_ip (str): mellanox switch interface ip
         port (str): port
@@ -765,6 +784,8 @@ class Client:
             )
             logger.info("Running command {}".format(cmd))
             out = self.ssh_obj.execute(cmd)
+
+            self._add_nqn_name(nqn_name)
             return True
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
@@ -800,13 +821,13 @@ class Client:
     def load_drivers(self) -> bool:
         """method to load drivers"""
 
-        driver_list = ["tcp", "nvme"]
+        driver_list = ["tcp", "nvme", "nvme_tcp"]
         for drive in driver_list:
             cmd = f"modprobe {drive}"
             self.ssh_obj.execute(cmd)
         return True
 
-    def nvme_disconnect(self, nqn: list = [], timeout: int = 60) -> bool:
+    def nvme_disconnect(self, nqn: list = [], timeout: int = 60, verify=False) -> bool:
         """
         Method to disconnect nvmf ss
         Args:
@@ -817,36 +838,37 @@ class Client:
 
         """
         try:
-            logger.info("Disconnecting nvme devices from client")
-            count = 0
-            while True:
-                out = self.ctrlr_list()
-                cmd_list = []
-                if out[1] is not None:
-                    if len(nqn) != 0:
-                        logger.info("Disconnecting Subsystem")
-                        for nqn_name in nqn:
-                            cmd_list.append(f"nvme disconnect -n {nqn_name}")
-                            
-                    else:
-                        for ctrlr in out[1]:
-                            cmd_list.append("nvme disconnect -d {}".format(ctrlr))
-                           
-                threadable_node.sync_parallel_run(self.ssh_obj,cmd_list=cmd_list)
+            logger.info(f"NQN list : {nqn}")
+            nqn_list = nqn[:]
+            for nqn_name in nqn_list:
+                logger.info(f"Disconnecting Subsystem {nqn_name}")
+                cmd = f"nvme disconnect -n {nqn_name}"
+                out = self.ssh_obj.execute(cmd)
+                res = " ".join(out)
+                logger.info(f"{res}")
+
+                self._del_nqn_name(nqn_name)
+
+            if len(nqn_list) == 0:
+                try:
+                    out = self.ctrlr_list()
+                    for ctrlr in out[1]:
+                        logger.info(f"Disconnecting nvme device {ctrlr}")
+                        cmd = f"nvme disconnect -d {ctrlr}"
+                        out = self.ssh_obj.execute(cmd)
+                except:
+                    pass
+                
+            if verify:
                 self.nvme_list()
                 if len(self.nvme_list_out) == 0:
                     logger.info("Nvme disconnect passed")
-                    return True
                 else:
-                    logger.info("retrying disconnect in 5 seconds")
-                    count += 5
-                    time.sleep(5)
-                    if count > timeout:
-                        break
-            if len(self.nvme_list_out) != 0:
-                raise Exception("nvme disconnect failed")
+                    raise Exception("nvme disconnect failed")
+
+            return True
         except Exception as e:
-            logger.error("command failed wth exception {}".format(e))
+            logger.error(f"Subsystem disconnect failed due to {e}")
             logger.error(traceback.format_exc())
             return False
 

@@ -9,16 +9,16 @@ fio_cmd = "fio --name=Rand_RW  --runtime=43000 --ramp_time=60  --ioengine=sync  
 
 
 def array_ops(pos):
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     array_name = list(pos.cli.array_dict.keys())[0]
 
-    assert pos.cli.list_volume(array_name=array_name)[0] == True
+    assert pos.cli.volume_list(array_name=array_name)[0] == True
     for volume in pos.cli.vols:
-        pos.cli.unmount_volume(volumename=volume, array_name=array_name)
-        pos.cli.delete_volume(volumename=volume, array_name=array_name)
-    assert pos.cli.info_array(array_name=array_name)[0] == True
-    assert pos.cli.unmount_array(array_name=array_name)[0] == True
-    assert pos.cli.delete_array(array_name=array_name)[0] == True
+        pos.cli.volume_unmount(volumename=volume, array_name=array_name)
+        pos.cli.volume_delete(volumename=volume, array_name=array_name)
+    assert pos.cli.array_info(array_name=array_name)[0] == True
+    assert pos.cli.array_unmount(array_name=array_name)[0] == True
+    assert pos.cli.array_delete(array_name=array_name)[0] == True
 
 
 def file_io(pos):
@@ -63,8 +63,8 @@ def common_setup(pos, raid_type, nr_data_drives):
     pos.data_dict["volume"]["pos_volumes"][0]["size"] = "200gb"
     pos.data_dict["volume"]["pos_volumes"][1]["size"] = "200gb"
     logger.info("configuring POS")
-    assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-    assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+    assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+    assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
     run_io(pos)
     file_io(pos)
 

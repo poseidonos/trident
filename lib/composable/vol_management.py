@@ -67,7 +67,7 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
         )
         logger.info("Lock status : release {}".format(target.cli.lock.release()))
 
-        assert target.cli.list_volume(target.cli.array_name)[0] == True
+        assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -298,7 +298,7 @@ def test_vol_lc_stress_unmount_delete_create_mount_io(
             == True
         )
         logger.info("Lock status : release {}".format(target.cli.lock.release()))
-        assert target.cli.list_volume(target.cli.array_name)[0] == True
+        assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -394,7 +394,7 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
             == True
         )
         logger.info("Lock status : release {}".format(target.cli.lock.release()))
-        assert target.cli.list_volume(target.cli.array_name)[0] == True
+        assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
                 target=target,

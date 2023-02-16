@@ -1,53 +1,11 @@
 import traceback
 import pytest
 
-from pos import POS
 import logger
 
 logger = logger.get_logger(__name__)
 
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, array_name, vol_name
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-
-    data_dict["subsystem"]["pos_subsystems"][0]["nr_subsystems"] = 1
-    data_dict["subsystem"]["pos_subsystems"][1]["nr_subsystems"] = 0
-
-    data_dict["array"]["num_array"] = 1
-    data_dict["volume"]["phase"] = "false"
-
-    array_name = data_dict["array"]["pos_array"][0]["array_name"]
-    vol_name = "POS_Vol"
-
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-
-    assert pos.cli.list_volume(array_name=array_name)[0] == True
-    for vol_name in pos.cli.vols:
-        assert pos.cli.reset_volume_policy_qos(vol_name, array_name)[0] == True
-        if pos.cli.vol_dict[vol_name]["status"] != "Unmounted":
-            assert pos.cli.unmount_volume(vol_name, array_name)[0] == True
-        assert pos.cli.delete_volume(vol_name, array_name)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
 # List of maxiops and maxbw
-
-
 qos_iops_bw = [
     (15, 5000),
     (5000, 100),
@@ -58,20 +16,22 @@ qos_iops_bw = [
 ]
 fio_io_type = ["file", "block"]
 
-
 @pytest.mark.regression
 @pytest.mark.parametrize("max_iops, max_bw", qos_iops_bw)
 @pytest.mark.parametrize("io_type", fio_io_type)
-def test_qos_io_throttle(max_iops, max_bw, io_type):
+def test_qos_io_throttle(volume_fixture, max_iops, max_bw, io_type):
     logger.info(
         f" ========== Test : test_qos_io_throttle[{max_iops}-{max_bw}-{io_type}] ============ "
     )
     try:
-        assert pos.cli.create_volume(vol_name, "12GB", array_name)[0] == True
+        pos = volume_fixture
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        vol_name = "POS_Vol"
+        assert pos.cli.volume_create(vol_name, "12GB", array_name)[0] == True
         exp_res = False if max_iops == '15.0' else True
 
         assert (
-            pos.cli.create_volume_policy_qos(vol_name, array_name, max_iops, max_bw)[0]
+            pos.cli.qos_create_volume_policy(vol_name, array_name, max_iops, max_bw)[0]
             == exp_res
         )
 
@@ -84,7 +44,7 @@ def test_qos_io_throttle(max_iops, max_bw, io_type):
             if nqn:
                 break
 
-        assert pos.cli.mount_volume(vol_name, array_name, nqn)[0] == True
+        assert pos.cli.volume_mount(vol_name, array_name, nqn)[0] == True
 
         assert (
             pos.client.nvme_connect(nqn, pos.target_utils.helper.ip_addr[0], "1158")

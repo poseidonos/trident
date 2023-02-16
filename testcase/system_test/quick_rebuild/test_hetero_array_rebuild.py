@@ -1,8 +1,7 @@
 import pytest
 import traceback
 
-from pos import POS
-from common_test_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
@@ -16,7 +15,7 @@ def setup_cleanup_module():
     data_dict["array"]["phase"] = "false"
     data_dict["volume"]["phase"] = "false"
     assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.reset_devel()[0] == True
+    assert pos.cli.devel_resetmbr()[0] == True
 
     yield pos
 
@@ -35,12 +34,12 @@ def setup_cleanup_function(setup_cleanup_module):
     if pos.client.ctrlr_list()[1] is not None:
         assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
 
-    assert pos.cli.list_array()[0] == True
+    assert pos.cli.array_list()[0] == True
     for array in pos.cli.array_dict.keys():
-        assert pos.cli.info_array(array_name=array)[0] == True
+        assert pos.cli.array_info(array_name=array)[0] == True
         if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.unmount_array(array_name=array)[0] == True
-        assert pos.cli.delete_array(array_name=array)[0] == True
+            assert pos.cli.array_unmount(array_name=array)[0] == True
+        assert pos.cli.array_delete(array_name=array)[0] == True
 
     logger.info("==========================================")
 
@@ -51,7 +50,7 @@ test_operations = {"t0": ("hetero", "RAID5", "RAID6", "vol_rename"),
                    "t3": ("normal", "RAID5", "RAID6", "vol_unmount_mount")}
 @pytest.mark.regression
 @pytest.mark.parametrize("test_param", test_operations)
-def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param):
+def test_hetero_array_qos_after_disk_replace(array_fixture, test_param):
     """
     Test to create two arrays RAID5, RAID6 arrays with minimum number of supported devices.
     Create and mount 2 volumes and set qos values. 
@@ -60,7 +59,7 @@ def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param)
         f" ==================== Test :  test_hetero_array_qos_after_disk_replace[{test_param}] ================== "
     )
     try:
-        pos = setup_cleanup_function
+        pos = array_fixture
         array_type, aray1_raid, array2_raid, action = test_operations[test_param]
         raid_type_list = (aray1_raid, array2_raid)
         num_spare_disk = 2
@@ -70,10 +69,10 @@ def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param)
         assert create_mount_hetero_arrays(pos, raid_type_list, num_spare_disk,
                                           hetero_array=hetero_array) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -81,9 +80,9 @@ def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param)
 
         maxiops, maxbw = 10, 10
         for array in array_list:
-            assert pos.cli.list_volume(array_name=array)[0] == True
+            assert pos.cli.volume_list(array_name=array)[0] == True
             for volname in pos.cli.vols:
-                assert pos.cli.create_volume_policy_qos(arrayname=array, 
+                assert pos.cli.qos_create_volume_policy(arrayname=array, 
                     volumename=volname, maxiops=maxiops, maxbw=maxbw)[0] == True
 
         ip_addr = pos.target_utils.helper.ip_addr[0]
@@ -120,7 +119,7 @@ def test_hetero_array_qos_after_disk_replace(setup_cleanup_function, test_param)
 
 @pytest.mark.regression
 @pytest.mark.parametrize("array_disk_type", ["hetero", "normal"])
-def test_array_disk_replace_multiple(setup_cleanup_function, array_disk_type):
+def test_array_disk_replace_multiple(array_fixture, array_disk_type):
     """
     Test to create two arrays RAID5, RAID6 arrays with minimum number of supported devices.
     Create and mount 2 volumes. During IO fail a data disk. 
@@ -129,14 +128,14 @@ def test_array_disk_replace_multiple(setup_cleanup_function, array_disk_type):
         f" ==================== Test :  test_array_disk_replace_multiple[{array_disk_type}] ================== "
     )
     try:
-        pos = setup_cleanup_function
+        pos = array_fixture
         raid_type_list = [("RAID5", "RAID6"), ("RAID6", "RAID10")]
         num_spare_disk = 2
         array_cap_volumes = [(32, 100), (128, 100), (256, 100)]
 
         hetero_array = False if (array_disk_type == "normal") else True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
         for repeat in range(4):
@@ -145,7 +144,7 @@ def test_array_disk_replace_multiple(setup_cleanup_function, array_disk_type):
             assert create_mount_hetero_arrays(pos, raid_type_list, num_spare_disk, 
                                               hetero_array=hetero_array) == True
 
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = list(pos.cli.array_dict.keys())
 
             assert volume_create_and_mount_random(pos, array_list=array_list,
@@ -181,10 +180,10 @@ def do_action(pos, action, array_list, subs_list, maxiops, maxbw):
 def rename_volumes(pos, array_list, maxiops, maxbw):
     try:
         for array in array_list:
-            assert pos.cli.list_volume(array_name=array)[0] == True
+            assert pos.cli.volume_list(array_name=array)[0] == True
             for volname in pos.cli.vols:
                 new_volname = f"new_{volname}"
-                assert pos.cli.rename_volume(new_volname, volname, array_name=array)[0] == True
+                assert pos.cli.volume_rename(new_volname, volname, array_name=array)[0] == True
                 assert verify_vol_qos_values(pos, array, new_volname, maxiops, maxbw) == True
         return True
     except Exception as e:
@@ -194,11 +193,11 @@ def rename_volumes(pos, array_list, maxiops, maxbw):
 def unmount_mount_volume(pos, array_list, subs_list, maxiops, maxbw):
     try:
         for array in array_list:
-            assert pos.cli.list_volume(array_name=array)[0] == True
+            assert pos.cli.volume_list(array_name=array)[0] == True
             for volname in pos.cli.vols:
                 ss_list = [ss for ss in subs_list if array in ss]
-                assert pos.cli.unmount_volume(volname, array_name=array)[0] == True
-                assert pos.cli.mount_volume(volname, array_name=array, nqn=ss_list[0])[0] == True
+                assert pos.cli.volume_unmount(volname, array_name=array)[0] == True
+                assert pos.cli.volume_mount(volname, array_name=array, nqn=ss_list[0])[0] == True
                 assert verify_vol_qos_values(pos, array, volname, maxiops, maxbw) == True
         return True
     except Exception as e:
@@ -208,9 +207,9 @@ def unmount_mount_volume(pos, array_list, subs_list, maxiops, maxbw):
 def unmount_mount_array(pos, array_list, maxiops, maxbw):
     try:
         for array in array_list:
-            assert pos.cli.unmount_array(array_name=array)[0] == True
-            assert pos.cli.mount_array(array_name=array, write_back=False)[0] == True
-            assert pos.cli.list_volume(array_name=array)[0] == True
+            assert pos.cli.array_unmount(array_name=array)[0] == True
+            assert pos.cli.array_mount(array_name=array, write_back=False)[0] == True
+            assert pos.cli.volume_list(array_name=array)[0] == True
             for volname in pos.cli.vols:
                 assert verify_vol_qos_values(pos, array, volname, maxiops, maxbw) == True
         return True
@@ -220,9 +219,9 @@ def unmount_mount_array(pos, array_list, maxiops, maxbw):
 
 def verify_vol_qos_values(pos, array_name, vol_name, maxiops, maxbw):
     try:
-        assert pos.cli.info_volume(array_name=array_name, vol_name=vol_name)[0] == True
-        assert pos.cli.volume_info[array_name][vol_name]["max_iops"] == maxiops
-        assert pos.cli.volume_info[array_name][vol_name]["max_bw"] == maxbw
+        assert pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0] == True
+        assert pos.cli.volume_data[array_name][vol_name]["max_iops"] == maxiops
+        assert pos.cli.volume_data[array_name][vol_name]["max_bw"] == maxbw
     except Exception as e:
         logger.info(f"Failed to verify volume qos values due to {e}")
         return False
@@ -232,7 +231,7 @@ def create_mount_hetero_arrays(pos, raid_list, num_spare_disk, hetero_array=True
     try:
         req_disk_list = [RAID_MIN_DISK_REQ_DICT[r] for r in raid_list]
         min_req_disks = sum(req_disk_list) + 2 * num_spare_disk
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         # Verify the minimum disk requirement
         if len(pos.cli.system_disks) < min_req_disks:
@@ -261,10 +260,11 @@ def create_mount_hetero_arrays(pos, raid_list, num_spare_disk, hetero_array=True
             data_drives = pos.target_utils.data_drives
             spare_drives = pos.target_utils.spare_drives
 
-            assert pos.cli.create_array(write_buffer=uram_name, data=data_drives, 
-                                        spare=spare_drives, raid_type=raid_type,
-                                        array_name=array_name)[0] == True
-            assert pos.cli.mount_array(array_name=array_name,
+            assert pos.cli.array_create(array_name=array_name,
+                        write_buffer=uram_name, data=data_drives, 
+                        spare=spare_drives, raid_type=raid_type)[0] == True
+
+            assert pos.cli.array_mount(array_name=array_name,
                                        write_back=False)[0] == True
     except Exception as e:
         logger.info(f"Failed to create and mount array due to {e}")

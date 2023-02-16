@@ -1,17 +1,14 @@
 import pytest
 
-from pos import POS
-from common_test_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
 
 @pytest.fixture(scope="module")
-def setup_module():
+def setup_module(system_fixture):
     logger.info("========= SETUP MODULE ========")
-    pos = POS()
-    if not pos.target_utils.helper.check_pos_exit():
-        assert pos.cli.stop_system()[0] == True
+    pos = system_fixture
     assert pos.pos_conf.rebuild_auto_start(auto_start=False,
                                            update_now=True) == True
 
@@ -53,7 +50,7 @@ def auto_rebuild_setup_cleanup(setup_module):
 test_opr = ["disk_replace_rebuild", "disk_remove", "disk_remove_rebuild"]
 
 @pytest.mark.parametrize("test_operation", test_opr)
-def test_array_rebuild_auto_start_disable(auto_rebuild_setup_cleanup, test_operation):
+def test_array_rebuild_auto_start_disable(array_fixture, test_operation):
     """
     The purpose of this test is to create RAID5 array with 3 data drive and 1 spare drive. 
     Create and mount 2 multiple volumes to each array and utilize its full capacity.  
@@ -62,13 +59,13 @@ def test_array_rebuild_auto_start_disable(auto_rebuild_setup_cleanup, test_opera
     logger.info(
         f" ==================== Test : test_array_rebuild_auto_start_disable[{test_operation}] ================== "
     )
-    pos = auto_rebuild_setup_cleanup
+    pos = array_fixture
     try:
         raid_type = "RAID5"
         num_vols = 2
         num_data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         num_spare_disk = 1
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < (num_data_disk + num_spare_disk):
             pytest.skip("Less number of system disks")
 
@@ -84,14 +81,14 @@ def test_array_rebuild_auto_start_disable(auto_rebuild_setup_cleanup, test_opera
         assert vol_connect_and_run_random_io(pos, subs_list, '100gb') == True
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
+        assert pos.cli.array_info(array_name=array_name)[0] == True
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         random.shuffle(data_disk_list)
         selected_disks = data_disk_list[0]
 
         if test_operation == "disk_replace_rebuild":
-            assert pos.cli.replace_drive_array(selected_disks, array_name)[0] == True
+            assert pos.cli.array_replace_disk(selected_disks, array_name)[0] == True
             array_situation = "REBUILDING"
         else:
             assert pos.target_utils.device_hot_remove([selected_disks]) == True
@@ -99,11 +96,11 @@ def test_array_rebuild_auto_start_disable(auto_rebuild_setup_cleanup, test_opera
             array_situation = "DEGRADED"
         
         time.sleep(2) # Wait 2 seconds and verify the rebuilding should not start
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        assert pos.cli.array_info[array_name]["situation"] == array_situation
+        assert pos.cli.array_info(array_name=array_name)[0] == True
+        assert pos.cli.array_data[array_name]["situation"] == array_situation
 
         if test_operation != "disk_replace_rebuild":
-            assert pos.cli.rebuild_array(array_name)[0] == True
+            assert pos.cli.array_rebuild(array_name)[0] == True
             assert pos.target_utils.array_rebuild_wait(array_name=array_name) == True
 
         logger.info(

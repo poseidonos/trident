@@ -1,4 +1,3 @@
-from pos import POS
 import pytest
 import time
 import logger
@@ -7,9 +6,9 @@ logger = logger.get_logger(__name__)
 
 
 @pytest.mark.regression
-def test_memory_check():
+def test_memory_check(system_fixture):
     try:
-        pos = POS()
+        pos = system_fixture
         start_time = time.time()
         run_time = 12
         end_time = start_time + (60 * run_time)
@@ -17,7 +16,7 @@ def test_memory_check():
         pos.data_dict["array"]["num_array"] = 1
         while True:
             assert pos.target_utils.pos_bring_up() == True
-            assert pos.cli.stop_system()[0] == True
+            assert pos.cli.pos_stop()[0] == True
             if time.time() > end_time:
                 logger.info("Test script passed")
                 break
@@ -27,12 +26,12 @@ def test_memory_check():
         assert 0
 
 
-def test_memory_noraid():
+def test_memory_noraid(system_fixture):
     try:
-        pos = POS()
+        pos = system_fixture
         pos.data_dict["array"]["num_array"] = 1
         assert pos.target_utils.pos_bring_up() == True
-        assert pos.cli.stop_system()[0] == True
+        assert pos.cli.pos_stop()[0] == True
     except Exception as e:
         pos.exit_handler()
         assert 0

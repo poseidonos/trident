@@ -77,8 +77,8 @@ def test_wt_wb_multi_array_file_Block_IO(array_fixture, raid_type, nr_data_drive
         pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 256
         pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = 256
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
         # Connect client
         wt_wb_io(pos)

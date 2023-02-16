@@ -1,13 +1,12 @@
 from time import sleep
 import pytest
 
-from pos import POS
-from common_test_api import *
+from common_libs import *
 
 import logger
 logger = logger.get_logger(__name__)
 
-def test_noraid_array_disk_replace(setup_cleanup_array_function):
+def test_noraid_array_disk_replace(array_fixture):
     """
     The purpose of this test is to create a NO-RAID array with 1 data drive.   
     Verification: POS CLI
@@ -15,7 +14,7 @@ def test_noraid_array_disk_replace(setup_cleanup_array_function):
     logger.info(
         f" ==================== Test : test_noraid_array_disk_replace ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         raid_type, data_disk = "no-raid", 1
 
@@ -25,11 +24,11 @@ def test_noraid_array_disk_replace(setup_cleanup_array_function):
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
+        assert pos.cli.array_info(array_name=array_name)[0] == True
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
-        assert pos.cli.replace_drive_array(data_disk_list[0], array_name)[0] == False
+        assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -39,7 +38,7 @@ def test_noraid_array_disk_replace(setup_cleanup_array_function):
         pos.exit_handler(expected=False)
 
 @pytest.mark.parametrize("raid_type", ["RAID10", "RAID5", "RAID6" ,"RAID0"])
-def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
+def test_no_spare_array_disk_replace(array_fixture, raid_type):
     """
     The purpose of this test is to create a array of RAID5/6/10 with minimum
     required data drive and 0 spare drive. Create Volume and Run IO.
@@ -49,7 +48,7 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
     logger.info(
         f" ==================== Test : test_no_spare_array_disk_replace[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
         data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
         array_cap_volumes = [(4, 100), (8, 100), (32, 100)]
@@ -59,10 +58,10 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_random(pos, array_list=array_list,
@@ -71,11 +70,11 @@ def test_no_spare_array_disk_replace(setup_cleanup_array_function, raid_type):
         assert vol_connect_and_run_random_io(pos, subs_list, size='10g') ==  True
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            data_disk_list = pos.cli.array_info[array_name]["data_list"]
+            assert pos.cli.array_info(array_name=array_name)[0] == True
+            data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
-        status = pos.cli.replace_drive_array(data_disk_list[0], array_name)
+        status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
         assert status[0] == False
 
         if raid_type =="RAID0":
@@ -97,7 +96,7 @@ test_quick_rebuild = {
 }
 
 @pytest.mark.parametrize("test_param", test_quick_rebuild)
-def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
+def test_array_data_disk_replace(array_fixture, test_param):
     """
     The purpose of this test is to create a array of RAID5/RAID6/RAID10 with 
     minimum required data drive and 2 spare drive. Create volumes and Run IO.
@@ -108,7 +107,7 @@ def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
         f" ==================== Test : test_array_data_disk_replace[{test_param}] ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         raid_type, mount_type, auto_create, num_vols = test_quick_rebuild[test_param]
 
         data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
@@ -118,10 +117,10 @@ def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -156,8 +155,9 @@ def test_array_data_disk_replace(setup_cleanup_array_function, test_param):
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
-@pytest.mark.parametrize("raid_type, mount_type, num_vols", [("RAID10", "WB", 2), ("RAID5", "WB", 2),("RAID6", "WB", 2),("RAID5", "WB", 256),("RAID6", "WT", 2)])
-def test_array_vol_disk_replace_all_spare(setup_cleanup_array_function, raid_type, mount_type, num_vols):
+test_params = [("RAID10", "WB", 2), ("RAID5", "WB", 2),("RAID6", "WB", 2),("RAID5", "WB", 256),("RAID6", "WT", 2)]
+@pytest.mark.parametrize("raid_type, mount_type, num_vols", test_params)
+def test_array_vol_disk_replace_all_spare(array_fixture, raid_type, mount_type, num_vols):
     """
     The purpose of this test is to create a array of differnt RAIDs with minimum
     required data drive and 2 spare drive. Create volumes as specified and Run IO.
@@ -168,9 +168,8 @@ def test_array_vol_disk_replace_all_spare(setup_cleanup_array_function, raid_typ
     logger.info(
         f" ==================== Test : test_no_spare_array_disk_replace[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
-
         data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
 
         assert single_array_data_setup(pos.data_dict, raid_type, 
@@ -178,10 +177,10 @@ def test_array_vol_disk_replace_all_spare(setup_cleanup_array_function, raid_typ
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -210,7 +209,7 @@ def test_array_vol_disk_replace_all_spare(setup_cleanup_array_function, raid_typ
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
         
         
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         #Array disk replace Again using up all spare drives
         assert array_disk_remove_replace(pos, array_list, replace=True) == True
@@ -227,7 +226,7 @@ test_params = [("RAID10", "WB", True), ("RAID10", "WB", False),
                ("RAID6",  "WT", True), ("RAID5",  "WT", False)]
 
 @pytest.mark.parametrize("raid_type, mount_type, auto", test_params)
-def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid_type, mount_type, auto):
+def test_array_max_vol_disk_replace_during_qr(array_fixture, raid_type, mount_type, auto):
     """
     The purpose of this test is to create a array of differnt RAID10 with minimum
     required data drive and 3 spare drive. Create 256 volumes and Run IO.
@@ -239,9 +238,8 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
     logger.info(
         f" ==================== Test : test_array_max_vol_disk_replace_during_qr[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
-
         data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
 
         assert single_array_data_setup(pos.data_dict, raid_type, 
@@ -249,10 +247,10 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, 256, 
@@ -279,25 +277,25 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
 
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
   
         #Retrying  Array disk replace while Quick Rebuild in Progress
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            data_disk_list = pos.cli.array_info[array]["data_list"]
+            assert pos.cli.array_info(array_name=array)[0] == True
+            data_disk_list = pos.cli.array_data[array]["data_list"]
             random.shuffle(data_disk_list)
             
             # Quick Rebuild Will be started 
-            assert pos.cli.replace_drive_array(data_disk_list[0], array)[0] == True
+            assert pos.cli.array_replace_disk(data_disk_list[0], array)[0] == True
 
             assert pos.target_utils.check_rebuild_status(array_name=array) == True
 
             # Trying Data Disk Replacment during Quick Rebuild
-            assert pos.cli.replace_drive_array(data_disk_list[1], array)[0] == False
+            assert pos.cli.array_replace_disk(data_disk_list[1], array)[0] == False
             logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
             
             # Waiting for completion of Rebuild 
@@ -312,7 +310,7 @@ def test_array_max_vol_disk_replace_during_qr(setup_cleanup_array_function, raid
         pos.exit_handler(expected=False)
 
 @pytest.mark.parametrize("raid_type, mount_type, auto", [("RAID10", "WB", False)])
-def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function, raid_type, mount_type, auto):
+def test_array_max_vol_disk_replace_during_rebuild(array_fixture, raid_type, mount_type, auto):
     """
     The purpose of this test is to create a array of differnt RAID10 with minimum
     required data drive and 2 spare drive. Create 256 volumes and Run IO.
@@ -324,9 +322,8 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
     logger.info(
         f" ==================== Test : test_array_max_vol_disk_replace_during_rebuild[{raid_type}] ================== "
     )
-    pos = setup_cleanup_array_function
+    pos = array_fixture
     try:
-
         data_disk = RAID_MIN_DISK_REQ_DICT[raid_type]
 
         assert single_array_data_setup(pos.data_dict, raid_type, 
@@ -334,10 +331,10 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
 
         assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_subsystem()[0] == True
+        assert pos.cli.subsystem_list()[0] == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, 256, 
@@ -362,12 +359,12 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
         # Array disk Remove 1 drive 
         # assert array_disk_remove_replace(pos, array_list, replace=True) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         for array in array_list:
-            assert pos.cli.info_array(array_name=array)[0] == True
-            data_disk_list = pos.cli.array_info[array]["data_list"]
+            assert pos.cli.array_info(array_name=array)[0] == True
+            data_disk_list = pos.cli.array_data[array]["data_list"]
             random.shuffle(data_disk_list)
             
             #  Array disk remove and Rebuild Will be started 
@@ -377,15 +374,13 @@ def test_array_max_vol_disk_replace_during_rebuild(setup_cleanup_array_function,
 
         
             # Trying Data Disk Replacment during  Rebuild
-            assert pos.cli.replace_drive_array(data_disk_list[1], array)[0] == False
+            assert pos.cli.array_replace_disk(data_disk_list[1], array)[0] == False
             logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
             
             # Waiting for completion of Rebuild 
             assert pos.target_utils.array_rebuild_wait(array_name=array) == True
 
         assert wait_sync_fio([], nvme_devs, None, async_block_io) == True
-        
-    
         logger.info(
             " ============================= Test ENDs ======================================"
         )

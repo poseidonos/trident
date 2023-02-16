@@ -157,20 +157,18 @@ The Below Test provides a sample Scenario which requests the POS cli to create a
 def test_volumesanity257vols(array_fixture):
     array_name = "array1"
     try:
-        pos = array_fixture
-        pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 256
-        pos.data_dict["array"]["num_array"] = 1
-
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
-        # negative test
-        assert (
-            pos.cli.create_volume(
-                volumename="invalidvol", array_name=array_name, size="1gb"
-            )[0]
-            == False
-        )
-
+        if pos.target_utils.helper.check_pos_exit() == True:
+            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+            assert pos.cli.devel_resetmbr()[0] == True
+            assert pos.target_utils.pci_rescan() == True
+        assert pos.cli.device_list()[0] == True
+        assert pos.cli.array_create(array_name="array1", data=pos.cli.dev_type['SSD'][0:5], write_buffer= pos.cli.dev_type['NVRAM'][0], raid_type= "RAID5", spare = [])[0] == True
+        assert pos.cli.array_unmount(array_name="array1")[0] == True
+        for i in range(256):
+            vname = f'array1_vol{str(i)}'
+            assert pos.cli.volume_create(volumename=vname, array_name="array1",size = "1gb")[0] == True
+        assert pos.cli.volume_create(volumename="invalidvol", array_name="array1",size = "1gb")[0] == False
+        
     except Exception as e:
         logger.error(f" ======= Test FAILED due to {e} ========")
         assert 0

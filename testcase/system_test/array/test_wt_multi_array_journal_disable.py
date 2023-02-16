@@ -1,8 +1,8 @@
 import pytest
-import traceback
+
+from array_test_common import *
 
 import logger
-
 logger = logger.get_logger(__name__)
 array = [("NORAID", 1), ("RAID0", 2)]
 
@@ -10,7 +10,7 @@ array = [("NORAID", 1), ("RAID0", 2)]
 @pytest.mark.regression
 @pytest.mark.parametrize("array_raid, array_num_disk", array)
 def test_wt_multi_array_disabled_journal(
-    setup_cleanup_array_function, array_raid, array_num_disk
+    array_fixture, array_raid, array_num_disk
 ):
     """
     Test Multi-Array in combination with WT/WB mount when journal is disable
@@ -20,7 +20,7 @@ def test_wt_multi_array_disabled_journal(
         " ==================== Test : test_wt_multi_array_disabled_journal ================== "
     )
     try:
-        pos = setup_cleanup_array_function
+        pos = array_fixture
         array_name1, array_name2 = "array1", "array2"
 
         array_writeback_list = (False, True)
@@ -40,8 +40,8 @@ def test_wt_multi_array_disabled_journal(
         assert wt_test_multi_array_setup(array_list) == True
 
         for id, array_name in enumerate((array_name1, array_name2)):
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            array_size = int(pos.cli.array_info[array_name].get("size"))
+            assert pos.cli.array_info(array_name=array_name)[0] == True
+            array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             io_size = f"{array_size * 95 // (1024 * 1024 * 100)}mb"  # IO size is 95% of Vol size.
 
@@ -52,7 +52,7 @@ def test_wt_multi_array_disabled_journal(
                 == True
             )
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.list_volume(array_name=array_name)[0] == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
             ss_temp_list = pos.target_utils.ss_temp_list
             ss_list = [ss for ss in ss_temp_list if f"subsystem{id + 1}" in ss]
             assert (

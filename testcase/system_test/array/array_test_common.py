@@ -15,7 +15,7 @@ def wt_array_setup(
 ):
     try:
         data_dict = pos.data_dict
-        assert pos.cli.list_device()[array_index] == True
+        assert pos.cli.device_list()[array_index] == True
         required_disks = num_data_disk + num_spare_disk
         if len(pos.cli.system_disks) < required_disks:
             pytest.skip(
@@ -35,14 +35,13 @@ def wt_array_setup(
         pos_array["auto_create"] = auto_create
         pos_array["write_back"] = "false"
 
-        assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-        assert pos.cli.info_array(array_name=array_name)[0] == True
+        assert pos.target_utils.bringup_array(data_dict=data_dict) == True
+        assert pos.cli.array_info(array_name=array_name)[0] == True
     except Exception as e:
         logger.error(f"Failed to setup array due to {e}")
         traceback.print_exc()
         return False
     return True
-
 
 def wt_array_volume_setup(
     pos, raid_type: str, num_data_disk: int, num_spare_disk: int, array_index=0
@@ -51,11 +50,11 @@ def wt_array_volume_setup(
         assert wt_array_setup(pos, raid_type, num_data_disk, num_spare_disk) == True
         array_name = pos.data_dict["array"]["pos_array"][array_index]["array_name"]
         assert (
-            pos.cli.create_volume("pos_vol1", array_name=array_name, size="1000gb")[0]
+            pos.cli.volume_create("pos_vol1", array_name=array_name, size="1000gb")[0]
             == True
         )
         assert pos.target_utils.get_subsystems_list() == True
-        assert pos.cli.list_volume(array_name=array_name)[0] == True
+        assert pos.cli.volume_list(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
         assert (
             pos.target_utils.mount_volume_multiple(
@@ -85,10 +84,10 @@ def wt_test_multi_array_setup(pos, array_list: list):
     try:
         if pos.target_utils.helper.check_pos_exit() == True:
             assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.reset_devel()[0] == True
+        assert pos.cli.devel_resetmbr()[0] == True
 
-        assert pos.cli.scan_device()[0] == True
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         for array in array_list:
             array_name = array["array_name"]
@@ -103,26 +102,16 @@ def wt_test_multi_array_setup(pos, array_list: list):
                                 minimum {nr_data_drives}"
                 )
             data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
-            spare_disk_list = []
 
             if raid_type.upper() == "NORAID":
                 raid_type = "no-raid"
 
-            assert (
-                pos.cli.create_array(
-                    write_buffer=buffer_dev,
-                    data=data_disk_list,
-                    spare=spare_disk_list,
-                    raid_type=raid_type,
-                    array_name=array_name,
-                )[0]
-                == True
-            )
-
-            assert (
-                pos.cli.mount_array(array_name=array_name, write_back=write_back)[0]
-                == True
-            )
+            assert pos.cli.array_create(array_name=array_name,
+                            write_buffer=buffer_dev, data=data_disk_list,
+                            spare=[], raid_type=raid_type)[0] == True
+            
+            assert pos.cli.array_mount(array_name=array_name, 
+                                       write_back=write_back)[0] == True
         return True
     except Exception as e:
         logger.error(f"Test setup failed due to {e}")
