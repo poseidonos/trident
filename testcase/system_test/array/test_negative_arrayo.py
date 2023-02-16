@@ -41,11 +41,8 @@ def test_array_invalid_data_disk(
                     spare=[], raid_type=raid_type)
 
         assert status[0] == False
-        logger.info(
-            "As expected testcases failed due to {}".format(
-                status[1]["output"]["Response"]["result"]["status"]["eventName"]
-            )
-        )
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array replace disk due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -64,9 +61,12 @@ def test_create_array_invalid_commands(
     try:
         pos = array_fixture
         assert negative_test_setup_function(pos, nr_data_drives) == True
-        assert pos.cli.array_create(array_name=array_name,
+        status = pos.cli.array_create(array_name=array_name,
                     write_buffer="dummy", data=data_disk_list,
-                    spare=[], raid_type=raid_type)[0] == False
+                    spare=[], raid_type=raid_type)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array create due to {event_name}")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
@@ -87,11 +87,8 @@ def test_array_less_data_drive(
                     spare=[], raid_type=raid_type)
 
         assert status[0] == False
-        logger.info(
-            "As expected testcases failed due to {}".format(
-                status[1]["output"]["Response"]["result"]["status"]["eventName"]
-            )
-        )
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array create due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -115,8 +112,11 @@ def test_add_spare_without_array_mount(
                     write_buffer="uram0", data=data_disk_list,
                     spare=[], raid_type=raid_type)[0] == True
 
-        assert pos.cli.array_addspare(array_name=array_name,
-                     device_name=spare_disk_list[0])[0] == False
+        status = pos.cli.array_addspare(array_name=array_name,
+                     device_name=spare_disk_list[0])
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for add spare disk due to {event_name}")
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -141,8 +141,11 @@ def test_remove_spare_without_array_mount(
                     write_buffer="uram0", data=data_disk_list,
                     spare=spare_disk_list, raid_type=raid_type)[0] == True
 
-        assert pos.cli.array_rmspare(array_name=array_name,
-                    device_name=spare_disk_list[0])[0] == False
+        status = pos.cli.array_rmspare(array_name=array_name,
+                    device_name=spare_disk_list[0])
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for remove spare disk due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -159,11 +162,8 @@ def test_array_mnt_without_arrays(array_fixture, nr_data_drives=3):
         assert negative_test_setup_function(pos, nr_data_drives) == True
         status = pos.cli.array_mount(array_name=array_name, write_back=False)
         assert status[0] == False
-        logger.info(
-            "As expected testcases failed due to {}".format(
-                status[1]["output"]["Response"]["result"]["status"]["description"]
-            )
-        )
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array mount due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -200,13 +200,10 @@ def test_mnt_vol_stop_arrray_state(
             )
             assert 0
         else:
-            assert (
-                pos.cli.volume_create(
-                    array_name=array_name, size="10gb", volumename="vol"
-                )[0]
-                == False
-            )
-            logger.info("As expected volume creation failed in array stop state")
+            status = pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol")
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create due to {event_name}")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)

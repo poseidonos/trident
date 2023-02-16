@@ -14,7 +14,10 @@ def test_do_gc_emptyarray(array_fixture):
     try:
         """GC is expected to fail on 100% Free array"""
         pos = array_fixture
-        assert pos.cli.wbt_do_gc("array1")[0] == False
+        status = pos.cli.wbt_do_gc("array1")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for do gc due to {event_name}")
     except Exception as e:
         logger.error(e)
         pos.exit_handler()

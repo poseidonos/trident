@@ -155,8 +155,11 @@ def test_disk_replace_degraded_array(array_fixture, raid_type):
         array_situation = pos.cli.array_data[array_name]["situation"].lower()
         assert array_situation == "degraded"
 
-        assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
-
+        status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array replace disk due to {event_name}")
+        
         assert pos.cli.device_list()[0] == True
         spare_disk = pos.cli.system_disks[:2]
         assert pos.cli.array_addspare(spare_disk[0], array_name=array_name)[0] ==  True

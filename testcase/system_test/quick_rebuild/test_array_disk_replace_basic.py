@@ -211,8 +211,10 @@ def test_array_max_vol_disk_replace_during_qr(array_fixture, raid_type, mount_ty
             assert pos.target_utils.check_rebuild_status(array_name=array) == True
 
             # Trying Data Disk Replacment during Quick Rebuild
-            assert pos.cli.array_replace_disk(data_disk_list[1], array)[0] == False
-            logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
+            status = pos.cli.array_replace_disk(data_disk_list[1], array)
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for array replace disk due to {event_name}")
             
             # Waiting for completion of Rebuild 
             assert pos.target_utils.array_rebuild_wait(array_name=array) == True
@@ -290,8 +292,10 @@ def test_array_max_vol_disk_replace_during_rebuild(array_fixture, raid_type, mou
 
         
             # Trying Data Disk Replacment during  Rebuild
-            assert pos.cli.array_replace_disk(data_disk_list[1], array)[0] == False
-            logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
+            status = pos.cli.array_replace_disk(data_disk_list[1], array)
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for array replace disk due to {event_name}")
             
             # Waiting for completion of Rebuild 
             assert pos.target_utils.array_rebuild_wait(array_name=array) == True
