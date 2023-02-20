@@ -84,9 +84,7 @@ def test_no_spare_array_disk_replace(array_fixture, raid_type):
         event_name = status[1]['output']['Response']['result']['status']['eventName']
         logger.info(f"Expected failure for array replace disk due to {event_name}")
 
-        
-        if raid_type =="RAID0":
-           assert status[1]['output']['Response']['result']['status']['eventName'] == "REPLACE_DEV_UNSUPPORTED_RAID_TYPE"
+        assert event_name == "REPLACE_DEV_UNSUPPORTED_RAID_TYPE"
 
         logger.info(
             " ============================= Test ENDs ======================================"

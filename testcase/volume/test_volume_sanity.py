@@ -43,9 +43,8 @@ def test_SanityVolume(array_fixture, numvol, volsize):
             event_name = status[1]['output']['Response']['result']['status']['eventName']
             logger.info(f"Expected failure for volume create due to {event_name}")
             # invalid array volume creation
-            status = (
-                pos.cli.volume_mount(volumename=volname, array_name="array1")
-            )
+            status = pos.cli.volume_mount(volumename=volname, array_name="array1")
+
             assert status[0] == False
             event_name = status[1]['output']['Response']['result']['status']['eventName']
             logger.info(f"Expected failure for volume mount due to {event_name}")  
