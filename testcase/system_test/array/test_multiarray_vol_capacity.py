@@ -102,7 +102,9 @@ def test_multi_array_unmnt_vol(array_fixture):
         for array_name in pos.cli.array_dict.keys():
             if pos.cli.array_dict[array_name].lower() == "unmounted":
                 status = pos.cli.volume_mount(array_name=array_name, volumename=pos.cli.vols)
-                logger.info(f"Expected failure for volume mount due to {event_name}")
+                assert status[0] == False
+                event_name = status[1]['output']['Response']['result']['status']['eventName']
+                logger.info(f"Expected failure for volume mount  due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
