@@ -36,7 +36,7 @@ def create_initial_arrays(pos, array_detail):
         assert pos.cli.array_mount(array_name=array_name,
                                    write_back=False)[0] == True
         assert pos.target_utils.get_subsystems_list() == True
-        if len(pos.target_utils.ss_temp_list) >= len(array_name):
+        if len(pos.target_utils.ss_temp_list) >= len(arrays):
             assert pos.cli.volume_create(array_name=array_name,
                                          volumename=array_name+'vol',
                                          size='1gb')[0] == True

@@ -19,14 +19,16 @@ def test_wt_multi_array_256vols(
     )
     try:
         pos = array_fixture
+        pos_array = pos.data_dict["array"]["pos_array"]
+        array1_name = pos_array[0]["array_name"]
+        array2_name = pos_array[1]["array_name"]
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives + 1):
             pytest.skip(
                 f"Insufficient disk count {system_disks}. Required minimum {nr_data_drives + 1}"
             )
 
-        array_list = ["posarray1", "posarray2"]
-        for index, array in enumerate(array_list):
+        for index, array in enumerate(array1_name, array2_name):
             data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
             res = pos.cli.array_create(array_name=array,
                                        write_buffer=f"uram{index}", 
@@ -41,9 +43,10 @@ def test_wt_multi_array_256vols(
 
             assert pos.target_utils.get_subsystems_list() == True
             assert pos.cli.volume_list(array_name=array)[0] == True
-            nqn = pos.target_utils.ss_temp_list[index]
+            ss_temp_list = pos.target_utils.ss_temp_list
+            ss_list = [ss for ss in ss_temp_list if array in ss]
             assert pos.target_utils.mount_volume_multiple(array_name=array,
-                             volume_list=pos.cli.vols, nqn=nqn) == True
+                             volume_list=pos.cli.vols, nqn=ss_list[0]) == True
 
         logger.info(
             " ============================= Test ENDs ======================================"

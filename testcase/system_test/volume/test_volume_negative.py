@@ -37,7 +37,7 @@ def test_unsupported_volumes(volume_fixture, num_vols):
             assert (
                 pos.target_utils.mount_volume_multiple(
                     array_name, pos.cli.vols, ss_list[0]
-                )
+                ) 
                 == True
             )
 

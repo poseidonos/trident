@@ -22,7 +22,7 @@ def test_wt_array_nvme_flush(array_fixture, raid_type, nr_data_drives):
             )
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
 
-        array_name = "posarray1"
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"] 
         assert pos.cli.array_create(array_name=array_name,
                     write_buffer="uram0", data=data_disk_list,
                     spare=[], raid_type=raid_type)[0] == True

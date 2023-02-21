@@ -28,7 +28,7 @@ def gc_array_io(pos):
         ss_list_all = pos.target_utils.ss_temp_list
         ss_list = [ss for ss in ss_list_all if array_name in ss]
         assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                        volume_list=pos.cli.vols, nqn_list=ss_list) == True
+                        volume_list=pos.cli.vols, nqn=ss_list[0]) == True
 
         ip_addr = pos.target_utils.helper.ip_addr[0]
         for ss in pos.target_utils.ss_temp_list:

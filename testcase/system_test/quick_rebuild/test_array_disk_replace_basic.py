@@ -166,7 +166,7 @@ def test_array_vol_disk_replace_all_spare(array_fixture, raid_type, mount_type, 
     Verification: POS CLI
     """
     logger.info(
-        f" ==================== Test : test_no_spare_array_disk_replace[{raid_type}] ================== "
+        f" ==================== Test : test_array_vol_disk_replace_all_spare[{raid_type}] ================== "
     )
     pos = array_fixture
     try:

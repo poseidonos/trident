@@ -145,7 +145,7 @@ def test_hetero_array_all_dev_fio(hetero_setup, raid_type, mount_type):
         write_back = False if mount_type == 'WT' else True
             
         assert pos.cli.array_mount(array_name=array_name,
-                                   write_back=write_back)[0] == True
+                            write_back=write_back)[0] == True
         assert pos.cli.array_info(array_name=array_name)[0] == True
         array_size = int(pos.cli.array_data[array_name].get("size"))
         vol_size = f"{int(array_size // (1024 * 1024))}mb"  # Volume Size in MB
@@ -157,7 +157,7 @@ def test_hetero_array_all_dev_fio(hetero_setup, raid_type, mount_type):
         assert pos.cli.volume_list(array_name=array_name)[0] == True
         ss_temp_list = pos.target_utils.ss_temp_list
         assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                volume_list=pos.cli.vols, nqn_list=ss_temp_list) == True
+                volume_list=pos.cli.vols, nqn=ss_temp_list[0]) == True
 
         for ss in pos.target_utils.ss_temp_list:
             assert pos.client.nvme_connect(ss, 

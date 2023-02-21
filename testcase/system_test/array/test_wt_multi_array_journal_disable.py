@@ -21,52 +21,46 @@ def test_wt_multi_array_disabled_journal(
     )
     try:
         pos = array_fixture
-        array_name1, array_name2 = "array1", "array2"
+        pos_array = pos.data_dict["array"]["pos_array"]
+        array1_name = pos_array[0]["array_name"]
+        array2_name = pos_array[1]["array_name"]
+        mount_point = None
 
         array_writeback_list = (False, True)
 
         array_list = []
-        for id, array_name in enumerate((array_name1, array_name2)):
+        for index, array_name in enumerate((array1_name, array2_name)):
             array_list.append(
                 {
                     "array_name": array_name,
-                    "buffer_dev": f"uram{id}",
+                    "buffer_dev": f"uram{index}",
                     "raid_type": array_raid,
                     "nr_data_drives": array_num_disk,
-                    "write_back": array_writeback_list[id],
+                    "write_back": array_writeback_list[index],
                 }
             )
 
         assert wt_test_multi_array_setup(array_list) == True
 
-        for id, array_name in enumerate((array_name1, array_name2)):
+        for index, array_name in enumerate((array1_name, array2_name)):
             assert pos.cli.array_info(array_name=array_name)[0] == True
             array_size = int(pos.cli.array_data[array_name].get("size"))
             vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
             io_size = f"{array_size * 95 // (1024 * 1024 * 100)}mb"  # IO size is 95% of Vol size.
 
-            assert (
-                pos.target_utils.create_volume_multiple(
-                    array_name, 1, "pos_vol", size=vol_size
-                )
-                == True
-            )
+            assert pos.target_utils.create_volume_multiple(array_name, 1,
+                                        "pos_vol", size=vol_size) == True
+
             assert pos.target_utils.get_subsystems_list() == True
             assert pos.cli.volume_list(array_name=array_name)[0] == True
             ss_temp_list = pos.target_utils.ss_temp_list
-            ss_list = [ss for ss in ss_temp_list if f"subsystem{id + 1}" in ss]
-            assert (
-                pos.target_utils.mount_volume_multiple(
-                    array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
-                )
-                == True
-            )
+            ss_list = [ss for ss in ss_temp_list if array_name in ss]
+            assert pos.target_utils.mount_volume_multiple(array_name=array_name,
+                            volume_list=pos.cli.vols, nqn=ss_list[0]) == True
 
+        ip_addr = pos.target_utils.helper.ip_addr[0]
         for ss in pos.target_utils.ss_temp_list:
-            assert (
-                pos.client.nvme_connect(ss, pos.target_utils.helper.ip_addr[0], "1158")
-                == True
-            )
+            assert pos.client.nvme_connect(ss, ip_addr, "1158") == True
 
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
@@ -92,5 +86,6 @@ def test_wt_multi_array_disabled_journal(
         )
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
-        pos.client.unmount_FS(mount_point)
+        if mount_point:
+            pos.client.unmount_FS(mount_point)
         pos.exit_handler(expected=False)
