@@ -165,7 +165,7 @@ def create_hetero_array(pos, raid_type, data_disk_req, spare_disk_req=None,
                                     raid_type=raid_type)[0] == True
         if array_mount:
             write_back = False if array_mount == "WT" else True
-            assert pos.cli.array_unmount(array_name=array_name, write_back=write_back)[0] == True
+            assert pos.cli.array_mount(array_name=array_name, write_back=write_back)[0] == True
 
         if array_info: 
             assert pos.cli.array_info(array_name=array_name)[0] == True

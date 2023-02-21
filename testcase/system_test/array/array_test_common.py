@@ -49,19 +49,14 @@ def wt_array_volume_setup(
     try:
         assert wt_array_setup(pos, raid_type, num_data_disk, num_spare_disk) == True
         array_name = pos.data_dict["array"]["pos_array"][array_index]["array_name"]
-        assert (
-            pos.cli.volume_create("pos_vol1", array_name=array_name, size="1000gb")[0]
-            == True
-        )
+        assert pos.cli.volume_create("pos_vol1", size="1000gb",
+                                     array_name=array_name)[0] == True
+        
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.volume_list(array_name=array_name)[0] == True
         ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
-        assert (
-            pos.target_utils.mount_volume_multiple(
-                array_name=array_name, volume_list=pos.cli.vols, nqn_list=ss_list
-            )
-            == True
-        )
+        assert pos.target_utils.mount_volume_multiple(array_name=array_name,
+                            volume_list=pos.cli.vols, nqn=ss_list[0]) == True
 
         for ss in pos.target_utils.ss_temp_list:
             assert (

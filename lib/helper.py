@@ -306,8 +306,8 @@ class Helper:
         """method to get pos path as per service option"""
         if not self.pos_as_service:
             data_path = "topology.json"
-            pos_path = self.json_reader(data_path)
-            self.pos_path = pos_path[1]["login"]["paths"]["pos_path"]
+            pos_path = self.json_reader(data_path)[1]
+            self.pos_path = pos_path["paths"]["pos_path"]
             return True
         return False
     
