@@ -488,19 +488,26 @@ class Client:
                 self.fio_out_json = (
                     f'fiojsonop_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
                 )
+
+            random.shuffle(devices)
+            logger.debug(f"Device list : {devices}")
             if not IO_mode:  # File IO
                 devices = list(map(lambda x: f"{x}/file.bin", devices))
 
             filename = ":".join(devices)
+
+            ## FIO limiation  to take file name = 4069 bytes
+            # Workaround
+            if(len(filename) > 4096):
+                filename = filename[:4096]
+                filename = filename[:filename.rfind(":")]
 
             if fio_user_data:
                 fio_cmd = fio_user_data
             else:
                 fio_cmd = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --direct=1"
 
-            fio_cmd += " --filename={} --output-format=json --output={}".format(
-                filename, self.fio_out_json
-            )
+            fio_cmd = f" {fio_cmd} --filename={filename} --output-format=json --output={self.fio_out_json}"
 
             if run_async == True:
                 async_out = self.ssh_obj.run_async(fio_cmd)
