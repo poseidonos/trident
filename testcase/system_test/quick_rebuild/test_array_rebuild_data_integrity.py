@@ -260,7 +260,7 @@ def test_array_raid6_disk_replace_remove(array_fixture, disk_replace_remove):
     Verification: Data Integrity
     """
     logger.info(
-        f" ==================== Test : test_array_data_disk_replace_remove[{disk_replace_remove}] ================== "
+        f" ==================== Test : test_array_raid6_disk_replace_remove[{disk_replace_remove}] ================== "
     )
     try:
         pos = array_fixture
