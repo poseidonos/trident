@@ -9,6 +9,10 @@
     "dump_pos_core": {
         "enable": false
     },
+    "telemetry_logs": {
+        "start": true,
+        "upload": false
+    },
     "code_coverage": {
         "enable": false,
         "scope": "session",
@@ -16,7 +20,15 @@
         "issue_key": "sample_test"
     },
     "pos_as_a_service": {
-        "enable" : false
+        "enable" : true
+    },
+    "forced_fio_config": {
+        "enable" : false,
+        "fio_config" : {
+            "size_based" : true,
+            "max_size" : "10G",
+            "time_based" : true,
+            "max_runtime" : 120
+        }
     }
-
 }

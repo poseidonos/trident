@@ -91,6 +91,8 @@ class POS:
         self.trident_config = self._json_reader(trident_config)[1]
         self.pos_as_service = self.trident_config["pos_as_a_service"]["enable"]
 
+        self.client_fio_conf = self.trident_config["forced_fio_config"]
+
         logger.info(f"Installed POS as Service : {self.pos_as_service}")
        
         self.target_ssh_obj = SSHclient(
@@ -130,9 +132,12 @@ class POS:
         ip = client_list[client_cnt]["ip"]
         username = client_list[client_cnt]["username"]
         password = client_list[client_cnt]["password"]
-        client_obj = SSHclient(ip, username, password)
-        self.obj_list.append(client_obj)
-        self.client_handle.append(Client(client_obj))
+        client_ssh_obj = SSHclient(ip, username, password)
+        self.obj_list.append(client_ssh_obj)
+        client_obj = Client(client_ssh_obj)
+        client_obj.set_fio_runtime(self.client_fio_conf)
+
+        self.client_handle.append(client_obj)
 
         if self.client_cnt == 1:
             self.client = self.client_handle[0]
@@ -174,7 +179,7 @@ class POS:
         """ Method to collect pos log and core dump """ 
         try:
             if is_pos_running:
-                assert pos.target_utils.dump_core() == True
+                assert self.target_utils.dump_core() == True
             return True
         except Exception as e:
             logger.error("Failed to collect core data due to {e}")
