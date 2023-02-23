@@ -47,9 +47,9 @@ def test_arrays_disk_replace_por(array_fixture, por_operation):
         assert multi_array_data_setup(pos.data_dict, len(arrays_raid), arrays_raid, 
                     arrays_data_disks, (2, 2), ("WT", "WB"), (False, False)) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True

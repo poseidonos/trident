@@ -480,14 +480,11 @@ class Client:
 
         """
         try:
+            time_stamp = datetime.datetime.now().strftime("%Y-%m_%H_%M")
             if json_out:
-                self.fio_out_json = (
-                    f'{json_out}_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
-                )
+                self.fio_out_json = f'{json_out}_{time_stamp}.json'
             else:
-                self.fio_out_json = (
-                    f'fiojsonop_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
-                )
+                self.fio_out_json = f'fiojsonop_{time_stamp}.json'
 
             random.shuffle(devices)
             logger.debug(f"Device list : {devices}")
@@ -513,9 +510,8 @@ class Client:
                 async_out = self.ssh_obj.run_async(fio_cmd)
                 return True, async_out
             else:
-                outfio = self.ssh_obj.execute(
-                    fio_cmd, get_pty=True, expected_exit_code=expected_exit_code
-                )
+                outfio = self.ssh_obj.execute(fio_cmd, get_pty=True, 
+                                              expected_exit_code=expected_exit_code)
                 self.fio_parser()
                 return True, outfio
 

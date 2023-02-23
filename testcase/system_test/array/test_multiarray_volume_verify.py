@@ -119,7 +119,7 @@ def test_unmnt_mnt_for_io(array_fixture):
             assert pos.target_utils.create_volume_multiple(array_name,
                                     num_vol=1, vol_name="vol") == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
         ip_addr = pos.target_utils.helper.ip_addr[0]
         for nqn in subs_list:

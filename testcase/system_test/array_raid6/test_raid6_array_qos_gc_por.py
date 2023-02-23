@@ -29,7 +29,7 @@ def test_raid6_arrays_qos(array_fixture, raid_type):
                                       (False, False)) == True
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True
@@ -97,7 +97,7 @@ def test_raid6_arrays_por(array_fixture, por_operation):
                                       (False, False)) == True
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols, 
@@ -124,14 +124,11 @@ def test_raid6_arrays_por(array_fixture, por_operation):
         for por in por_list:
             if por == "NPOR":
                 assert pos.client.nvme_disconnect(nqn=subs_list) == True
-
                 assert pos.target_utils.npor() == True
+                for nqn in subs_list:
+                    assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
             else:
-                assert pos.target_utils.spor() == True
-
-        if por == "NPOR":
-            for nqn in subs_list:
-                assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
+                assert pos.target_utils.spor() == True           
 
         fio_cmd = "fio --name=seq_read --ioengine=libaio --rw=read --iodepth=64 --bs=8k "\
                  f"--size=20gb --do_verify=1 --verify=pattern --verify_pattern={pattern}"
@@ -168,7 +165,7 @@ def test_raid6_arrays_gc(array_fixture, gc_operation):
                                       (False, False)) == True
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols, 

@@ -80,7 +80,7 @@ def test_array_recreation_to_diff_raid_type(array_fixture):
         array_setup(pos)
         assert run_block_io(pos) == True
         assert pos.cli.array_list()[0] ==True
-        for index , array in enumerate(pos.cli.array_dict.keys()):
+        for index, array in enumerate(pos.cli.array_dict.keys()):
             assert pos.cli.array_unmount(array_name=array)[0] == True
             assert pos.cli.array_delete(array_name=array)[0] == True
             assert pos.cli.device_scan()[0] == True
@@ -125,9 +125,8 @@ def test_npor_raid10_arrays(array_fixture):
         for array in array_list:
             assert pos.cli.array_unmount(array_name=array)[0] == True
             assert pos.cli.array_delete(array_name=array)[0] == True
-            assert pos.cli.devel_resetmbr()[0] == True
 
-        for array in array_list:
+        for index, array in enumerate(array_list):
             assert pos.cli.device_scan()[0] == True
             assert pos.cli.device_list()[0] == True
             system_disks = pos.cli.system_disks
@@ -137,11 +136,18 @@ def test_npor_raid10_arrays(array_fixture):
                 )
             data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
             spare_disk_list = [system_disks.pop(0)]
-            assert pos.cli.array_create(write_buffer="uram"+str(array_list.index(array)),raid_type=raid_type,data=data_disk_list,spare=spare_disk_list)[0] == True
+            assert pos.cli.array_create(array_name=array,
+                        write_buffer=f'uram{index}', data=data_disk_list,
+                        spare=spare_disk_list, raid_type=raid_type)[0] == True
             assert pos.cli.array_mount(array_name=array)[0] == True
             assert pos.target_utils.get_subsystems_list() == True
-            assert pos.cli.volume_create(volumename=array+'vol',size='1gb',array_name=array)[0] == True
-            assert pos.cli.volume_mount(array_name=array,volumename=array+'vol',nqn=pos.target_utils.ss_temp_list[array_list.index(array)])[0] == True
+            vol_name = array+'vol'
+            assert pos.cli.volume_create(volumename=vol_name, size='1gb',
+                                         array_name=array)[0] == True
+            ss_temp_list = pos.target_utils.ss_temp_list
+            ss_list = [ss for ss in ss_temp_list if array in ss]
+            assert pos.cli.volume_mount(array_name=array, volumename=vol_name,
+                                        nqn=ss_list[0])[0] == True
         assert run_block_io(pos) == True
         array_reset(pos)
     except Exception as e:

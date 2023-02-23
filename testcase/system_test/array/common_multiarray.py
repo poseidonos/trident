@@ -20,7 +20,7 @@ def volume_create_and_mount_multiple(
             array_list = list(pos.cli.array_dict.keys())
 
         if not subs_list:
-            assert pos.cli.subsystem_list()[0] == True
+            assert pos.target_utils.get_subsystems_list() == True
             subs_list = pos.target_utils.ss_temp_list
 
         for array_name in array_list:
@@ -54,7 +54,7 @@ def volume_create_and_mount_multiple(
 def volume_create_and_mount_multiple_with_io(pos, num_volumes, fio_cmd=None):
     try:
         assert volume_create_and_mount_multiple(pos, num_volumes) == True
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
         ip_addr = pos.target_utils.helper.ip_addr[0]
         for nqn in subs_list:

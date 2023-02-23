@@ -141,14 +141,13 @@ def test_multiarray_delete_array_list_vol(array_fixture):
         vol_name_pre = "pos_vol"
         for id in range(num_array):
             array_name = f"array{id+1}"
-            vol_name = f"array{id+1}_{vol_name_pre}"
             assert pos.cli.array_unmount(array_name=array_name)[0] == True
             assert pos.cli.array_delete(array_name=array_name)[0] == True
 
             # Expected fail for list volume as array is already deleted
             # TODO handle exception as API level
             try:
-                assert pos.cli.volume_list(vol_name) == False
+                assert pos.cli.volume_list(array_name) == False
             except Exception as e:
                 logger.info(
                     "Expected fail for list volume - array is deleted. {e}")

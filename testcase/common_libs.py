@@ -214,19 +214,22 @@ def volume_create_and_mount_multiple(pos: object, num_volumes: int, vol_utilize=
 
         for array_name in array_list:
             assert pos.cli.array_info(array_name=array_name)[0] == True
-
             array_cap = int(pos.cli.array_data[array_name]["size"])
+  
             if not vol_size:
-                vol_size = (array_cap * (vol_utilize / 100) / num_volumes)
-                vol_size = f"{int(vol_size // (1024 * 1024))}mb"     # Size in mb
-
+                volume_size = (array_cap * (vol_utilize / 100) / num_volumes)
+                volume_size = f"{int(volume_size // (1024 * 1024))}mb"     # Size in mb
+            else:
+                volume_size = vol_size
+            
             exp_res = True
             if num_volumes > MAX_VOL_SUPPORTED or vol_utilize > 100:
                 exp_res = False
 
             vol_name_pre = f"{array_name}_POS_Vol"
-            assert pos.target_utils.create_volume_multiple(array_name, num_volumes,
-                                vol_name=vol_name_pre, size=vol_size) == exp_res
+            assert pos.target_utils.create_volume_multiple(array_name, 
+                                        num_volumes, size=volume_size,
+                                        vol_name=vol_name_pre) == exp_res
 
             assert pos.cli.volume_list(array_name=array_name)[0] == True
             if mount_vols:

@@ -6,43 +6,6 @@ import logger
 
 logger = logger.get_logger(__name__)
 
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_module():
-
-    global pos, data_dict, array_name, vol_name
-    pos = POS("pos_config.json")
-    data_dict = pos.data_dict
-
-    data_dict["subsystem"]["pos_subsystems"][0]["nr_subsystems"] = 1
-    data_dict["subsystem"]["pos_subsystems"][1]["nr_subsystems"] = 0
-
-    data_dict["array"]["num_array"] = 1
-    data_dict["volume"]["phase"] = "false"
-
-    array_name = data_dict["array"]["pos_array"][0]["array_name"]
-    vol_name = "POS_Vol"
-
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    yield pos
-
-
-def teardown_function():
-    logger.info("========== TEAR DOWN AFTER TEST =========")
-
-    assert pos.cli.volume_list(array_name=array_name)[0] == True
-    for vol_name in pos.cli.vols:
-        assert pos.cli.qos_reset_volume_policy(vol_name, array_name)[0] == True
-        assert pos.cli.volume_delete(vol_name, array_name)[0] == True
-
-    logger.info("==========================================")
-
-
-def teardown_module():
-    logger.info("========= TEAR DOWN AFTER SESSION ========")
-    pos.exit_handler(expected=True)
-
-
 # List of maxiops and maxbw
 
 qos_tests = {}
@@ -78,7 +41,7 @@ def test_qos_maxiops_maxbw_value(volume_fixture, qos_test):
     )
     try:
         pos = volume_fixture
-        array_name = data_dict["array"]["pos_array"][0]["array_name"]
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         vol_name = "POS_Vol"
         qos_values = qos_tests[qos_test]["iops_bw"]
         exp_result = qos_tests[qos_test]["result"]
@@ -86,18 +49,12 @@ def test_qos_maxiops_maxbw_value(volume_fixture, qos_test):
         assert pos.cli.volume_create(vol_name, "10GB", array_name)[0] == True
 
         for max_iops, max_bw in qos_values:
-            assert (
-                pos.cli.qos_create_volume_policy(
-                    vol_name, array_name, max_iops, max_bw
-                )[0]
-                == exp_result
-            )
+            assert pos.cli.qos_create_volume_policy(vol_name, array_name,
+                                        max_iops, max_bw)[0] == exp_result
 
             if exp_result:
-                assert (
-                    pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0]
-                    == True
-                )
+                assert pos.cli.volume_info(array_name=array_name, 
+                                           vol_name=vol_name)[0] == True
 
                 vol_info = pos.cli.volume_data[array_name][vol_name]
                 assert vol_info["max_iops"] == max_iops
@@ -136,19 +93,14 @@ def test_vol_create_with_qos_value(volume_fixture, max_iops, max_bw, exp_result)
     )
     try:
         pos = volume_fixture
-        array_name = data_dict["array"]["pos_array"][0]["array_name"]
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         vol_name = "POS_Vol"
-        assert (
-            pos.cli.volume_create(
-                vol_name, "10GB", array_name, iops=max_iops, bw=max_bw
-            )[0]
-            == exp_result
-        )
+        assert pos.cli.volume_create(vol_name, "10GB", array_name,
+                                     iops=max_iops, bw=max_bw)[0] == exp_result
 
         if exp_result:
-            assert (
-                pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0] == True
-            )
+            assert pos.cli.volume_info(array_name=array_name, 
+                                       vol_name=vol_name)[0] == True
 
             vol_info = pos.cli.volume_data[array_name][vol_name]
             assert vol_info["max_iops"] == max_iops

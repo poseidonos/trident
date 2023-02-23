@@ -32,7 +32,7 @@ def test_array_rebuild_data_integrity(array_fixture, remove_disk):
                                        num_data_disk, num_spare_disk,
                                        "WT", False) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert volume_create_and_mount_multiple(pos, num_vols) == True
         subs_list = pos.target_utils.ss_temp_list
@@ -121,7 +121,8 @@ def test_disk_replace_degraded_array(array_fixture, raid_type):
                     arrays_num_disks, (0, 0), ("WT", "WB"), (False, False)) == True
         
         pos.data_dict["volume"]["phase"] = "true"
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
 
         subs_list = pos.target_utils.ss_temp_list
 
@@ -205,7 +206,8 @@ def test_spare_disk_fail_during_disk_replace(array_fixture, raid_type):
                                     num_spare_disk, "WT", False) == True
         
         pos.data_dict["volume"]["phase"] = "true"
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
 
         subs_list = pos.target_utils.ss_temp_list
 
@@ -269,9 +271,9 @@ def test_array_raid6_disk_replace_remove(array_fixture, disk_replace_remove):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 2, "WT", False) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True

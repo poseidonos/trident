@@ -21,7 +21,7 @@ def test_noraid_array_disk_replace(array_fixture):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 0, "WT", False) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
         assert pos.cli.array_info(array_name=array_name)[0] == True
@@ -56,9 +56,9 @@ def test_no_spare_array_disk_replace(array_fixture, raid_type):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 0, "WT", False) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True
@@ -115,9 +115,9 @@ def test_array_data_disk_replace(array_fixture, test_param):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 2, mount_type, auto_create) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True
@@ -175,9 +175,9 @@ def test_array_vol_disk_replace_all_spare(array_fixture, raid_type, mount_type, 
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 2, mount_type, True) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True
@@ -245,9 +245,9 @@ def test_array_max_vol_disk_replace_during_qr(array_fixture, raid_type, mount_ty
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 3, mount_type, auto) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True
@@ -329,9 +329,9 @@ def test_array_max_vol_disk_replace_during_rebuild(array_fixture, raid_type, mou
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 2, mount_type, auto) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True

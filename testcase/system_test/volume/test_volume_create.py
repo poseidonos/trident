@@ -471,9 +471,7 @@ def test_unmount_volume_connected(volume_fixture):
         )
 
         assert pos.cli.volume_info(array_name=array_name, vol_name="vol1")[0] == True
-
-        pos.target_utils.get_subsystems_list()
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
 
         assert (
             pos.cli.volume_mount(

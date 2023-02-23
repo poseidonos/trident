@@ -55,7 +55,7 @@ def test_gc_long_io(array_fixture):
         assert (
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
-                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=300",
+                fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=randwrite --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=300"
             )[0]
             == True
         )
@@ -80,7 +80,7 @@ def test_set_gc_while_io(array_fixture):
         res, async_out = pos.client.fio_generic_runner(
             pos.client.nvme_list_out,
             fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=read --iodepth=64 --direct=1 --numjobs=1 --bs=63k --time_based --runtime=300",
-            run_async=True,
+            run_async=True
         )
         assert res == True
         assert (
@@ -114,7 +114,7 @@ def test_gc_in_loop(array_fixture):
             pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,
                 fio_user_data="fio --name=sequential_write --ioengine=libaio --rw=read --iodepth=64 --direct=1 --numjobs=1 --bs=63k --time_based --runtime=300",
-                run_async=True,
+                run_async=True
             )[0]
             == True
         )

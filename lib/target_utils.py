@@ -41,8 +41,8 @@ import logger
 from cli import Cli
 from hetero_setup import TargetHeteroSetup
 import copy
+import pytest
 logger = logger.get_logger(__name__)
-
 
 class TargetUtils:
     """
@@ -733,8 +733,7 @@ class TargetUtils:
                     nr_spare_drives = array["spare_device"]
 
                     if len(system_disks) < (nr_data_drives + nr_spare_drives):
-                        raise Exception(
-                            "Insufficient system disks {}. Required minimum {}".format(
+                        pytest.skip("Insufficient system disks {}. Required minimum {}".format(
                                 len(system_disks), nr_data_drives + nr_spare_drives))
 
                     if array["auto_create"] == "false":

@@ -4,11 +4,7 @@ import logger
 
 logger = logger.get_logger(__name__)
 
-
-arrays = ["POSARRAY1", "POSARRAY2"]
-nqn_name = "nqn.2022-10-array1.pos:subsystem"
-
-def create_initial_arrays(pos, array_detail):
+def create_initial_arrays(pos, array_detail, arrays):
     assert pos.cli.devel_resetmbr()[0] == True
     for index, array_name in enumerate(arrays):
         assert pos.cli.device_scan()[0] == True 
@@ -69,14 +65,20 @@ def run_block_io(pos):
 def test_array_swapping(array_fixture, array_detail):
     try:
         pos = array_fixture
-        create_initial_arrays(pos,array_detail)
+        array1_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        array2_name = pos.data_dict["array"]["pos_array"][1]["array_name"]
+        arrays = [array1_name, array2_name]
+        ss_list = pos.target_utils.ss_temp_list
+
+        create_initial_arrays(pos, array_detail, arrays)
         assert run_block_io(pos) == True
+        assert pos.client.nvme_disconnect(nqn=ss_list) == True
         assert pos.cli.array_list()[0] == True
         for array in list(pos.cli.array_dict.keys()):
             assert pos.cli.array_unmount(array_name=array)[0] == True
             assert pos.cli.array_delete(array_name=array)[0] == True
         swapped_arrays = array_detail[::-1]
-        create_initial_arrays(pos,swapped_arrays)
+        create_initial_arrays(pos, swapped_arrays, arrays)
         assert run_block_io(pos) == True
         assert pos.cli.array_list()[0] == True
         arrays = list(pos.cli.array_dict.keys())
@@ -92,6 +94,9 @@ def test_array_swapping(array_fixture, array_detail):
 def test_raid10_creation_with_diff_num_drives(array_fixture, array_detail):
     try:
         pos = array_fixture
+        array1_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        array2_name = pos.data_dict["array"]["pos_array"][1]["array_name"]
+        arrays = [array1_name, array2_name]
         num_of_array = array_detail[0]
         num_of_drives = array_detail[1]
         raid_type = "RAID10"
@@ -136,23 +141,25 @@ def test_raid10_creation_with_diff_num_drives(array_fixture, array_detail):
 def test_creation_of_raid10_with_same_drives(array_fixture):
     try:
         pos = array_fixture
+        array1_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        array2_name = pos.data_dict["array"]["pos_array"][1]["array_name"]
         num_of_drives = 4
         raid_type= "RAID10"
         assert pos.cli.devel_resetmbr()[0] == True
         assert pos.cli.device_scan()[0] == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
-        if len(system_disks) < (num_of_drives):
+        if len(system_disks) < num_of_drives:
             pytest.skip(
-                f"Insufficient disk count {system_disks}. Required minimum {num_of_drives + 1}")
+                f"Insufficient disk count {system_disks}. Required minimum {num_of_drives}")
         data_disk_list = [system_disks.pop(0) for i in range(num_of_drives)]
 
-        assert pos.cli.array_create(array_name=arrays[0],
+        assert pos.cli.array_create(array_name=array1_name,
                         write_buffer="uram0", data=data_disk_list,
                         spare=[], raid_type=raid_type)[0] == True
         
-        assert pos.cli.array_mount(array_name=arrays[0])[0] == True
-        assert pos.cli.array_create(array_name=arrays[1],
+        assert pos.cli.array_mount(array_name=array1_name)[0] == True
+        assert pos.cli.array_create(array_name=array2_name,
                         write_buffer="uram1", data=data_disk_list,
                         spare=[], raid_type=raid_type)[0] == False
     except Exception as e:
@@ -163,8 +170,11 @@ def test_creation_of_raid10_with_same_drives(array_fixture):
 def test_array_create_raid10_and_raid5(array_fixture):
     try:
         pos = array_fixture
+        array1_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        array2_name = pos.data_dict["array"]["pos_array"][1]["array_name"]
+        arrays = [array1_name, array2_name]
         array_details = [("RAID10",4),("RAID5",4)]
-        create_initial_arrays(pos,array_details)
+        create_initial_arrays(pos, array_details, arrays)
         assert run_block_io(pos) == True
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -173,17 +183,22 @@ def test_array_create_raid10_and_raid5(array_fixture):
 def test_array_create_and_trigger_rebuild(array_fixture):
     try:
         pos = array_fixture
+        array1_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
+        array2_name = pos.data_dict["array"]["pos_array"][1]["array_name"]
+        arrays = [array1_name, array2_name]
         config_1 = [("RAID10",4),("RAID10",4)]
         config_2 = [("RAID10",4),("RAID5",3)]
-        create_initial_arrays(pos,config_1)
+        ss_list = pos.target_utils.ss_temp_list
+        create_initial_arrays(pos,config_1, arrays)
         assert pos.cli.array_list()[0] == True
         assert run_block_io(pos) == True
+        assert pos.client.nvme_disconnect(nqn=ss_list) == True
         assert pos.target_utils.spor() == True
         array_list = list(pos.cli.array_dict.keys())
         for array in array_list:
             assert pos.cli.array_unmount(array_name=array)[0] == True
             assert pos.cli.array_delete(array_name=array)[0] == True
-        create_initial_arrays(pos,config_2)
+        create_initial_arrays(pos, config_2, arrays)
         assert run_block_io(pos) == True
         assert pos.cli.array_info(array_name=array_list[1])[0] == True
         remove_drives = [random.choice(pos.cli.array_data[array_list[1]]["data_list"])]

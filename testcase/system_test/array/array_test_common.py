@@ -77,10 +77,6 @@ def wt_test_multi_array_setup(pos, array_list: list):
     array_list : List of dict of array configuration.
     """
     try:
-        if pos.target_utils.helper.check_pos_exit() == True:
-            assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-        assert pos.cli.devel_resetmbr()[0] == True
-
         assert pos.cli.device_scan()[0] == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks

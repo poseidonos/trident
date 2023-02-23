@@ -25,6 +25,10 @@ def test_post_por_array_state(array_fixture, array1_num_drive, array2_num_drive,
     )
     try:
         pos = array_fixture
+        assert pos.cli.device_list()[0] == True
+        if len(pos.cli.system_disks) < (4 * 2 + array1_num_drive + array2_num_drive):
+            pytest.skip(f"Insufficient system disks {len(pos.cli.system_disks)}")
+
         assert multi_array_data_setup(data_dict=pos.data_dict, num_array=2,
                                       raid_types=("RAID6","RAID6"),
                                       num_data_disks=(4,4),
@@ -76,16 +80,18 @@ def test_post_por_array_state(array_fixture, array1_num_drive, array2_num_drive,
         (1, 3),   # SPS-4613
     ],
 )
-def test_post_por_array_state_mulitple(array_fixture,array1_num_drive, array2_num_drive):
+def test_post_por_array_state_mulitple(array_fixture, array1_num_drive, array2_num_drive):
     logger.info(
         f" ==================== Test : test_post_por_array_state_mulitple ================== "
     )
     try:
         pos = array_fixture
+        if len(pos.cli.system_disks) < (4 * 2 + array1_num_drive + array2_num_drive):
+            pytest.skip(f"Insufficient system disks {pos.cli.system_disks}")
         assert multi_array_data_setup(data_dict=pos.data_dict, num_array=2,
                                       raid_types=("RAID6","RAID6"),
                                       num_data_disks=(4,4),
-                                      num_spare_disk=(1,1),
+                                      num_spare_disk=(array1_num_drive, array2_num_drive),
                                       auto_create=(True, True),
                                       array_mount=("WT", "WT")) == True
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True

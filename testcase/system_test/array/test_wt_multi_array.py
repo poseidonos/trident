@@ -22,13 +22,14 @@ def test_wt_multi_array_256vols(
         pos_array = pos.data_dict["array"]["pos_array"]
         array1_name = pos_array[0]["array_name"]
         array2_name = pos_array[1]["array_name"]
+        array_list = [array1_name, array2_name]
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives + 1):
             pytest.skip(
                 f"Insufficient disk count {system_disks}. Required minimum {nr_data_drives + 1}"
             )
 
-        for index, array in enumerate(array1_name, array2_name):
+        for index, array in enumerate(array_list):
             data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
             res = pos.cli.array_create(array_name=array,
                                        write_buffer=f"uram{index}", 

@@ -5,48 +5,6 @@ from common_libs import *
 import logger
 logger = logger.get_logger(__name__)
 
-@pytest.fixture(scope="module")
-def setup_module(system_fixture):
-    logger.info("========= SETUP MODULE ========")
-    pos = system_fixture
-    assert pos.pos_conf.rebuild_auto_start(auto_start=False,
-                                           update_now=True) == True
-
-    data_dict = pos.data_dict
-    data_dict['array']['phase'] = "false"
-    data_dict['volume']['phase'] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-
-    yield pos
-
-    logger.info("========= CLEANUP MODULE ========")
-    assert pos_system_restore_stop(pos) == True
-    assert pos.pos_conf.restore_config() == True
-    del pos
-
-@pytest.fixture(scope="function")
-def auto_rebuild_setup_cleanup(setup_module):
-    logger.info("========== SETUP TEST =========")
-    pos = setup_module
-    data_dict = pos.data_dict
-    if pos.target_utils.helper.check_pos_exit() == True:
-        data_dict['system']['phase'] = "true"
-        data_dict['subsystem']['phase'] = "true"
-        data_dict['device']['phase'] = "true"
-        data_dict['array']['phase'] = "false"
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
-    data_dict['system']['phase'] = "false"
-    data_dict['subsystem']['phase'] = "false"
-    data_dict['device']['phase'] = "false"
-    data_dict['array']['phase'] = "true"
-
-    yield pos
-
-    logger.info("========== CLEANUP AFTER TEST =========")
-
-    assert pos_system_restore_stop(pos, client_disconnect=True) == True
-    logger.info("==========================================")
-
 test_opr = ["disk_replace_rebuild", "disk_remove", "disk_remove_rebuild"]
 
 @pytest.mark.parametrize("test_operation", test_opr)
@@ -73,7 +31,7 @@ def test_array_rebuild_auto_start_disable(array_fixture, test_operation):
                                        num_data_disk, num_spare_disk,
                                        "WT", False) == True
 
-        assert pos.target_utils.pos_bring_up(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert volume_create_and_mount_multiple(pos, num_vols) == True
         subs_list = pos.target_utils.ss_temp_list
