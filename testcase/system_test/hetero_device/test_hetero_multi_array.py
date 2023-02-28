@@ -197,8 +197,8 @@ def array_create_and_list(pos, raid_list=["RAID5", "RAID5"],
         for array_index in range(2):
             data_disk_req = {'mix': num_devs[array_index] - 1, 'any': 1}
             assert create_hetero_array(pos, raid_list[array_index], data_disk_req, 
-                                       array_index=array_index, mount_array="WT", 
-                                       info_array=True) == True
+                                       array_index=array_index, array_mount="WT", 
+                                       array_info=True) == True
  
         assert pos.cli.array_list()[0] == True
     except Exception as e:

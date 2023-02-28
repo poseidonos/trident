@@ -528,7 +528,8 @@ class Client:
             else:
                 fio_cmd = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --direct=1"
 
-            if(self.config_fio):
+            if(self.config_fio): 
+                logger.info("Selected Forced Overwrite of FIO Params(Size/Runtime)")
                 fio_cmd = self.change_fio_params(fio_cmd, self.forced_fio_config)
 
             fio_cmd = f" {fio_cmd} --filename={filename} --output-format=json --output={self.fio_out_json}"
