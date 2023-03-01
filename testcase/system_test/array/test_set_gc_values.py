@@ -85,8 +85,7 @@ def test_gc_without_volume(array_fixture):
         array_setup(pos)
         status = pos.cli.wbt_do_gc(array_name=array_name)
         assert status[0] == False
-        event_name = status[1]['output']['Response']['result']['status']['eventName']
-        logger.info(f"Expected failure for get gc due to {event_name}")
+        logger.info(f"Expected failure for get gc")
         logger.info(
             " ============================= Test ENDs ======================================"
         )

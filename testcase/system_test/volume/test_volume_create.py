@@ -54,9 +54,10 @@ def test_volume_create(volume_fixture, volume_create_test):
         expected_res = volume_create_tests[volume_create_test]["result"]
 
         status = pos.cli.volume_create(volumename=vol_name, size="10gb", array_name=array_name)
-        assert status[0] == False
-        event_name = status[1]['output']['Response']['result']['status']['eventName']
-        logger.info(f"Expected failure for volume create disk due to {event_name}")
+        assert status[0] == expected_res
+        if expected_res == False:
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create disk due to {event_name}")
         
         assert (
             pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0]

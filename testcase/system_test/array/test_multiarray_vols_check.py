@@ -93,10 +93,9 @@ def test_multi_array_invalid_vols(array_fixture):
 
         for array_name in array_list:
             assert pos.cli.volume_list(array_name=array_name)[0] == True
-            status = pos.cli.volume_create(array_name=array_name, volumename="###", size="100gb")
+            status = pos.cli.volume_create(array_name=array_name, volumename="'###'", size="100gb")
             assert status[0] == False
-            event_name = status[1]['output']['Response']['result']['status']['eventName']
-            logger.info(f"Expected failure for volume creation due to {event_name}")
+            logger.info("Expected failure for volume creation}")
         assert pos.cli.volume_list(array_name=array_name)[0] == True
         logger.info("As expected array size vary before and after volume creation ")
         logger.info(
