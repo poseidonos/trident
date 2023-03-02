@@ -186,11 +186,9 @@ def test_multi_array_more_than_max_vols(array_fixture):
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert volume_create_and_mount_multiple(pos, 256) == True 
         status = pos.cli.volume_create(volumename='vol257',size='1gb',
-                                           array_name=pos.data_dict["array"]["pos_array"][0]["array_name"])[0] == True
-        status = volume_create_and_mount_multiple(pos, 1)
+                                           array_name=pos.data_dict["array"]["pos_array"][0]["array_name"])
         assert status[0] == False
-        event_name = status[1]['output']['Response']['result']['status']['eventName']
-        logger.info(f"Expected failure for volume creation due to {event_name}")
+        logger.info(f"Expected failure for volume creation")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
