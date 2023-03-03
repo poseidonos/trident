@@ -1231,8 +1231,19 @@ class PosCLI:
                     "total": vol["total"],
                     "status": vol["status"],
                     "max_iops": vol["maxiops"],
-                    "maxbw": vol["maxbw"],
+                    "maxbw": vol["maxbw"]
                 }
+                logger.info(f"Volume {vol['name']} Status {vol['status']}")
+                if vol["status"].lower() == "mounted":
+                    self.vol_dict[vol["name"]]["remain"] = vol["remain"]
+                else:
+                    self.vol_dict[vol["name"]]["remain"] = vol["total"]
+
+                remain_vol = int(self.vol_dict[vol["name"]]["remain"])
+                filled_per = (int(vol["total"]) - remain_vol) / int(vol["total"]) * 100
+                filled_per = float("%.2f" % filled_per)
+                self.vol_dict[vol["name"]]["filled"] = filled_per
+
             self.vols = list(self.vol_dict.keys())
             return True, jout
         except Exception as e:
