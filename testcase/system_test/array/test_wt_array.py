@@ -99,9 +99,12 @@ def test_array_nouram(array_fixture, raid_type, nr_data_drives):
         data_disk_list = [system_disks.pop(0) for i in range(nr_data_drives)]
 
         # creating array without Uram
-        assert pos.cli.array_create(array_name=array_name,
+        status = pos.cli.array_create(array_name=array_name,
                         write_buffer=None, data=data_disk_list,
-                        spare=[], raid_type=raid_type)[0] == False
+                        spare=[], raid_type=raid_type)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array create due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )

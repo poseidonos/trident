@@ -75,7 +75,10 @@ def test_multiple_recreation(array_fixture):
 def test_apply_log_filter(array_fixture):
     try:
         pos = array_fixture
-        assert pos.cli.logger_apply_log_filter()[0] == False
+        status =  pos.cli.logger_apply_log_filter()
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for apply log filter due to {event_name}")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
@@ -110,8 +113,11 @@ def test_mount_invalid_volume_name(array_fixture):
         assert pos.cli.volume_create(volumename=volume_name, 
                                      size='1gb',array_name=array)[0] == True
 
-        assert pos.cli.volume_mount(volumename=invalid_volume_name, 
-                                    array_name=array)[0] == False
+        status = pos.cli.volume_mount(volumename=invalid_volume_name, 
+                                    array_name=array)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume mount due to {event_name}")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
@@ -127,8 +133,11 @@ def test_create_volume_with_invalid_name(array_fixture):
                         pos_dict=pos.data_dict, volume_creation=False) == True
         assert pos.cli.array_list()[0] == True
         array = list(pos.cli.array_dict.keys())[0]
-        assert pos.cli.volume_create(volumename=invalid_volume_name,
-                                     size='1gb',array_name=array)[0] == False
+        status = pos.cli.volume_create(volumename=invalid_volume_name,
+                                     size='1gb',array_name=array)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume creation due to {event_name}")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
@@ -167,8 +176,11 @@ def test_gc_on_r0(array_fixture):
         array = list(pos.cli.array_dict.keys())[0]
         assert pos.cli.volume_create(volumename=volume_name,
                                      size='1gb', array_name=array)[0] == True
-        assert pos.cli.volume_mount(volumename=invalid_volume_name,
-                                    array_name=array)[0] == False
+        status = pos.cli.volume_mount(volumename=invalid_volume_name,
+                                    array_name=array)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume mount due to {event_name}")
         pos.cli.wbt_do_gc(array)
         pos.cli.wbt_get_gc_status(array)[0]
         assert pos.cli.array_list()[0] == True

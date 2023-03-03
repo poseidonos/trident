@@ -29,7 +29,10 @@ def test_noraid_array_disk_replace(array_fixture):
         data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
-        assert pos.cli.array_replace_disk(data_disk_list[0], array_name)[0] == False
+        status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array replace disk due to {event_name}")
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -78,9 +81,11 @@ def test_no_spare_array_disk_replace(array_fixture, raid_type):
         # The command is expected to fail.
         status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
         assert status[0] == False
-
-        if raid_type =="RAID0":
-           assert status[1]['output']['Response']['result']['status']['eventName'] == "REPLACE_DEV_UNSUPPORTED_RAID_TYPE"
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array replace disk due to {event_name}")
+        if raid_type == "RAID0":
+            assert status[1]['output']['Response']['result']['status'][
+                       'eventName'] == "REPLACE_DEV_UNSUPPORTED_RAID_TYPE"
 
         logger.info(
             " ============================= Test ENDs ======================================"

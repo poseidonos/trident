@@ -69,9 +69,13 @@ def test_auto_array_with_insufficient_numa_dev(array_fixture):
         for numa_id, num_dev in enumerate(numa_dev_list):
             array_name = f"array{numa_id}"
             if len(num_dev["ssd"]) >= 3 and num_dev["nvram"]:
-                assert pos.cli.array_autocreate(array_name, 
+                status = pos.cli.array_autocreate(array_name, 
                             num_dev["nvram"][0], len(num_dev["ssd"]) + 1,
-                            raid_type = "RAID5", num_spare=0)[0] == False
+                            raid_type = "RAID5", num_spare=0)
+                assert status[0] == False
+                event_name = status[1]['output']['Response']['result']['status']['eventName']
+                logger.info(f"Expected failure for array replace disk due to {event_name}")
+
             else:
                 logger.info(f"Insufficient device {num_dev} to numa {numa_id}")
 

@@ -36,16 +36,19 @@ def test_SanityVolume(array_fixture, numvol, volsize):
         # negative test Multiple invalid commands
         for nums in range(numvol):
             volname = f"tempvolpos{str(nums)}"
-            assert (
-                pos.cli.volume_create(
+            status = pos.cli.volume_create(
                     volumename=volname, array_name="array33", size=volsize
-                )[0]
-                == False
-            )  # invalid array volume creation
-            assert (
-                pos.cli.volume_mount(volumename=volname, array_name="array1")[0]
-                == False
-            )  ##volume re-mount
+                )
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create due to {event_name}")
+            # invalid array volume creation
+            status = pos.cli.volume_mount(volumename=volname, array_name="array1")
+
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume mount due to {event_name}")  
+            #volume re-mount
 
         assert pos.cli.volume_list(array_name="array1")[0] == True
         for vol in pos.cli.vols:
@@ -84,12 +87,12 @@ def test_volumesanity257vols(array_fixture):
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         # negative test
-        assert (
-            pos.cli.volume_create(
+        status = pos.cli.volume_create(
                 volumename="invalidvol", array_name=array_name, size="1gb"
-            )[0]
-            == False
-        )
+            )
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume create due to {event_name}")
 
     except Exception as e:
         logger.error(f" ======= Test FAILED due to {e} ========")

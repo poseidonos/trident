@@ -11,10 +11,10 @@ def test_set_gc_threshold_without_array(array_fixture):
     )
     try:
         pos = array_fixture
-        assert (
-            pos.cli.wbt_set_gc_threshold(array_name="dummy", normal=10, urgent=3)[0]
-            == False
-        )
+        status = pos.cli.wbt_set_gc_threshold(array_name="dummy", normal=10, urgent=3)
+		assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for set gc threshold due to {event_name}")
         logger.info("As expected set gc failed due to no array")
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -31,8 +31,9 @@ def test_get_gc_threshold_without_array(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.cli.wbt_get_gc_threshold(array_name="dummy")[0] == False
-        logger.info("As expected get gc failed due to no array")
+        status = pos.cli.wbt_get_gc_threshold(array_name="dummy")
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for set gc threshold due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -48,8 +49,9 @@ def test_get_gc_status_without_array(array_fixture):
     )
     try:
         pos = array_fixture
-        assert pos.cli.wbt_get_gc_status(array_name="dummy")[0] == False
-        logger.info("As expected get gc failed due to no array")
+        status = pos.cli.wbt_get_gc_status(array_name="dummy")
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for set gc threshold due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )

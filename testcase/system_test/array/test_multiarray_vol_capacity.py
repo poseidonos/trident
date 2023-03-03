@@ -101,13 +101,10 @@ def test_multi_array_unmnt_vol(array_fixture):
         assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             if pos.cli.array_dict[array_name].lower() == "unmounted":
-                assert (
-                    pos.cli.volume_mount(
-                        array_name=array_name, volumename=pos.cli.vols
-                    )[0]
-                    == False
-                )
-                logger.info("As expected volume mount failed while array is unmounted ")
+                status = pos.cli.volume_mount(array_name=array_name, volumename=pos.cli.vols)
+                assert status[0] == False
+                event_name = status[1]['output']['Response']['result']['status']['eventName']
+                logger.info(f"Expected failure for volume mount  due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -163,11 +160,13 @@ def test_multi_array_create_third_array(array_fixture):
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(3)]
 
-        assert pos.cli.array_create(array_name="array3",
+        status = pos.cli.array_create(array_name="array3",
                     write_buffer="uram3", data=data_disk_list,
-                    spare=[], raid_type="RAID5")[0] == False
-
-        logger.info("As expected array creation exceeded the limit ")
+                    spare=[], raid_type="RAID5")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for autoarray create due to {event_name}")
+        
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -185,8 +184,11 @@ def test_multi_array_more_than_max_vols(array_fixture):
         pos = array_fixture
         pos.data_dict["array"]["num_array"] = 2
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
-        assert volume_create_and_mount_multiple(pos, 257) == False
-        logger.info("As expected volume creation exceeded the limit and capacity ")
+        assert volume_create_and_mount_multiple(pos, 256) == True 
+        status = pos.cli.volume_create(volumename='vol257',size='1gb',
+                                           array_name=pos.data_dict["array"]["pos_array"][0]["array_name"])
+        assert status[0] == False
+        logger.info(f"Expected failure for volume creation")
         logger.info(
             " ============================= Test ENDs ======================================"
         )

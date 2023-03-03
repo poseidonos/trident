@@ -29,7 +29,10 @@ def test_unsupported_volumes(volume_fixture, num_vols):
             if (num_vols[index] - 256) > 0:
                 # Create and mount 257 volumes
                 vol_name = f"{array_name}_PoS_VoL_257"
-                assert pos.cli.volume_create(vol_name, vol_size, array_name)[0] == False
+                status = pos.cli.volume_create(vol_name, vol_size, array_name)
+                assert status[0] == False
+                event_name = status[1]['output']['Response']['result']['status']['eventName']
+                logger.info(f"Expected failure for array replace disk due to {event_name}")
 
             assert pos.cli.volume_list(array_name=array_name)[0] == True
             assert len(pos.cli.vols) == 256

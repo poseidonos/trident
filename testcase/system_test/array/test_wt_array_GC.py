@@ -25,8 +25,14 @@ def test_wt_array_GC(array_fixture, raid_type, nr_data_drives):
         assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
 
         run_io(pos)
-        assert pos.cli.wbt_do_gc(array_name = array_name)[0] == False
-        assert pos.cli.wbt_get_gc_status(array_name = array_name)[0] == False
+        status = pos.cli.wbt_do_gc(array_name = array_name)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for fo gc due to {event_name}")
+        status = pos.cli.wbt_get_gc_status(array_name = array_name)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for get gc status due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )

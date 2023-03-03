@@ -160,12 +160,18 @@ def test_set_telemetry_property(array_fixture):
 
         logger.info("***************Set Telemetry property with invalid filename***************")
         #Set property with a filename that is not present
-        assert pos.cli.telemetry_set_property(publication_list_path="/etc/pos/invalid_publicartion_file.yml")[0] == False
-
+        status = pos.cli.telemetry_set_property(publication_list_path="/etc/pos/invalid_publicartion_file.yml")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for set telemetry property due to {event_name}")
+        
         logger.info("***************Set Telemetry property with invalid path***************")
-        #Set property with a invalid file path
-        assert pos.cli.telemetry_set_property(publication_list_path="/etc/invalid_path/publication_file.yml")[0] == False
-
+        #Set property with a invalid file pat
+        status = pos.cli.telemetry_set_property(publication_list_path="/etc/invalid_path/publication_file.yml")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for set telemetry property due to {event_name}")
+        
         logger.info("***************Set Telemetry property with invalid file format***************")
         #Set property with a txt file
         f = open("new_file.txt","w+")

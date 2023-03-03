@@ -83,8 +83,9 @@ def test_gc_without_volume(array_fixture):
     try:
         pos = array_fixture
         array_setup(pos)
-        assert pos.cli.wbt_do_gc(array_name=array_name)[0] == False
-        logger.info("As expected get gc failed because io is not run")
+        status = pos.cli.wbt_do_gc(array_name=array_name)
+        assert status[0] == False
+        logger.info(f"Expected failure for get gc")
         logger.info(
             " ============================= Test ENDs ======================================"
         )

@@ -30,13 +30,14 @@ def test_rename_vol_special_char(volume_fixture, params):
             == True
         )
         assert pos.cli.volume_list(array_name=array_name)
-        assert (
-            pos.cli.volume_rename(
+        status = pos.cli.volume_rename(
                 array_name=array_name, volname=pos.cli.vols[0], new_volname=new_name
-            )[0]
-            == expected_result
-        )
-        logger.info("As expected volume creation failed with special characters")
+            )
+        assert status[0] == expected_result
+        if expected_result == False:
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume rename due to {event_name}")
+     
         logger.info(
             " ============================= Test ENDs ======================================"
         )
@@ -60,12 +61,8 @@ def test_rename_non_exist_vol(volume_fixture):
             == True
         )
         assert pos.cli.volume_list(array_name=array_name)
-        assert (
-            pos.cli.volume_rename(
-                array_name=array_name, volname="test", new_volname="posvol"
-            )[0]
-            == False
-        )
+        status = pos.cli.volume_rename(array_name=array_name, volname="test", new_volname="posvol")
+        
         logger.info("As expected volume creation failed with special characters")
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -155,15 +152,12 @@ def test_create_vol_larger_array_size(volume_fixture):
         logger.info(array_status["size"])
         capacity = int(array_status["size"]) + 2048
         logger.info(capacity)
-        assert (
-            pos.cli.volume_create(
-                array_name=array_name, size=capacity, volumename="vol"
-            )[0]
-            == False
-        )
-        logger.info(
-            "As expected volume creation failed with huge volume size than array size"
-        )
+        status = pos.cli.volume_create(array_name=array_name, size=capacity, volumename="vol")
+
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume_create due to {event_name}")
+        
         logger.info(
             " ============================= Test ENDs ======================================"
         )

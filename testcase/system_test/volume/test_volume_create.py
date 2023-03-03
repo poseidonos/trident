@@ -53,16 +53,12 @@ def test_volume_create(volume_fixture, volume_create_test):
         vol_name = volume_create_tests[volume_create_test]["volume_name_gen"]
         expected_res = volume_create_tests[volume_create_test]["result"]
 
-        assert (
-            pos.cli.volume_create(
-                volumename=vol_name, size="10gb", array_name=array_name
-            )[0]
-            == expected_res
-        )
-
+        status = pos.cli.volume_create(volumename=vol_name, size="10gb", array_name=array_name)
+        assert status[0] == expected_res
         if expected_res == False:
-            logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
-
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create disk due to {event_name}")
+        
         assert (
             pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0]
             == expected_res
@@ -103,12 +99,10 @@ def test_multiple_volume_create(volume_fixture, volnum):
                 == True
             )
 
-            assert (
-                pos.cli.volume_create(
-                    array_name=array_name, size="10gb", volumename="invalid-vol"
-                )[0]
-                == False
-            )
+            status = pos.cli.volume_create(array_name=array_name, size="10gb", volumename="invalid-vol")
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create due to {event_name}")
 
         else:
 
@@ -145,12 +139,10 @@ def test_volume_create_duplicate_name(volume_fixture):
             == True
         )
 
-        assert (
-            pos.cli.volume_create(
-                array_name=array_name, size="10gb", volumename="vol-duplicate"
-            )[0]
-            == False
-        )
+        status = pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol-duplicate")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume create due to {event_name}")
 
         # Delete the existing volume and retry creating with same name
         assert (
@@ -185,12 +177,10 @@ def test_volume_create_lt_aligned_blocksize(volume_fixture):
         array_name = list(pos.cli.array_dict.keys())[0]
         # 1MB = 1024 * 1024 Bytes
         # Less than 1MB => Unaligned blocksize
-        assert (
-            pos.cli.volume_create(
-                array_name=array_name, size="1024B", volumename="invalid-vol"
-            )[0]
-            == False
-        )
+        status = pos.cli.volume_create(array_name=array_name, size="1024B", volumename="invalid-vol")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume create due to {event_name}")
 
         logger.info("=============== TEST ENDs ================")
 
@@ -224,12 +214,10 @@ def test_volume_create_gt_max_array_capacity(volume_fixture):
         # 255 Volumes used up the Max array Capacity
         # Creating 256th Volume with exceeded array capacity
 
-        assert (
-            pos.cli.volume_create(
-                array_name=array_name, size="10gb", volumename="invalid-vol"
-            )[0]
-            == False
-        )
+        status = pos.cli.volume_create(array_name=array_name, size="10gb", volumename="invalid-vol")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume create due to {event_name}")
 
         logger.info("=============== TEST ENDs ================")
 
@@ -254,10 +242,13 @@ def test_array_create_with_invalid_uram(system_fixture):
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(4)]
 
-        assert pos.cli.array_create(array_name="invalid_" + array_name,
+        status = pos.cli.array_create(array_name="invalid_" + array_name,
                         write_buffer="uram-invalid", data=data_disk_list, 
-                        spare=[], raid_type="RAID5")[0] == False
-
+                        spare=[], raid_type="RAID5")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array create due to {event_name}")
+        
         logger.info("=============== TEST ENDs ================")
 
     except Exception as e:
@@ -284,13 +275,11 @@ def test_volume_create_without_array_mount(volume_fixture):
             == True
         )
 
-        assert (
-            pos.cli.volume_create(
-                array_name=array_name, size="10gb", volumename="invalid-vol"
-            )[0]
-            == False
-        )
-
+        status = pos.cli.volume_create(array_name=array_name, size="10gb", volumename="invalid-vol")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume create due to {event_name}")
+        
         # mount the array
         assert (
             pos.cli.array_mount(
@@ -493,11 +482,10 @@ def test_unmount_volume_connected(volume_fixture):
 
         assert pos.client.nvme_list() == True
         # Unmounting the connected Volume
-        assert (
-            pos.cli.volume_unmount(array_name=array_name, volumename="vol1")[0] == False
-        )
-
-        logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
+        status = pos.cli.volume_unmount(array_name=array_name, volumename="vol1")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume unmount due to {event_name}")
 
         assert (
             pos.client.nvme_disconnect(nqn=[pos.target_utils.ss_temp_list[0]]) == True
@@ -525,14 +513,11 @@ def test_volume_mount_invalid_name(volume_fixture):
         pos = volume_fixture
         assert pos.cli.array_list()[0] == True
         array_name = list(pos.cli.array_dict.keys())[0]
-        assert (
-            pos.cli.volume_mount(array_name=array_name, volumename="non_existing_vol")[
-                0
-            ]
-            == False
-        )
+        status = pos.cli.volume_mount(array_name=array_name, volumename="non_existing_vol")
 
-        logger.info("=== This is Negative Test Scenario. Expected Failure. ===")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume mount due to {event_name}")
 
     except Exception as e:
         logger.info(f"Test script failed due to {e}")

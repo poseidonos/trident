@@ -107,8 +107,11 @@ def test_hetero_offline_array_vol_create(array_fixture):
 
             vol_size = "1G"
             vol_name = f"{array_name}_pos_vol1"
-            assert pos.cli.volume_create(vol_name, vol_size, array_name=array_name)[0] == False
-
+            status = pos.cli.volume_create(vol_name, vol_size, array_name=array_name)
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create due to {event_name}")
+            
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
@@ -175,7 +178,10 @@ def test_hetero_multi_array_delete_mounted_vols(array_fixture):
         for array_name in pos.cli.array_dict.keys():
             vol_name = f"{array_name}_pos_vol"
             # Delete mounted volume
-            assert pos.cli.volume_delete(vol_name, array_name)[0] == False
+            status = pos.cli.volume_delete(vol_name, array_name)
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume delete due to {event_name}")
 
             # Unmount Volume
             assert pos.cli.volume_unmount(vol_name, array_name=array_name)[0] == True
@@ -245,11 +251,16 @@ def test_hetero_faulty_array_create_delete_vols(array_fixture):
         for array_name in pos.cli.array_dict.keys():
             vol_size = "1G"
             vol_name = f"{array_name}_pos_vol"
-            assert pos.cli.volume_create(vol_name, vol_size, 
-                                        array_name=array_name)[0] == False
+            status = pos.cli.volume_create(vol_name, vol_size, 
+                                        array_name=array_name)
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create due to {event_name}")
             
-            assert pos.cli.volume_delete(vol_name, array_name)[0] == False
-
+            status = pos.cli.volume_delete(vol_name, array_name)
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create due to {event_name}")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         traceback.print_exc()
@@ -286,9 +297,12 @@ def test_hetero_array_no_raid_without_uram(array_fixture):
         data_drives = pos.target_utils.data_drives
         spare_drives = pos.target_utils.spare_drives
 
-        assert pos.cli.array_create(write_buffer=None, data=data_drives, 
+        status = pos.cli.array_create(write_buffer=None, data=data_drives, 
                                     spare=spare_drives, raid_type="no-raid",
-                                    array_name=array_name)[0] == False
+                                    array_name=array_name)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array create due to {event_name}")
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")

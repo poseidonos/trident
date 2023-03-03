@@ -53,7 +53,10 @@ def test_gc_delete_array(array_fixture):
                 data=data_disk_list, spare=[], raid_type="RAID5")[0] == True
 
         assert pos.cli.array_delete(array_name=array_name)[0] == True
-        assert pos.cli.wbt_do_gc(array_name=array_name)[0] == False
+        status = pos.cli.wbt_do_gc(array_name=array_name)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for do gc due to {event_name}")
         logger.error("As expected gc fails without after deletion of array")
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -70,7 +73,10 @@ def test_gc_status(array_fixture):
         pos = array_fixture
         data_dict = pos.data_dict
         array_name = data_dict["array"]["pos_array"][0]["array_name"]
-        assert pos.cli.wbt_get_gc_status(array_name=array_name)[0] == False
+        status = pos.cli.wbt_get_gc_status(array_name=array_name)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for get gc status due to {event_name}")
         logger.error("As expected gc status will fail without do gc command")
         logger.info(
             " ============================= Test ENDs ======================================"

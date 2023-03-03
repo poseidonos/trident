@@ -159,9 +159,12 @@ def test_creation_of_raid10_with_same_drives(array_fixture):
                         spare=[], raid_type=raid_type)[0] == True
         
         assert pos.cli.array_mount(array_name=array1_name)[0] == True
-        assert pos.cli.array_create(array_name=array2_name,
+        status = pos.cli.array_create(array_name=array2_name,
                         write_buffer="uram1", data=data_disk_list,
-                        spare=[], raid_type=raid_type)[0] == False
+                        spare=[], raid_type=raid_type)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array create due to {event_name}")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)

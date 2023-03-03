@@ -50,16 +50,26 @@ def array_ops(pos):
 def negative_tests(pos):
     assert pos.cli.device_list()[0] == True
     array_raid = pos.data_dict["array"]["pos_array"][0]["raid_type"]
-    assert pos.cli.array_autocreate(array_name="array2",
+    status = pos.cli.array_autocreate(array_name="array2",
                     num_data=raid[array_raid]["data"],
                     num_spare=raid[array_raid]["spare"],
                     buffer_name=pos.cli.dev_type["NVRAM"][1],
-                    raid_type=random.choice(list(raid.keys())))[0] == False
+                    raid_type=random.choice(list(raid.keys())))
+    assert status[0] == False
+    event_name = status[1]['output']['Response']['result']['status']['eventName']
+    logger.info(f"Expected failure for autocreate array due to {event_name}")
+
 
     for array in ["array1", "array2"]:
         writechoice = random.choice([True, False])
-        assert pos.cli.array_mount(array_name=array, write_back=writechoice)[0] == False
-        assert pos.cli.array_delete(array_name=array)[0] == False
+        status = pos.cli.array_mount(array_name=array, write_back=writechoice)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array mount due to {event_name}")
+        status = pos.cli.array_delete(array_name=array)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array delete due to {event_name}")
     return True
 
 
@@ -106,9 +116,11 @@ def test_SanityArray(array_fixture):
             assert pos.cli.array_info(array_name=array_name)[0] == True
             if pos_array[0]["raid_type"] not in ["RAID0", "no-raid"]:
                 spare_disk_name = pos.cli.array_data["array1"]["data_list"][0]
-                assert pos.cli.array_addspare(array_name=array_name,
-                                    device_name=spare_disk_name)[0] == False
-
+                status = pos.cli.array_addspare(array_name=array_name,
+                                    device_name=spare_disk_name)
+                assert status[0] == False
+                event_name = status[1]['output']['Response']['result']['status']['eventName']
+                logger.info(f"Expected failure for add spare due to {event_name}")
                 assert pos.cli.device_list()[0] == True
                 assert pos.cli.array_addspare(array_name=array_name, 
                             device_name=pos.cli.system_disks[0])[0] == True

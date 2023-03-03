@@ -122,8 +122,14 @@ def test_array_unmnt_mnt_rebuild_state(array_fixture):
         assert pos.cli.array_info(array_name)[0] == True
         array_status = pos.cli.array_data[array_name]
         if pos.cli.array_data[array_name]["situation"] == "REBUILDING":
-            assert pos.cli.array_mount(array_name=array_name)[0] == False
-            assert pos.cli.array_unmount(array_name=array_name)[0] == False
+            status = pos.cli.array_mount(array_name=array_name)
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for array mount due to {event_name}")
+            status = pos.cli.array_unmount(array_name=array_name)
+            assert status[0] == False
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for array unmount due to {event_name}")
         logger.info(
             " ============================= Test ENDs ======================================"
         )
