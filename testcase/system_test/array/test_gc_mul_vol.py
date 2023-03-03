@@ -11,22 +11,19 @@ def test_gc_vol_create_delete(volume_fixture):
     try:
         pos = volume_fixture
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
-        assert (
-            pos.target_utils.create_volume_multiple(
-                array_name=array_name, num_vol=4, size="500GB"
-            )
-            == True
-        )
+        assert pos.target_utils.create_volume_multiple(array_name=array_name,
+                                            num_vol=4, size="500GB") == True
+
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.volume_list(array_name=array_name)[0] == True
         subsys_list = pos.target_utils.ss_temp_list
         ss_list = [ss for ss in subsys_list if array_name in ss]
         assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                        volume_list=pos.cli.vols, nqn=ss_list[0]) == True
+                            volume_list=pos.cli.vols, nqn=ss_list[0]) == True
 
         assert pos.cli.volume_list(array_name=array_name)[0] == True
         assert pos.cli.volume_unmount(array_name=array_name,
-                            volumename=pos.cli.vols[-1])[0] == True
+                                      volumename=pos.cli.vols[-1])[0] == True
 
         assert pos.cli.volume_delete(volumename=pos.cli.vols[-1],
                                      array_name=array_name)[0] == True

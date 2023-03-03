@@ -115,8 +115,11 @@ def test_por(system_fixture, writeback, numvol, numarray, iomode, spor):
         unmount_fs(pos, iomode)
     except Exception as e:
         logger.error(e)
-        unmount_fs(pos, iomode)
-        assert 0
+        try:
+            unmount_fs(pos, iomode)
+        except:
+            pass
+        pos.exit_handler(expected=False)
 
 
 def test_random_por(system_fixture):
@@ -145,4 +148,4 @@ def test_random_por(system_fixture):
 
     except Exception as e:
         logger.error(e)
-        assert 0
+        pos.exit_handler(expected=False)

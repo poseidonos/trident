@@ -3,26 +3,25 @@ import pytest
 import logger
 logger = logger.get_logger(__name__)
 
+test_params = {
+    "t0":("&*^", False),
+    "t1":("vol-0.5", False),
+    "t2":("a" * 254, True),
+    "t3":("a" * 255, True),
+    "t4":("cc" * 2, True),
+    "t5":("vol", False),
+    "t6":("pos_vol", True)
+}
+
 @pytest.mark.regression
-@pytest.mark.parametrize(
-    "new_name,expected_result",
-    [
-        ("&*^", False),
-        ("vol-0.5", False),
-        ("a" * 254, True),
-        ("a" * 255, True),
-        ("cc" * 2, True),
-        ("vol", False),
-        ("pos_vol", True),
-    ],
-)
-def test_rename_vol_special_char(volume_fixture, new_name, expected_result
-):
+@pytest.mark.parametrize("params", test_params)
+def test_rename_vol_special_char(volume_fixture, params):
     logger.info(
         " ==================== Test : test_rename_vol_special_chars ================== "
     )
     try:
         pos = volume_fixture
+        new_name, expected_result = test_params[params]
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         assert (
             pos.cli.volume_create(array_name=array_name, size="10gb", volumename="vol")[

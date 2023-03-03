@@ -33,7 +33,7 @@ def gc_array_io(pos, fio_user_cmd):
 
 
 @pytest.mark.regression
-@pytest.mark.parametrize("bs", [1, 3, 4, 5, 32, 33, 1024, 1023, 1203, 512, 513])
+@pytest.mark.parametrize("bs", [1, 3, 4, 5, 32, 33, 1024, 1023, 123, 512, 513])
 def test_gc_diff_bk_size(array_fixture, bs):
     logger.info(" ==================== Test : test_gc_diff_bk_size ================== ")
     try:

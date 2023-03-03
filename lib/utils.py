@@ -458,6 +458,30 @@ class Client:
                 % (flag[0].split("=")[1].strip("\n") + flag[1].split("=")[1].strip())
             )
             return flag[0].split("=")[1].strip("\n") + flag[1].split("=")[1].strip()
+        
+    def set_fio_runtime(self, fio_config: dict):
+        self.config_fio = fio_config["enable"] 
+        self.forced_fio_config = {
+            "size_based" : fio_config["fio_config"]["max_size"],
+            "max_size" : fio_config["fio_config"]["max_size"],
+            "time_based" : fio_config["fio_config"]["max_size"],
+            "max_runtime" : fio_config["fio_config"]["max_runtime"],
+        }
+
+    def change_fio_params(self, fio_cmd,  fio_config):
+        logger.info(f"FIO command : {fio_cmd}")
+
+        if fio_config["size_based"]:
+            size = fio_config["max_size"]
+            fio_cmd = re.sub("--size=\w+%?", f"--size={size}", fio_cmd)
+
+        if fio_config["time_based"]:
+            runtime =  fio_config["max_runtime"]
+            fio_cmd = re.sub("--runtime=\w+", f"--runtime={runtime}", fio_cmd)
+
+        logger.info(f"Updated FIO command : {fio_cmd}")
+
+        return fio_cmd
 
     def fio_generic_runner(
         self,
@@ -480,35 +504,42 @@ class Client:
 
         """
         try:
+            time_stamp = datetime.datetime.now().strftime("%Y-%m_%H_%M")
             if json_out:
-                self.fio_out_json = (
-                    f'{json_out}_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
-                )
+                self.fio_out_json = f'{json_out}_{time_stamp}.json'
             else:
-                self.fio_out_json = (
-                    f'fiojsonop_{datetime.datetime.now().strftime("%Y-%m_%H_%M")}.json'
-                )
+                self.fio_out_json = f'fiojsonop_{time_stamp}.json'
+
+            random.shuffle(devices)
+            logger.debug(f"Device list : {devices}")
             if not IO_mode:  # File IO
                 devices = list(map(lambda x: f"{x}/file.bin", devices))
 
             filename = ":".join(devices)
+
+            ## FIO limiation  to take file name = 4069 bytes
+            # Workaround
+            if(len(filename) > 4096):
+                filename = filename[:4096]
+                filename = filename[:filename.rfind(":")]
 
             if fio_user_data:
                 fio_cmd = fio_user_data
             else:
                 fio_cmd = "fio --name=S_W --runtime=5 --ioengine=libaio --iodepth=16 --rw=write --size=1g --bs=1m --direct=1"
 
-            fio_cmd += " --filename={} --output-format=json --output={}".format(
-                filename, self.fio_out_json
-            )
+            if(self.config_fio): 
+                logger.info("Selected Forced Overwrite of FIO Params(Size/Runtime)")
+                fio_cmd = self.change_fio_params(fio_cmd, self.forced_fio_config)
+
+            fio_cmd = f" {fio_cmd} --filename={filename} --output-format=json --output={self.fio_out_json}"
 
             if run_async == True:
                 async_out = self.ssh_obj.run_async(fio_cmd)
                 return True, async_out
             else:
-                outfio = self.ssh_obj.execute(
-                    fio_cmd, get_pty=True, expected_exit_code=expected_exit_code
-                )
+                outfio = self.ssh_obj.execute(fio_cmd, get_pty=True, 
+                                              expected_exit_code=expected_exit_code)
                 self.fio_parser()
                 return True, outfio
 

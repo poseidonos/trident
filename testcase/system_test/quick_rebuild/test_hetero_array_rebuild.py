@@ -6,44 +6,6 @@ from common_libs import *
 import logger
 logger = logger.get_logger(__name__)
 
-@pytest.fixture(scope="module")
-def setup_cleanup_module():
-    logger.info("========= SETUP MODULE ========")
-    pos = POS("pos_config.json")
-
-    data_dict = pos.data_dict
-    data_dict["array"]["phase"] = "false"
-    data_dict["volume"]["phase"] = "false"
-    assert pos.target_utils.pos_bring_up(data_dict=data_dict) == True
-    assert pos.cli.devel_resetmbr()[0] == True
-
-    yield pos
-
-    logger.info("========= CLEANUP MODULE ========")
-    pos.exit_handler(expected=True)
-
-@pytest.fixture(scope="function")
-def setup_cleanup_function(setup_cleanup_module):
-    logger.info("========== SETUP BEFORE TEST =========")
-    pos = setup_cleanup_module
-
-    yield pos
-
-    logger.info("========== CLEANUP AFTER TEST =========")
-    assert pos.target_utils.helper.check_system_memory() == True
-    if pos.client.ctrlr_list()[1] is not None:
-        assert pos.client.nvme_disconnect(pos.target_utils.ss_temp_list) == True
-
-    assert pos.cli.array_list()[0] == True
-    for array in pos.cli.array_dict.keys():
-        assert pos.cli.array_info(array_name=array)[0] == True
-        if pos.cli.array_dict[array].lower() == "mounted":
-            assert pos.cli.array_unmount(array_name=array)[0] == True
-        assert pos.cli.array_delete(array_name=array)[0] == True
-
-    logger.info("==========================================")
-
-
 test_operations = {"t0": ("hetero", "RAID5", "RAID6", "vol_rename"),
                    "t1": ("hetero", "RAID5", "RAID10", "vol_unmount_mount"),
                    "t2": ("hetero", "RAID6", "RAID10", "array_unmount_mount"),
@@ -69,7 +31,7 @@ def test_hetero_array_qos_after_disk_replace(array_fixture, test_param):
         assert create_mount_hetero_arrays(pos, raid_type_list, num_spare_disk,
                                           hetero_array=hetero_array) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert pos.cli.array_list()[0] == True
@@ -135,7 +97,7 @@ def test_array_disk_replace_multiple(array_fixture, array_disk_type):
 
         hetero_array = False if (array_disk_type == "normal") else True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         for repeat in range(4):

@@ -31,7 +31,7 @@ def test_raid6_multi_arrays_data_integrity(array_fixture, raid_type, num_disk, n
                                       (False, False)) == True
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols,
@@ -81,7 +81,7 @@ def test_raid6_arrays_block_io_profile(array_fixture, io_profiler):
                                       (False, False)) == True
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
         assert volume_create_and_mount_multiple(pos, num_vols,

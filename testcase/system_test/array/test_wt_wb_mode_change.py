@@ -22,7 +22,8 @@ def por_array_io(pos, raid_type, nr_data_drives):
 
         assert pos.target_utils.get_subsystems_list() == True
         assert pos.cli.volume_list(array_name=array_name)[0] == True
-        ss_list = [ss for ss in pos.target_utils.ss_temp_list if array_name in ss]
+        subsys_list = pos.target_utils.ss_temp_list
+        ss_list = [ss for ss in subsys_list if array_name in ss]
 
         assert pos.target_utils.mount_volume_multiple(array_name=array_name,
                            volume_list=pos.cli.vols, nqn=ss_list[0]) == True

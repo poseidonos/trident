@@ -18,7 +18,7 @@ def test_mem_leak_from_volume_info(volume_fixture):
         assert pos.target_utils.mount_volume_multiple(array_name=array,
                                                       volume_list=pos.cli.vols,
                                                       nqn=nqn) == True
-        assert pos.cli.volume_list()[0] == True
+        assert pos.cli.volume_list(array_name=array)[0] == True
         for i in range(3):
             for vol in pos.cli.vols:
                 assert pos.cli.volume_info(array_name=array,vol_name=vol)[0] == True

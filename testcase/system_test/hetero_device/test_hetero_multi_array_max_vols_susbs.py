@@ -74,12 +74,12 @@ def test_hetero_multi_array_512_vols_1024_subs_FIO(array_fixture, raid_type, num
                         vol_name=vol_name, size=vol_size, maxiops=0, bw=0) == True
 
                 assert pos.target_utils.mount_volume_multiple(array_name=array_name,
-                                volume_list=pos.cli.vols, nqn_list=nqn_array_list[id]) == True
+                                volume_list=pos.cli.vols, nqn=nqn_array_list[id][0]) == True
 
             # Connect client
+            ip_addr = pos.target_utils.helper.ip_addr[0]
             for nqn in nqn_list():
-                assert pos.client.nvme_connect(nqn, 
-                        pos.target_utils.helper.ip_addr[0], "1158") == True
+                assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
             
             assert pos.client.nvme_list() == True
 

@@ -207,16 +207,15 @@ def test_hetero_faulty_array_create_delete_vols(array_fixture):
         # Loop 2 times to create two RAID array of RAID5 using hetero device
         num_array = 2
         assert pos.cli.device_scan()[0] == True
-        for id in range(num_array):
-            assert pos.cli.device_list()[0] == True
+        assert pos.cli.device_list()[0] == True
 
-            # Verify the minimum disk requirement
-            if len(pos.cli.system_disks) < 3 * (num_array - id):
+        # Verify the minimum disk requirement
+        if len(pos.cli.system_disks) < 3 * num_array:
                 pytest.skip(f"Insufficient disk count {len(pos.cli.system_disks)}. "\
-                            f"Required minimum {3 * (num_array - id)} disk to create array")
-
-            array_name = f"array{id+1}"
-            uram_name = data_dict["device"]["uram"][id]["uram_name"]
+                            f"Required minimum {3 * num_array} disk to create array")
+        for index in range(num_array):
+            array_name = f"array{index+1}"
+            uram_name = data_dict["device"]["uram"][index]["uram_name"]
 
             data_device_conf = {'mix': 2, 'any': 1}
 

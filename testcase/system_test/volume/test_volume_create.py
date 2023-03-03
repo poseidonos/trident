@@ -330,35 +330,18 @@ def test_multiple_volume_create_delete_with_io(volume_fixture):
         assert pos.cli.volume_list(array_name=array_name)[0] == True
         volume_list = pos.cli.vols
 
-        assert (
-            pos.target_utils.mount_volume_multiple(
-                array_name=array_name,
-                volume_list=volume_list,
-                nqn_list=[pos.target_utils.ss_temp_list[0]],
-            )
-            == True
-        )
+        assert pos.target_utils.mount_volume_multiple(
+                        array_name, volume_list=volume_list,
+                        nqn=pos.target_utils.ss_temp_list[0]) == True
 
         for _ in range(12):
-            assert (
-                pos.cli.volume_unmount(
-                    array_name=array_name, volumename=volume_list[_]
-                )[0]
-                == True
-            )
-            assert (
-                pos.cli.volume_delete(array_name=array_name, volumename=volume_list[_])[
-                    0
-                ]
-                == True
-            )
+            assert pos.cli.volume_unmount(array_name=array_name,
+                                volumename=volume_list[_])[0] == True
+            assert pos.cli.volume_delete(array_name=array_name,
+                                volumename=volume_list[_])[0] == True
 
-        assert (
-            pos.target_utils.create_volume_multiple(
-                array_name=array_name, num_vol=3, size="1gb"
-            )
-            == True
-        )
+        assert pos.target_utils.create_volume_multiple(array_name=array_name,
+                                            num_vol=3, size="1gb") == True
 
         assert pos.cli.volume_list(array_name=array_name)[0] == True
         volume_list = pos.cli.vols
@@ -488,9 +471,7 @@ def test_unmount_volume_connected(volume_fixture):
         )
 
         assert pos.cli.volume_info(array_name=array_name, vol_name="vol1")[0] == True
-
-        pos.target_utils.get_subsystems_list()
-        assert pos.cli.subsystem_list()[0] == True
+        assert pos.target_utils.get_subsystems_list() == True
 
         assert (
             pos.cli.volume_mount(

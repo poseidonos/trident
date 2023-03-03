@@ -59,7 +59,7 @@ def test_wt_array_Npor_Spor_nobackup(
             assert pos.client.nvme_connect(ss, ip_addr, "1158") == True
 
         assert pos.client.nvme_list() == True
-        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=50",
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=128k --time_based --runtime=50"
             
         assert pos.client.fio_generic_runner(
                 pos.client.nvme_list_out,

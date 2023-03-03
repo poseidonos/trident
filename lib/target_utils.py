@@ -41,8 +41,8 @@ import logger
 from cli import Cli
 from hetero_setup import TargetHeteroSetup
 import copy
+import pytest
 logger = logger.get_logger(__name__)
-
 
 class TargetUtils:
     """
@@ -733,8 +733,7 @@ class TargetUtils:
                     nr_spare_drives = array["spare_device"]
 
                     if len(system_disks) < (nr_data_drives + nr_spare_drives):
-                        raise Exception(
-                            "Insufficient system disks {}. Required minimum {}".format(
+                        pytest.skip("Insufficient system disks {}. Required minimum {}".format(
                                 len(system_disks), nr_data_drives + nr_spare_drives))
 
                     if array["auto_create"] == "false":
@@ -1145,7 +1144,7 @@ class TargetUtils:
             logger.error(f"Failed to do POR preparation due to {e}")
             return False
 
-    def _do_por(self, por_type: str = 'spor',
+    def _do_por(self, por_type: str = 'spor', pos_as_service = True,
                 wbt_flush: bool = False, force_uram_backup: bool = False):
         try:
             graceful_stop = False
@@ -1167,7 +1166,7 @@ class TargetUtils:
 
                 graceful_stop = True
 
-            if force_uram_backup:
+            if force_uram_backup and not pos_as_service:
                 uram_backup = True
 
             assert self._por_prep(wbt_flush=wbt_flush, uram_backup=uram_backup,
@@ -1259,7 +1258,7 @@ class TargetUtils:
             traceback.print_exc()
             return False
 
-    def spor(self, uram_backup: bool = False, 
+    def spor(self, uram_backup: bool = False, pos_as_service = None,
             write_through: bool = False, mount_post_npor: bool = True) -> bool:
         """
         Method to spor
@@ -1270,8 +1269,12 @@ class TargetUtils:
         """
         try:
             logger.info("Start SPOR operation...")
+            if pos_as_service == None:
+                pos_as_service = self.pos_as_service
+
             assert self._por_backup() == True
             assert self._do_por(por_type = 'spor', 
+                                pos_as_service=pos_as_service,
                                 force_uram_backup=uram_backup) == True
             assert self._por_bringup() == True
             if mount_post_npor: 
@@ -1318,7 +1321,7 @@ class TargetUtils:
             if self.helper.check_pos_exit() == False:
                 out = self.ssh_obj.execute("pkill -11 poseidonos")
               
-            if self.pos_as_service != "true":
+            if not self.pos_as_service:
                 self.cli_path = self.helper.get_pos_path()
             else:
                 self.cli_path = "/usr/local/bin"
