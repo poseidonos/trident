@@ -491,7 +491,7 @@ def test_unmount_volume_connected(volume_fixture):
             pos.client.nvme_disconnect(nqn=[pos.target_utils.ss_temp_list[0]]) == True
         )
         assert (
-            pos.cli.volume_unmount(array_name=array_name, volumename="vol1")[0] == True
+            pos.cli.volume_unmount(array_name=array_name, volumename="vol1")[0] == False
         )
 
         logger.info("=============== TEST ENDs ================")
