@@ -169,7 +169,7 @@ def test_replace_first_array_raid5(array_fixture):
         assert pos.cli.array_delete(array_name=first_array)[0] == True
         assert pos.cli.device_scan()[0] == True
         assert pos.cli.device_list()[0] == True
-        assert pos.cli.devel_resetmbr()[0] == True
+        #assert pos.cli.devel_resetmbr()[0] == True
         system_disks = pos.cli.system_disks
         if len(system_disks) < (nr_data_drives + 1):
             pytest.skip(

@@ -38,6 +38,7 @@ def test_wt_multi_array_qos(array_fixture, IO):
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
+        out = nvme_connect(pos)
         multi_io(pos, IO)
 
         logger.info(
