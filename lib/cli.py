@@ -905,13 +905,13 @@ class PosCLI:
                     if self.device_map[item]["type"].lower() == "ssd":
                         self.system_disks.append(item)
                     else:
-                        self.system_buffer_devs(item)
+                        self.system_buffer_devs.append(item)
                 else:
                     # Array Devices
                     if self.device_map[item]["type"].lower() == "ssd":
                         self.array_disks.append(item)
                     else:
-                        self.array_buffer_devs(item)
+                        self.array_buffer_devs.append(item)
 
             return cli_rsp, jout
         except Exception as e:

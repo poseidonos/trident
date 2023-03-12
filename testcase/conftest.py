@@ -321,14 +321,18 @@ def check_pos_and_bringup():
         else:
             logger.info("pos is already running")
             # Plese Ignore the Status of following commnd
-            self.cli.subsystem_create_transport()
+            pos.cli.subsystem_create_transport()
             logger.info("Please ignore the status of above command")
             assert pos.cli.device_scan()[0] == True
             assert pos.cli.device_list()[0] == True
-            if len(pos.cli.system_buffer_devs) == 0 and 
+            if (len(pos.cli.system_buffer_devs) == 0 and 
                 len(pos.cli.array_buffer_devs) == 0) :
                 assert pos.target_utils.bringup_device(data_dict=pos.data_dict) == True
 
+            assert pos.target_utils.get_subsystems_list() == True
+            if(len(pos.target_utils.ss_temp_list) == 0):
+                assert pos.target_utils.bringup_subsystem(data_dict=pos.data_dict) == True
+                assert pos.target_utils.get_subsystems_list() == True
             array_cleanup()
             
         return True
