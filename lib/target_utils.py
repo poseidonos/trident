@@ -1287,6 +1287,19 @@ class TargetUtils:
             traceback.print_exc()
             return False
 
+    def reboot_with_backup(self):
+        '''Method to reboot and bring up ther arrays and volumes'''
+        try:
+            assert self._por_backup() == True
+            assert self.reboot_and_reconnect() == True
+            assert self._por_bringup() == True
+            assert self._por_mount_array_volume() == True
+            return True
+        except Exception as e:
+            logger.error(f"SPOR failed due to {e}")
+            traceback.print_exc()
+            return False
+
     def delete_all_volumes(self, arrayname):
         """method to delete all volumes if any in a given array"""
         try:
@@ -1310,6 +1323,14 @@ class TargetUtils:
         except Exception as e:
             logger.error(e)
             return False
+
+    def reboot_and_reconnect(self):
+        '''Method to reboot the machine'''
+        out = self.ssh_obj.execute("reboot")
+        logger.info("Reboot initiated")
+        assert self.ssh_obj.reconnect_after_reboot() == True
+        return True
+
 
     ##TODO update pos path
     def dump_core(self):

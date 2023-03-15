@@ -81,3 +81,27 @@ def test_gc_diff_io_size(array_fixture, mul):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
+
+def test_gc_with_rebuild(array_fixture):
+    try:
+        pos = array_fixture
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=120"
+        assert gc_array_io(pos=pos,fio_user_cmd=fio_cmd) == True
+        array = list(pos.cli.array_dict.keys())[0]
+        assert array_disks_hot_remove(pos=pos, array_name=array, disk_remove_interval_list=[(0,)]) == True
+        out, nvme_devs = nvme_connect(pos)
+        assert run_fio_all_volumes(pos=pos,fio_cmd=fio_cmd,nvme_devs=nvme_devs) == True
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
+
+def test_gc_with_array_deletion(array_fixture):
+    try:
+        pos = array_fixture
+        fio_cmd = "fio --name=sequential_write --ioengine=libaio --rw=write --iodepth=64 --direct=1 --numjobs=1 --bs=64k --time_based --runtime=120"
+        assert gc_array_io(pos=pos, fio_user_cmd=fio_cmd) == True
+        assert array_unmount_and_delete(pos=pos) == True
+        assert pos.cli.wbt_do_gc(array_name=array_name)[0] == False
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
