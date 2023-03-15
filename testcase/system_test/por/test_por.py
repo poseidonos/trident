@@ -110,6 +110,7 @@ def test_por(system_fixture, writeback, numvol, numarray, iomode, spor):
             mount_fs(pos)
             runFIO(pos, iomode, mount_pts, "read")
         else:
+            assert pos.client.nvme_list() == True
             runFIO(pos, iomode, pos.client.nvme_list_out, "read")
 
         unmount_fs(pos, iomode)

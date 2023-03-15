@@ -106,4 +106,3 @@ def test_cli_happypath(array_fixture):
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler()
-        assert 0

@@ -12,7 +12,7 @@ def test_set_gc_threshold_without_array(array_fixture):
     try:
         pos = array_fixture
         status = pos.cli.wbt_set_gc_threshold(array_name="dummy", normal=10, urgent=3)
-		assert status[0] == False
+        assert status[0] == False
         event_name = status[1]['output']['Response']['result']['status']['eventName']
         logger.info(f"Expected failure for set gc threshold due to {event_name}")
         logger.info("As expected set gc failed due to no array")

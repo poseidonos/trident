@@ -894,19 +894,24 @@ class PosCLI:
 
             self.NVMe_BDF = self.device_map
 
-            self.system_disks = [
-                item
-                for item in self.device_map
-                if self.device_map[item]["class"].lower() == "system"
-                and self.device_map[item]["type"].lower() == "ssd"
-            ]
+            self.system_disks = []
+            self.array_disks = []
+            self.system_buffer_devs = []
+            self.array_buffer_devs = []
 
-            self.array_disks = [
-                item
-                for item in self.device_map
-                if self.device_map[item]["class"].lower() == "array"
-                and self.device_map[item]["type"].lower() == "ssd"
-            ]
+            for item in self.device_map:
+                # System Devices which (not part of array)
+                if self.device_map[item]["class"].lower() == "system":
+                    if self.device_map[item]["type"].lower() == "ssd":
+                        self.system_disks.append(item)
+                    else:
+                        self.system_buffer_devs.append(item)
+                else:
+                    # Array Devices
+                    if self.device_map[item]["type"].lower() == "ssd":
+                        self.array_disks.append(item)
+                    else:
+                        self.array_buffer_devs.append(item)
 
             return cli_rsp, jout
         except Exception as e:

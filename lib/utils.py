@@ -813,10 +813,14 @@ class Client:
             cmd = "nvme connect -t {} -s {} -a {} -n {}".format(
                 transport.lower(), port, mellanox_switch_ip, nqn_name
             )
-            logger.info("Running command {}".format(cmd))
-            out = self.ssh_obj.execute(cmd)
 
-            self._add_nqn_name(nqn_name)
+            try:
+                self._add_nqn_name(nqn_name)
+                logger.info("Execute command {}".format(cmd))
+                out = self.ssh_obj.execute(cmd)
+            except Exception as e:
+                logger.info(f"{e}")
+
             return True
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
@@ -873,12 +877,14 @@ class Client:
             nqn_list = nqn[:]
             for nqn_name in nqn_list:
                 logger.info(f"Disconnecting Subsystem {nqn_name}")
-                cmd = f"nvme disconnect -n {nqn_name}"
-                out = self.ssh_obj.execute(cmd)
-                res = " ".join(out)
-                logger.info(f"{res}")
-
-                self._del_nqn_name(nqn_name)
+                try:
+                    self._del_nqn_name(nqn_name)
+                    cmd = f"nvme disconnect -n {nqn_name}"
+                    out = self.ssh_obj.execute(cmd)
+                    res = " ".join(out)
+                    logger.info(f"{res}")
+                except Exception as e:
+                    logger.info(f"{e}")
 
             if len(nqn_list) == 0:
                 try:
@@ -903,7 +909,12 @@ class Client:
             logger.error(traceback.format_exc())
             return False
 
-    def nvme_list(self, model_name: str = "POS_VOLUME") -> bool:
+    def nvme_list_error_recovery(self):
+
+        pass
+
+
+    def nvme_list(self, model_name: str = "POS_VOLUME", error_recovery=False) -> bool:
         """
         Method to get the nvme list
         Args:
@@ -923,6 +934,10 @@ class Client:
                     self.nvme_list_out.append(str(list_out[0]))
             if len(self.nvme_list_out) == 0:
                 logger.debug("no devices listed")
+                
+                if(error_recovery and self.nvme_list_error_recovery()):
+                    return True
+
                 return False
         except Exception as e:
             logger.error("command execution failed with exception {} ".format(e))

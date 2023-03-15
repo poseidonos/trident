@@ -53,7 +53,7 @@ def test_hetero_multi_array_qos_matrix(array_fixture, array_raid, num_devs, qos_
                                         spare=spare_drives, raid_type=raid_type,
                                         array_name=array_name)[0] == True
 
-            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+            assert pos.cli.array_mount(array_name=array_name)[0] == True
             assert pos.cli.array_info(array_name=array_name)[0] == True 
 
 
