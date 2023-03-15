@@ -133,7 +133,7 @@ def test_raid10_creation_with_diff_num_drives(array_fixture, array_detail):
                 assert pos.cli.volume_mount(array_name=arrays[array],
                                             volumename=arrays[array]+'vol',
                                             nqn=pos.target_utils.ss_temp_list[array])
-                assert run_block_io(pos) == True
+        assert run_block_io(pos) == True
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
