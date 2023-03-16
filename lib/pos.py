@@ -206,7 +206,7 @@ class POS:
                 logger.error("Test case failed!")
                 if self.collect_pos_core:
                     logger.error("Creating core dump")
-                    assert pos.target_utils.dump_core() == True
+                    assert self.target_utils.dump_core() == True
                 else:
                     logger.error("System clean up")
                     self.cli.pos_stop(grace_shutdown=False)

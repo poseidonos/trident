@@ -259,17 +259,29 @@ class PosCLI:
             [parse_out["command"], parse_out["status_code"], parse_out["description"]]
         )
         return True
+    
+    def clean_cli_history(self, dump=False):
+        """
+        Method to clean command history for debugging
+        """
+        if dump:
+            for cli in self.cli_history:
+                logger.info(f"{cli}")
+
+        logger.info("Deleting old cli history")
+        self.cli_history = []
 
     def dump_cli_history(self, clean=True):
         """
         Method to dump cli command history for debugging
         """
-        for cli in self.cli_history:
-            logger.info(f"{cli}")
-
         if clean:
-            logger.info("Deleting old cli history")
-            self.cli_history = []
+            self.clean_cli_history(dump=True)
+        else:
+            for cli in self.cli_history:
+                logger.info(f"{cli}")
+
+
 
     def parse_out(self, jsonout, command):
 
