@@ -164,6 +164,8 @@ def test_raid6_arrays_gc(array_fixture, gc_operation):
                                       arrays_num_disks, (0, 0), ("WT", "WB"),
                                       (False, False)) == True
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.cli.array_list()[0] == True
+        array_list = list(pos.cli.array_dict.keys())
 
         assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
@@ -181,13 +183,13 @@ def test_raid6_arrays_gc(array_fixture, gc_operation):
         if gc_operation == "normal":
             fio_cmd = "fio --name=rand_write --ioengine=libaio --numjobs=4 --rw=randwrite --iodepth=64 --bs=128k --size=85%"
             assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
+            assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
         else:
             fio_cmd = "fio --name=seq_write --ioengine=libaio --numjobs=4 --rw=write --iodepth=64 --bs=128k --size=15%"
             assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
-            assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
-            assert pos.cli.wbt_do_gc()[0] == True
+            assert pos.cli.wbt_do_gc(array_name=array_list[0])[0] == True
 
-        assert pos.cli.wbt_get_gc_status()[0] == True
+        assert pos.cli.wbt_get_gc_status(array_name=array_list[0])[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
