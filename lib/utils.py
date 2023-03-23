@@ -60,6 +60,7 @@ class Client:
         self.helper = helper.Helper(ssh_obj)
         self.nqn_list = []
         self.mount_point = {}
+        self.connection_data = []
         logger.info(f"creating client object on {ssh_obj.hostname}")
         if self.client_clean == True:
             self.client_cleanup()
@@ -70,21 +71,41 @@ class Client:
         """
         self.ssh_obj.close()
 
+    def _store_connection_info(self, nqn_name, mellanox_switch_ip,
+                               port, transport):
+        """
+        Method to store the nvme connect info
+        """
+        connection = {
+            "nqn": nqn_name,
+            "ip": mellanox_switch_ip,
+            "port": port,
+            "transport": transport
+        }
+        self.connection_data.append(connection)
+
+    def _get_connections_list(self):
+        return self.connection_data
+        
+
+    def _get_connected_nqns(self):
+        return self.nqn_list
+
     def _add_nqn_name(self, nqn: str):
         """ Internal Method to add nqn name """
         if nqn in self.nqn_list:
             raise Exception(f"NQN {nqn} is already added {self.nqn_list}")
 
+        logger.debug(f"Add new nqn name : {nqn}")
         self.nqn_list.append(nqn)
-        logger.debug(f"Added new nqn name : {nqn}")
 
     def _del_nqn_name(self, nqn: str):
         """ Internal Method to delete nqn name """
         if nqn not in self.nqn_list:
             raise Exception(f"NQN {nqn} is not added {self.nqn_list}")
 
+        logger.debug(f"Remove nqn name : {nqn}")
         self.nqn_list.remove(nqn)
-        logger.debug(f"Removed nqn name : {nqn}")
 
     def _add_mount_point(self, device_name: str, mount_point: str):
         """ Internal Method to add mount point """
@@ -131,99 +152,16 @@ class Client:
 
         self.ssh_obj.execute("dmesg -C")
 
-    def reboot_node(self) -> bool:
-        """
-        Method to reboot the node
-        Returns : bool
-        """
+    def reboot_and_reconnect(self) -> bool:
+        '''Method to reboot the machine'''
         try:
-            stdoutlines = []
-            shell = self.ssh_obj.ssh.invoke_shell()
-            node._shell_receive(shell, stdoutlines)
-
-            if self.ssh_obj.username == "root":
-                shell.send("shutdown -r now  " + "\n")
-            else:
-                shell.send("sudo shutdown -r now  " + "\n")
-                shell.send(self.ssh_obj.password + "\n")
-                node._shell_receive(shell, stdoutlines)
-                shell.send(self.ssh_obj.password + "\n")
-
-            logger.info("waiting 10 seconds for reboot")
-            time.sleep(10)
-            logger.info("Reboot node sucessfull")
+            out = self.ssh_obj.execute("reboot")
+            logger.info(f"Reboot initiated {out}")
+            assert self.ssh_obj.reconnect_after_reboot() == True
             return True
         except Exception as e:
-            logger.error("Error rebooting node because of Error {}".format(e))
+            logger.error("Failed to reboot and recover system")
             return False
-
-    def reboot_with_reconnect(self, timeout: int = 600) -> bool:
-        """
-        Methods: To reboot the node and wait for it come up
-
-        Args:
-            timeout (int) : time to wait for not to come up (default 5 minutes)
-        Returns:
-         new_ssh obj, bool
-        """
-        self.reboot_node()
-        count = 0
-        new_ssh = None
-        node_stats = None
-
-        while True:
-            try:
-                new_ssh = SSHclient(
-                    self.ssh_obj.hostname, self.ssh_obj.username, self.ssh_obj.password
-                )
-            except Exception as e:
-                logger.info("node is still down {}".format(e))
-                time.sleep(60)
-                logger.info("waiting 60 seconds node to come  up ")
-            count = count + 60
-            if new_ssh:
-                node_status = new_ssh.get_node_status()
-            if count > timeout or node_stats == True:
-                break
-
-        if new_ssh:
-            return new_ssh, True
-        else:
-            logger.error(traceback.format_exc())
-            raise ConnectionError("Node failed to come up")
-
-    def reconnect(self, timeout: int = 600) -> bool:
-        """
-        Methods: To reboot the node and wait for it come up
-
-        Args:
-            timeout (int) : time to wait for not to come up (default 5 minutes)
-        Returns:
-         new_ssh obj
-        """
-        count = 0
-        new_ssh_obj = None
-        node_status = None
-
-        while True:
-            try:
-                new_ssh_obj = SSHclient(
-                    self.ssh_obj.hostname, self.ssh_obj.username, self.ssh_obj.password
-                )
-            except Exception as e:
-                logger.info("node is still down {}".format(e))
-            logger.info("waiting 60 seconds node to come  up ")
-            time.sleep(60)
-            count = count + 60
-            if new_ssh_obj:
-                node_status = new_ssh_obj.get_node_status()
-            if count > timeout or node_status == True:
-                break
-
-        if new_ssh_obj:
-            return new_ssh_obj
-        else:
-            raise ConnectionError("Node failed to come up")
 
     def nvme(self, nvme_cmd: str) -> (bool, list):
         """
@@ -366,39 +304,41 @@ class Client:
 
             return False, out
 
-    def nvme_list_subsys(self, device_name: str) -> (bool, list):
+    def nvme_list_subsys(self) -> (bool, list):
         """
         Method to execute nvme list-subsys nvme cli
-
-        Args:
-            device_name (str) : device name
 
         Returns:
             bool, list
         """
         try:
-            logger.info("Executing list-subsys on the device {} ".format(device_name))
-            cmd = "nvme list-subsys {} -o json ".format(device_name)
+            logger.info("Executing list-subsys command")
+            self.nvme_subsys_list = []
+            cmd = "nvme list-subsys -o json"
             out = self.ssh_obj.execute(cmd)
             out1 = "".join(out)
             json_out = json.loads(out1)
             logger.info("output of the nvme list-subsys is {} ".format(json_out))
             if "Error" in out:
-                raise Exception(
-                    "Failed to execute nvme list-subsys on device {}".format(
-                        device_name
-                    )
-                )
+                raise Exception("Failed to execute nvme list-subsys")
             else:
-                logger.info(
-                    "Successfully executed nvme list-subsys on device {}".format(
-                        device_name
-                    )
-                )
+                logger.info("Successfully executed nvme list-subsys")
+
+            if(not json_out):
+                logger.info("Nvme subsystem list is empty")
                 return True, json_out
+            
+            subsys_list = json_out["Subsystems"]
+            for subsys in subsys_list:
+                nqn_name = subsys.get('NQN', None)
+                if nqn_name and ('pos' in nqn_name or 'ibof' in nqn_name):
+                    self.nvme_subsys_list.append(nqn_name)
+
+            logger.info(f"{self.nvme_subsys_list}")
+            return True, json_out
+
         except Exception as e:
             logger.error("nvme list-subsys command failed with exception {}".format(e))
-
             return False, None
 
     def nvme_smart_log(
@@ -816,6 +756,8 @@ class Client:
 
             try:
                 self._add_nqn_name(nqn_name)
+                self._store_connection_info(nqn_name, mellanox_switch_ip,
+                                            port, transport)
                 logger.info("Execute command {}".format(cmd))
                 out = self.ssh_obj.execute(cmd)
             except Exception as e:
@@ -856,7 +798,7 @@ class Client:
     def load_drivers(self) -> bool:
         """method to load drivers"""
 
-        driver_list = ["tcp", "nvme", "nvme_tcp"]
+        driver_list = ["nvme", "nvme_tcp"]
         for drive in driver_list:
             cmd = f"modprobe {drive}"
             self.ssh_obj.execute(cmd)
@@ -889,10 +831,10 @@ class Client:
             if len(nqn_list) == 0:
                 try:
                     out = self.ctrlr_list()
-                    for ctrlr in out[1]:
-                        logger.info(f"Disconnecting nvme device {ctrlr}")
-                        cmd = f"nvme disconnect -d {ctrlr}"
-                        out = self.ssh_obj.execute(cmd)
+                    #for ctrlr in out[1]:
+                        #logger.info(f"Disconnecting nvme device {ctrlr}")
+                        #cmd = f"nvme disconnect -d {ctrlr}"
+                        #out = self.ssh_obj.execute(cmd)
                 except:
                     pass
                 
@@ -910,8 +852,56 @@ class Client:
             return False
 
     def nvme_list_error_recovery(self):
+        try:
+            logger.info("Start first level of recovery...")
 
-        pass
+            # Store old nqn list and disconnect them
+            connection_list = self._get_connections_list()
+            nvme_nqn_list = []
+            for connection in connection_list:
+                nvme_nqn_list.append(connection["nqn"])
+
+            #logger.info(f"Disconnect")
+                
+            assert self.nvme_disconnect(nvme_nqn_list) == True
+
+            assert self.nvme_list_subsys()[0] == True
+            for nqn_name in self.nvme_subsys_list:
+                self._add_nqn_name(nqn_name)
+            
+            assert self.nvme_disconnect(self.nvme_subsys_list) == True
+
+            for connection in connection_list:
+                assert self.nvme_connect(nqn_name=connection["nqn"],
+                                        mellanox_switch_ip=connection["ip"],
+                                        port=connection["port"],
+                                        transport=connection["transport"]) == True
+            
+            logger.info("Completed first level of recovery...")
+            self.nvme_list(error_recovery=False)
+            if len(self.nvme_list_out) > 0:
+                logger.info("Successfully recovered the system")
+                return True
+            
+            logger.info("System recovery failed...")
+            logger.info("Start second level of recovery...")
+
+            assert self.reboot_and_reconnect() == True
+            assert self.load_drivers() == True
+
+            logger.info("Completed second level of recovery...")
+            self.nvme_list(error_recovery=False)
+            if len(self.nvme_list_out) > 0:
+                logger.info("Successfully recovered the system")
+                return True
+                
+            logger.debug("System recovery failed...")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to recover the system due to {e}")
+            traceback.print_exc()
+            return False
+
 
 
     def nvme_list(self, model_name: str = "POS_VOLUME", error_recovery=False) -> bool:
@@ -933,7 +923,7 @@ class Client:
                     list_out = line.split(" ")
                     self.nvme_list_out.append(str(list_out[0]))
             if len(self.nvme_list_out) == 0:
-                logger.debug("no devices listed")
+                logger.debug("No pos device listed")
                 
                 if(error_recovery and self.nvme_list_error_recovery()):
                     return True
