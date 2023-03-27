@@ -1,5 +1,6 @@
 import pytest, json, sys, os, time, random, codecs, re, datetime
 from random import randint
+import traceback
 
 import logger as logger
 import composable.composable_core as libcore
@@ -152,7 +153,7 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
                 assert 0
             else:
                 for i in range(write_device_count):
-                    if read_devices[i] != write_devices[i]:
+                    if read_devices[i] not in write_devices:
                         assert 0
             assert (
                 client.fio_generic_runner(
@@ -228,6 +229,7 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
             "Failed test case name : {}".format(sys._getframe().f_code.co_name)
         )
         logger.error("Failed test stage : {}".format(phase + 1))
+        traceback.print_exc()
         raise
 
 

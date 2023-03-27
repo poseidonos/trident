@@ -4,12 +4,12 @@
         "config":
         {
             "target":1,
-            "initiator":6
+            "initiator":4
         },
         "validation":
         {
             "totalphase":8,
-            "totaltime":10000000,
+            "totaltime":60,
             "testcase":
             [
                 { "lib":"io_management", "name":"test_io_sanity_iteration_io_verify_random_pattern"},

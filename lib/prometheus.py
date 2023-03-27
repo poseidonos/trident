@@ -74,7 +74,7 @@ class Prometheus(Cli):
         self.ssh_obj = con
         if self.check_pos_exporter() == False:
             logger.info("Starting the pos-exporter as it is not runing")
-            assert self.pos_exporter(operation="start")[0] == True
+            assert self.pos_xpo_service_start()[0] == True
             assert self.check_pos_exporter() == True, "POS exporter is not running!"
         assert self.update_config() == True
         url = f'http://{self.ssh_obj.hostname}:2113'

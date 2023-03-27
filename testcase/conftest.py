@@ -141,9 +141,10 @@ def pytest_runtest_protocol(item, nextitem):
         issuekey = mapping_dict[method]
     except:
         issuekey = "No mapping found"
-    logger.info(
-        "======================== START OF {} ========================".format(method)
-    )
+
+    seperator = "=" * 20
+    logger.info(f"{seperator} START OF {method} {seperator}")
+
     start_time = datetime.now()
     logger.info("Start Time : {}".format(start_time.strftime("%m/%d/%Y, %H:%M:%S")))
 
@@ -157,6 +158,8 @@ def pytest_runtest_protocol(item, nextitem):
 
     yield
 
+    logger.info(f"{seperator} END OF {method} {seperator}")
+
     end_time = datetime.now()
     logger.info("End Time : {}".format(end_time.strftime("%m/%d/%Y, %H:%M:%S")))
     execution_time = end_time - start_time
@@ -167,16 +170,13 @@ def pytest_runtest_protocol(item, nextitem):
         )
     )
 
+    pos.cli.clean_cli_history()
+
     if (trident_config_data["code_coverage"]["enable"] == True
         and trident_config_data["code_coverage"]["scope"] == "function"):
         if issuekey == "No mapping found":
             issuekey = "No_Mapping"
         get_code_coverage_data(issuekey)
-
-    logger.info(
-        "======================== END OF {} ========================\n".format(method)
-    )
-
 
 def pytest_runtest_logreport(report):
     log_status = "======================== Test Status : {} ========================"

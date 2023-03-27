@@ -260,7 +260,7 @@ def test_array_recreation_in_loop(array_fixture):
             assert pos.cli.volume_list(array_name=arrays[0])[0] == True
             vols = pos.cli.vols
             for vol in vols:
-                assert pos.cli.pos_exporter(operation='start')[0] == True
+                assert pos.cli.pos_xpo_service_start()[0] == True
 
                 assert pos.cli.volume_unmount(array_name=array, volumename=vol)[0] == True
                 assert pos.cli.volume_list(array_name=array)[0] == True

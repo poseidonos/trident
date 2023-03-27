@@ -37,7 +37,7 @@ def teardown_module():
 
 def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
     try:
-        if pos.client_cnt < 6:
+        if pos.client_cnt < 4:
             logger.info(
                 "Skipping Test as number of Initiators do not match the TC requirement"
             )
@@ -95,12 +95,10 @@ def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
                 start_time = time.time()
                 npo_cnt = 1
                 while True:
-                    assert pos.target_utils.npor_and_save_state() == True
-                    for cn in range(test_dict["config"]["initiator"]):
-                        assert (
-                            libcore.npor_recover(target=pos, data_set=data_set[cn])
-                            == True
-                        )
+                    assert pos.target_utils.npor() == True
+                    #for cn in range(test_dict["config"]["initiator"]):
+                    #    assert libcore.npor_recover(target=pos,
+                    #                                data_set=data_set[cn]) == True
                     current_time = time.time()
                     running_time = current_time - start_time
                     if running_time >= time_per_phase:

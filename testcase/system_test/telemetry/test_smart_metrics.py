@@ -12,7 +12,7 @@ metric = ['criticalTemperatureTime', 'lifePercentageUsed', 'availableSpare', 'av
 @pytest.mark.parametrize("metric", metric)
 def test_get_smart_stats(array_fixture, metric):
     pos = array_fixture
-    assert pos.cli.pos_exporter(operation='start')[0] == True
+    assert pos.cli.pos_xpo_service_start()[0] == True
     assert pos.prometheus.set_telemetry_configs() == True
     assert pos.cli.device_scan()[0] == True
     assert pos.cli.device_list()
