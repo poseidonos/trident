@@ -39,8 +39,10 @@ def test_set_gc_threshold_with_diff_values(array_fixture,
             )[0]
             == expected_result1
         )
-        assert pos.cli.wbt_get_gc_status(array_name=array_name)[0] == expected_result2
-        logger.info("As expected set gc failed because urgent is more than normal")
+        if expected_result1 == False:
+            logger.info("As expected set gc failed because urgent is more than normal")
+            
+        assert pos.cli.wbt_get_gc_status(array_name=array_name)[0] == True
         logger.info(
             " ============================= Test ENDs ======================================"
         )

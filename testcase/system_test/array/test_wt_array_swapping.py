@@ -90,7 +90,7 @@ def test_array_swapping(array_fixture, array_detail):
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
-@pytest.mark.parametrize("array_detail",[(1,1),(2,4)])
+@pytest.mark.parametrize("array_detail",[(1,2),(2,4)])
 def test_raid10_creation_with_diff_num_drives(array_fixture, array_detail):
     try:
         pos = array_fixture

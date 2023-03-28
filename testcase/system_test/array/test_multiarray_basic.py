@@ -602,7 +602,7 @@ def test_multiarray_unmount_array_effect(array_fixture):
         # Unmount second array and Check the array state
         assert pos.cli.array_unmount(array_name=array2_name)[0] == True
 
-        assert pos.cli.array_info(array_name=array2_name)[0] == True
+        assert pos.cli.array_info(array_name=array1_name)[0] == True
         assert pos.cli.array_data[array1_name].get("state") == "NORMAL"
 
         assert pos.cli.array_info(array_name=array2_name)[0] == True

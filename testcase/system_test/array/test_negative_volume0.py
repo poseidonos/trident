@@ -35,8 +35,8 @@ def test_rename_vol_special_char(volume_fixture, params):
             )
         assert status[0] == expected_result
         if expected_result == False:
-            event_name = status[1]['output']['Response']['result']['status']['eventName']
-            logger.info(f"Expected failure for volume rename due to {event_name}")
+            #event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume rename")
      
         logger.info(
             " ============================= Test ENDs ======================================"
