@@ -839,7 +839,7 @@ class Client:
                     pass
                 
             if verify:
-                self.nvme_list()
+                self.nvme_list(error_recovery=False)
                 if len(self.nvme_list_out) == 0:
                     logger.info("Nvme disconnect passed")
                 else:
@@ -904,7 +904,7 @@ class Client:
 
 
 
-    def nvme_list(self, model_name: str = "POS_VOLUME", error_recovery=False) -> bool:
+    def nvme_list(self, model_name: str = "POS_VOLUME", error_recovery=True) -> bool:
         """
         Method to get the nvme list
         Args:
