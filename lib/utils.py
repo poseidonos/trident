@@ -886,6 +886,8 @@ class Client:
             logger.info("System recovery failed...")
             logger.info("Start second level of recovery...")
 
+            assert self.nvme_disconnect(self.nvme_subsys_list) == True
+
             assert self.reboot_and_reconnect() == True
             assert self.load_drivers() == True
 
