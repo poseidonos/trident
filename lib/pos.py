@@ -139,7 +139,7 @@ class POS:
 
         self.client_handle.append(client_obj)
 
-        if self.client_cnt == 1:
+        if self.client_cnt >= 1:
             self.client = self.client_handle[0]
         
     def _clearall_objects(self):
