@@ -14,7 +14,7 @@ def test_stop_arrray_state(array_fixture, num_drives):
     try:
         pos = array_fixture
         pos.data_dict["array"]["num_array"] = 1
-        pos.data_dict["array"]["pos_array"][0]["raid_type"] = "RADI5"
+        pos.data_dict["array"]["pos_array"][0]["raid_type"] = "RAID5"
         pos.data_dict["array"]["pos_array"][0]["data_device"] = 4
         pos.data_dict["array"]["pos_array"][0]["spare_device"] = 1
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
