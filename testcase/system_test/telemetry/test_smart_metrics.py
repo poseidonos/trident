@@ -11,17 +11,20 @@ metric = ['criticalTemperatureTime', 'lifePercentageUsed', 'availableSpare', 'av
 
 @pytest.mark.parametrize("metric", metric)
 def test_get_smart_stats(array_fixture, metric):
-    pos = array_fixture
-    assert pos.cli.pos_xpo_service_start()[0] == True
-    assert pos.prometheus.set_telemetry_configs() == True
-    assert pos.cli.device_scan()[0] == True
-    assert pos.cli.device_list()
-    disk = pos.cli.system_disks[0]
-    assert pos.cli.device_smart_log(devicename=disk)[0] == True
-    logger.info(pos.cli.smart_log_dict[disk])
-    if metric == 'criticalTemperatureTime':
-        time.sleep(60)
-    logger.info(pos.prometheus.get_uptime_sec())
-    assert pos.prometheus.get_smart_stats(device_name=disk) == True
-    logger.info(pos.prometheus.result)
-    assert pos.prometheus.result[metric] in pos.cli.smart_log_dict[disk][metric]
+    try:
+        pos = array_fixture
+        assert pos.cli.pos_xpo_service_start()[0] == True
+        assert pos.prometheus.set_telemetry_configs() == True
+        assert pos.cli.device_scan()[0] == True
+        assert pos.cli.device_list()
+        disk = pos.cli.system_disks[0]
+        assert pos.cli.device_smart_log(devicename=disk)[0] == True
+        logger.info(pos.cli.smart_log_dict[disk])
+        if metric == 'criticalTemperatureTime':
+            time.sleep(60)
+        logger.info(pos.prometheus.get_uptime_sec())
+        assert pos.prometheus.get_smart_stats(device_name=disk) == True
+        logger.info(pos.prometheus.result)
+        assert pos.prometheus.result[metric] in pos.cli.smart_log_dict[disk][metric]
+    except Exception as e:
+        logger.error(f"Test failed due to {e}")

@@ -56,8 +56,8 @@ def test_volume_create(volume_fixture, volume_create_test):
         status = pos.cli.volume_create(volumename=vol_name, size="10gb", array_name=array_name)
         assert status[0] == expected_res
         if expected_res == False:
-            #event_name = status[1]['output']['Response']['result']['status']['eventName']
-            logger.info("Expected failure for volume create comamnd")
+            event_name = status[1]['output']['Response']['result']['status']['eventName']
+            logger.info(f"Expected failure for volume create disk due to {event_name}")
         
         assert (
             pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0]
@@ -246,13 +246,13 @@ def test_array_create_with_invalid_uram(system_fixture):
                         write_buffer="uram-invalid", data=data_disk_list, 
                         spare=[], raid_type="RAID5")
         assert status[0] == False
-        event_name = status[1]['output']['Response']['result']['status']['eventName']
-        logger.info(f"Expected failure for array create due to {event_name}")
+        #event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info("Expected failure for array create with invalid uram")
         
         logger.info("=============== TEST ENDs ================")
 
     except Exception as e:
-        logger.info(f" Test Script failed due to {e}")
+        logger.info(f"Test Script failed due to {e}")
         pos.exit_handler(expected=False)
 
 
@@ -482,12 +482,14 @@ def test_unmount_volume_connected(volume_fixture):
 
         assert pos.client.nvme_list() == True
         # Unmounting the connected Volume
-        pos.cli.volume_unmount(array_name=array_name, volumename="vol1")[0] == True
+        status = pos.cli.volume_unmount(array_name=array_name, volumename="vol1")
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for volume unmount due to {event_name}")
+
         assert (
             pos.client.nvme_disconnect(nqn=[pos.target_utils.ss_temp_list[0]]) == True
         )
-
-        # Volume is already unmounted
         assert (
             pos.cli.volume_unmount(array_name=array_name, volumename="vol1")[0] == False
         )

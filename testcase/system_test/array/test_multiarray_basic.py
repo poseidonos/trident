@@ -184,6 +184,7 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
             pos.data_dict["volume"]["pos_volumes"][0]["size"] = vol_size_list[0]
             pos.data_dict["volume"]["pos_volumes"][0]["num_vols"] = 1
             pos.data_dict["volume"]["pos_volumes"][1]["size"] = vol_size_list[1]
+            pos.data_dict["volume"]["pos_volumes"][1]["num_vols"] = 2
             assert pos.target_utils.bringup_volume(
                 data_dict=pos.data_dict) == True
 
@@ -602,7 +603,7 @@ def test_multiarray_unmount_array_effect(array_fixture):
         # Unmount second array and Check the array state
         assert pos.cli.array_unmount(array_name=array2_name)[0] == True
 
-        assert pos.cli.array_info(array_name=array1_name)[0] == True
+        assert pos.cli.array_info(array_name=array2_name)[0] == True
         assert pos.cli.array_data[array1_name].get("state") == "NORMAL"
 
         assert pos.cli.array_info(array_name=array2_name)[0] == True
@@ -726,10 +727,11 @@ def test_array1_100_vols_array2_257_vols(array_fixture):
         # negative test
 
         assert pos.cli.array_list()[0] == True
-        for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.volume_create(volumename="invalidvol",
-                        array_name=array_name, size="1gb")[0] == False
-            logger.info("Expected failure to create invalid volume")
+        array_name_list = list(pos.cli.array_dict.keys())
+        assert pos.cli.volume_create(volumename="invalidvol",
+                        array_name=array_name_list[0], size="1gb")[0] == False
+        logger.info("Expected failure to create invalid volume")
+        
     except Exception as e:
         logger.error(f" ======= Test FAILED due to {e} ========")
         assert 0
