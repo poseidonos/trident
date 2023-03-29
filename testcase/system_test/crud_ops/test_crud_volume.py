@@ -141,5 +141,3 @@ def test_crud_volume_negative_ops(array_fixture):
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
 
-
-
