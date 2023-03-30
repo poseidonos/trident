@@ -179,17 +179,18 @@ def test_raid6_arrays_gc(array_fixture, gc_operation):
 
         assert pos.client.nvme_list() == True
         nvme_devs = pos.client.nvme_list_out
-
         if gc_operation == "normal":
-            fio_cmd = "fio --name=rand_write --ioengine=libaio --numjobs=4 --rw=randwrite --iodepth=64 --bs=128k --size=85%"
+            fio_cmd = "fio --name=rand_write --ioengine=libaio --numjobs=4 --rw=randwrite --iodepth=64 --bs=128k --size=35%"
             assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
             assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
         else:
             fio_cmd = "fio --name=seq_write --ioengine=libaio --numjobs=4 --rw=write --iodepth=64 --bs=128k --size=15%"
             assert pos.client.fio_generic_runner(nvme_devs, fio_user_data=fio_cmd)[0] == True
-            assert pos.cli.wbt_do_gc(array_name=array_list[0])[0] == True
-
-        assert pos.cli.wbt_get_gc_status(array_name=array_list[0])[0] == True
+            for array in pos.cli.array_dict.keys():
+                assert pos.cli.wbt_do_gc(array_name=array)[0] == True
+        for array in pos.cli.array_dict.keys():
+            # assert pos.cli.array_info(array_name=array)[0] == True
+            assert pos.cli.wbt_get_gc_status(array_name=array)[0] == True
 
         logger.info(
             " ============================= Test ENDs ======================================"
