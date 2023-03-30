@@ -1,4 +1,3 @@
-from array import array
 import pytest
 
 import logger
@@ -172,7 +171,7 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
             assert pos.target_utils.bringup_array(
                                             data_dict=pos.data_dict) == True
 
-            #assert pos.cli.array_list()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_list = list(pos.cli.array_dict.keys())
 
             pos_vol_dict = pos.data_dict["volume"]["pos_volumes"]
@@ -187,6 +186,7 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
             assert pos.target_utils.bringup_volume(
                                             data_dict=pos.data_dict) == True
 
+            logger.info(f"Unmount and delete arrays {array_list}")
             for array_name in array_list:
                 assert pos.cli.array_unmount(array_name=array_name)[0] == True
                 assert pos.cli.array_delete(array_name=array_name)[0] == True

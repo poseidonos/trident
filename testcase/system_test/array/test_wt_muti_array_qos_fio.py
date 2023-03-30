@@ -68,7 +68,7 @@ def test_wt_multi_array_QOS_FIO(
         fio_cmd = f"fio --name=write --ioengine=libaio --rw=write --iodepth=64 \
                     --bs=128k --time_based --runtime=5 --direct=1 --size=256"
 
-        nr_dev = 8
+        nr_dev = 128
         for i in range(256 // nr_dev):
 
             nvme_dev_list = pos.client.nvme_list_out[i * nr_dev : (i + 1) * nr_dev]
