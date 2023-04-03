@@ -1236,10 +1236,14 @@ class PosCLI:
             if jout["status_code"] != 0:
                 raise Exception(out["description"])
 
+            self.vols = []
             no_vols_str = f"no any volume exist in {array_name}"
             if no_vols_str == jout["description"]:
-                logger.warning(jout["description"])
-                self.vols = []
+                logger.info(jout["description"])
+                return True, jout
+
+            if jout["description"] == None:
+                logger.info(f"{no_vols_str}")
                 return True, jout
 
             for vol in jout["data"]["volumes"]:
