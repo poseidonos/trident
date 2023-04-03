@@ -20,15 +20,13 @@ def test_crud_subsystem_ops(system_fixture):
         pos = system_fixture
         data_dict = pos.data_dict
 
-        assert pos.cli.pos_start()[0] == True
-
         # Create - Create Transport
         assert pos.cli.subsystem_create_transport(buf_cache_size=64,
                     num_shared_buf=4096, transport_type="TCP")[0] == True
         
         # Create - Create 1024 susbsystem 
-        for ss_nr in range(1, 1024):
-            nqn = f"nqn.2022-10.pos-array:subsystem{ss_nr}"
+        for ss_nr in range(1, 1025):
+            nqn = f"nqn.2022-10.pos-subsystem{ss_nr}"
             ns_count = 512
             serial_number = "POS000000%04d"%ss_nr
             model_number = "POS_VOLUME_array"
