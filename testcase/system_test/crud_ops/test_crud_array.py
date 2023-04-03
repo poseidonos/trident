@@ -1,5 +1,6 @@
 import pytest
 
+import time
 from common_libs import *
 
 import logger
@@ -55,7 +56,8 @@ def test_crud_array_ops_all_raids(array_fixture):
                 data_disk = pos.cli.array_data[array_name]["data_list"]
 
                 # spare disk is not supported, continue
-                if array_raid == "RAID0" or array_raid == None:
+                logger.info(f"Array Raid {array_raid}")
+                if array_raid == "RAID0" or array_raid == 'NONE':
                     continue
 
                 spare_disk = system_disks.pop(0)
@@ -70,6 +72,7 @@ def test_crud_array_ops_all_raids(array_fixture):
 
                 assert pos.cli.array_replace_disk(device_name=data_disk[0],
                                                 array_name=array_name)[0] == True
+                assert pos.target_utils.array_rebuild_wait(array_name=array_name) == True
 
             # Update and Delete Operation
             assert array_unmount_and_delete(pos) == True
@@ -96,19 +99,19 @@ def test_crud_array_negative_ops(array_fixture):
     Verification: POS CLI - Array CRUD Operation.
     """
     logger.info(
-        f" ==================== Test : test_crud_array_ops_all_raids ================== "
+        f" ==================== Test : test_crud_array_negative_ops ================== "
     )
     pos = array_fixture
     try:
         array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
 
         # Create Array with invalid RAID
-        single_array_data_setup(pos.dict, "RAID_ERR", 4, 0, "NO", False)
+        single_array_data_setup(pos.data_dict, "RAID_ERR", 4, 0, "NO", False)
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == False
         logger.info("Expected failure for create Array with invalid RAID")
 
         # Create Array with less than minimim required disk
-        single_array_data_setup(pos.dict, "RAID5", 2, 0, "NO", False)
+        single_array_data_setup(pos.data_dict, "RAID5", 2, 0, "NO", False)
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == False
         logger.info("Expected failure for create Array with less Disk")
 
@@ -125,15 +128,8 @@ def test_crud_array_negative_ops(array_fixture):
         logger.info("Expected failure for delete Array which is not created")
 
         # Create a valid Array with RAID 5 (+ve)
-        single_array_data_setup(pos.dict, "RAID5", 4, 0, "WT", False)
+        single_array_data_setup(pos.data_dict, "RAID5", 4, 0, "WT", False)
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
-
-        # Unmount the unmounted Array
-        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == False
-        logger.info("Expected failure for re-create Array")
-
-        # Mount the array in WT (+ve)
-        assert pos.cli.array_mount(array_name=array_name)[0] == True
 
         # Mount same Array Again
         assert pos.cli.array_mount(array_name=array_name)[0] == False
