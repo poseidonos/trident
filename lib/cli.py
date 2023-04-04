@@ -1057,6 +1057,79 @@ class PosCLI:
             logger.error(f"Logger info command failed due to {e}")
             return False, jout
 
+    ################################### Transport ############################
+
+    def transport_create(self, buf_cache_size: str = 64,
+                         num_shared_buf: str = 4096,
+                         transport_type: str = "TCP") -> (bool, dict()):
+        """
+        Method to create transport
+
+        Parameters:
+            buf_cache_size (str) : Buffer size for TCP packets
+            num_share_buf (str) : Num of buffers
+            transport type (str) : Transport Type. TCP/RDMA
+        """
+        try:
+            ttype = transport_type.upper()
+            cmd = "create -c {} --num-shared-buf {} -t {}".format(
+                                        buf_cache_size, num_shared_buf, ttype)
+
+            cli_rsp, jout = self.run_cli_command(cmd, command_type="transport")
+            if cli_rsp == False:
+                raise Exception("CLI Error")
+
+            return cli_rsp, jout
+        except Exception as e:
+            logger.error(f"Transport create cmd failed due to {e}")
+            return False, jout
+
+    def transport_list(self) -> (bool, dict()):
+        """
+        Method to list transport
+
+        Returns:
+            Tuple of (Status, Comamnd Response)
+        """
+        try:
+            cmd = "list "
+            cli_rsp, jout = self.run_cli_command(cmd, command_type="transport")
+            if cli_rsp == False:
+                raise Exception("CLI Error")
+
+            out = jout["output"]["Response"]
+            self.transport_list = []
+            data = jout.get("data", None)
+            if data == None:
+                logger.info("No transport present in the system")
+                return True, out
+
+            for transport in out["result"]["data"]["transportlist"]:
+                # TR type |max QD |max IO Qpairs/ctrlr |incapsule data sz 
+                # max IO sz |IO unit sz |abort TO sec |buf cache sz |num shared buf
+
+                tr_type = transport['type']
+                q_depth = transport['maxQueueDepth']
+                max_ioq = transport['maxIoQpairsPerCtrlr']
+                capsule_data = transport['inCapsuleDataSize']
+                max_io_size = transport['maxIoSize']
+                max_io_unit = transport['ioUnitSize']
+
+                self.transport_list.append({
+                    "tr_type" : tr_type,
+                    "q_depth" : q_depth,
+                    "max_ioq" : max_ioq,
+                    "capsule_data" : capsule_data,
+                    "max_io_size" : max_io_size,
+                    "max_io_unit" : max_io_unit
+                })
+
+            self.num_transport = len(self.transport_list)
+            return cli_rsp, jout
+        except Exception as e:
+            logger.error(f"Transport list command failed due to {e}")
+            return False, jout
+
     ################################### Telemetry ############################
 
     def telemetry_start(self) -> (bool, dict()):
