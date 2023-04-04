@@ -100,6 +100,7 @@ def test_crud_volume_negative_ops(array_fixture):
     pos = array_fixture
     try:
         common_setup(pos)
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         subs_list = pos.target_utils.ss_temp_list
 
