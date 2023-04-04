@@ -1621,7 +1621,7 @@ class PosCLI:
             cli_rsp, jout = self.run_cli_command(cmd, "wbt")
             if cli_rsp == True:
                 if jout["status_code"] == 0:
-                    logger.error(jout["description"])
+                    logger.info(jout["description"])
                     seg_info = jout["output"]["Response"]["result"]["data"]["gc"][
                         "segment"
                     ]
