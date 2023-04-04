@@ -43,6 +43,24 @@ import threadable_node
 
 logger = logger.get_logger(__name__)
 
+class NQNHandlerError(Exception):
+    """
+    Exception raised when NQN is already added during add nqn name(nvme connect)
+    or when NQN is not present during delete nqn(nvme disconnect).
+
+    Attributes:
+        NQN -- input nqn which caused the error
+        Insert -- True : Exception during insert
+                  False : Exception during delete
+    """
+    def __init__(self, nqn, nqn_list, insert=True):
+        self.nqn = nqn
+        if insert:
+            self.message = f"NQN {nqn} is already added {nqn_list}"
+        else:
+            self.message = f"NQN {nqn} is not added {nqn_list}"
+        super().__init__(self.message)
+
 
 class Client:
     """
@@ -94,7 +112,7 @@ class Client:
     def _add_nqn_name(self, nqn: str):
         """ Internal Method to add nqn name """
         if nqn in self.nqn_list:
-            raise Exception(f"NQN {nqn} is already added {self.nqn_list}")
+            raise NQNHandlerError(nqn, self.nqn_list, insert=True)
 
         logger.debug(f"Add new nqn name : {nqn}")
         self.nqn_list.append(nqn)
@@ -102,7 +120,7 @@ class Client:
     def _del_nqn_name(self, nqn: str):
         """ Internal Method to delete nqn name """
         if nqn not in self.nqn_list:
-            raise Exception(f"NQN {nqn} is not added {self.nqn_list}")
+            raise NQNHandlerError(nqn, self.nqn_list, insert=False)
 
         logger.debug(f"Remove nqn name : {nqn}")
         self.nqn_list.remove(nqn)
@@ -754,19 +772,20 @@ class Client:
                 transport.lower(), port, mellanox_switch_ip, nqn_name
             )
 
-            try:
-                self._add_nqn_name(nqn_name)
-                self._store_connection_info(nqn_name, mellanox_switch_ip,
+            self._add_nqn_name(nqn_name)
+            self._store_connection_info(nqn_name, mellanox_switch_ip,
                                             port, transport)
-                logger.info("Execute command {}".format(cmd))
-                out = self.ssh_obj.execute(cmd)
-            except Exception as e:
-                logger.info(f"{e}")
+            logger.info("Execute command {}".format(cmd))
+            out = self.ssh_obj.execute(cmd)
+            if isinstance(out, tuple):
+                return False
 
+            return True
+        except NQNHandlerError as e:
+            logger.error("command execution failed with exception {}".format(e))
             return True
         except Exception as e:
             logger.error("command execution failed with exception {}".format(e))
-
             return False
 
     def ctrlr_list(self) -> (bool, list):
@@ -819,14 +838,11 @@ class Client:
             nqn_list = nqn[:]
             for nqn_name in nqn_list:
                 logger.info(f"Disconnecting Subsystem {nqn_name}")
-                try:
-                    self._del_nqn_name(nqn_name)
-                    cmd = f"nvme disconnect -n {nqn_name}"
-                    out = self.ssh_obj.execute(cmd)
-                    res = " ".join(out)
-                    logger.info(f"{res}")
-                except Exception as e:
-                    logger.info(f"{e}")
+                self._del_nqn_name(nqn_name)
+                cmd = f"nvme disconnect -n {nqn_name}"
+                out = self.ssh_obj.execute(cmd)
+                res = " ".join(out)
+                logger.info(f"{res}")
 
             if len(nqn_list) == 0:
                 try:
@@ -845,6 +861,9 @@ class Client:
                 else:
                     raise Exception("nvme disconnect failed")
 
+            return True
+        except NQNHandlerError as e:
+            logger.error("command execution failed with exception {}".format(e))
             return True
         except Exception as e:
             logger.error(f"Subsystem disconnect failed due to {e}")

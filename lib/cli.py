@@ -483,9 +483,11 @@ class PosCLI:
             cli_rsp, jout = self.run_cli_command("list", command_type="array")
             
             if cli_rsp == False:
-                if (int(jout["status_code"]) == 1225
-                    or int(jout["status_code"]) == 1226):
+                if (int(jout["status_code"]) in [1225, 1226]):
                     logger.info(jout["description"])
+                    return True, jout
+                elif (int(jout["status_code"]) == -1000):
+                    logger.info("Arrays are not created in fresh system")
                     return True, jout
                 else:
                     raise Exception(f"CLI Error")
@@ -680,6 +682,7 @@ class PosCLI:
                 array_data = jout["data"]
                 array_state = array_data["state"]
                 array_size = array_data["capacity"]
+                data_raid = array_data["dataRaid"]
                 array_situation = array_data["situation"]
                 rebuild_progress = array_data["rebuildingProgress"]
                 uniqueId = array_data['uniqueId']
@@ -699,6 +702,7 @@ class PosCLI:
                     "state": array_state,
                     "size": array_size,
                     "situation": array_situation,
+                    "data_raid": data_raid,
                     "rebuilding_progress": rebuild_progress,
                     "data_list": data_dev,
                     "spare_list": spare_dev,
@@ -1242,7 +1246,7 @@ class PosCLI:
                 logger.info(jout["description"])
                 return True, jout
 
-            if jout["description"] == None:
+            if jout["description"] == 'none' or jout["data"] == None:
                 logger.info(f"{no_vols_str}")
                 return True, jout
 
@@ -1305,7 +1309,7 @@ class PosCLI:
                     "max_bw": vol_data["maxbw"],
                     "min_bw": vol_data["minbw"],
                     "subnqn": vol_data["subnqn"],
-                    "array_name": vol_data["array_name"],
+                    "array_name": vol_data["arrayname"],
                 }
                 vol_status = self.volume_data[array_name][vol_name]["status"]
                 if vol_status == "Mounted":
