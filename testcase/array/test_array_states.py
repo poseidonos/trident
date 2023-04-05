@@ -115,6 +115,7 @@ def test_array_states(array_fixture, num_array):
 
         pos.exit_handler(expected=True)
     except Exception as e:
+        logger.error(f"Test script failed due to {e}")
         if len(list_array_obj) > 0:
             for array_obj in list_array_obj:
                 assert array_obj.cmd_history(exit=False) == True
