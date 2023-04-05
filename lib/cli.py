@@ -1319,7 +1319,8 @@ class PosCLI:
                 logger.info(jout["description"])
                 return True, jout
 
-            if jout["description"] == 'none' or jout["data"] == None:
+            data = jout.get("data", None)
+            if data == None:
                 logger.info(f"{no_vols_str}")
                 return True, jout
 
