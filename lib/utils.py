@@ -839,7 +839,7 @@ class Client:
                     pass
                 
             if verify:
-                self.nvme_list()
+                self.nvme_list(error_recovery=False)
                 if len(self.nvme_list_out) == 0:
                     logger.info("Nvme disconnect passed")
                 else:
@@ -886,8 +886,16 @@ class Client:
             logger.info("System recovery failed...")
             logger.info("Start second level of recovery...")
 
+            assert self.nvme_disconnect(self.nvme_subsys_list) == True
+
             assert self.reboot_and_reconnect() == True
             assert self.load_drivers() == True
+
+            for connection in connection_list:
+                assert self.nvme_connect(nqn_name=connection["nqn"],
+                                        mellanox_switch_ip=connection["ip"],
+                                        port=connection["port"],
+                                        transport=connection["transport"]) == True
 
             logger.info("Completed second level of recovery...")
             self.nvme_list(error_recovery=False)
@@ -904,7 +912,7 @@ class Client:
 
 
 
-    def nvme_list(self, model_name: str = "POS_VOLUME", error_recovery=False) -> bool:
+    def nvme_list(self, model_name: str = "POS_VOLUME", error_recovery=True) -> bool:
         """
         Method to get the nvme list
         Args:
@@ -949,7 +957,6 @@ class Client:
             bool
         """
         try:
-
             self.load_drivers()
             discover_cmd = (
                 "nvme discover --transport={} --traddr={} -s {}  --hostnqn={}".format(

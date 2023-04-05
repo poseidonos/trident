@@ -124,7 +124,7 @@ def test_unmnt_mnt_for_io(array_fixture):
         ip_addr = pos.target_utils.helper.ip_addr[0]
         for nqn in subs_list:
             assert pos.client.nvme_connect(nqn, ip_addr, "1158") == True
-        assert pos.client.nvme_list() == False
+        assert pos.client.nvme_list(error_recovery=False) == False
         logger.info("As expected no volumes present io due to volume mount")
 
         assert pos.cli.array_list()[0] == True
