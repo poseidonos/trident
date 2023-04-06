@@ -56,8 +56,8 @@ def negative_tests(pos):
                     buffer_name=pos.cli.dev_type["NVRAM"][1],
                     raid_type=random.choice(list(raid.keys())))
     assert status[0] == False
-    event_name = status[1]['output']['Response']['result']['status']['eventName']
-    logger.info(f"Expected failure for autocreate array due to {event_name}")
+    #event_name = status[1]['output']['Response']['result']['status']['eventName']
+    logger.info(f"Expected failure for autocreate array")
 
 
     for array in ["array1", "array2"]:
