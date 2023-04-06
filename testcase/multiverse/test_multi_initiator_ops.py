@@ -1,4 +1,4 @@
-import pytest, json, sys, os, time, signal, psutil, time, random
+import pytest, json, sys, os, time, random
 
 from concurrent.futures import (
     ProcessPoolExecutor,
