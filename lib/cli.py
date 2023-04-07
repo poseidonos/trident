@@ -1631,6 +1631,51 @@ class PosCLI:
             logger.error(f"Subsystem add listner command failed due to {e}")
             return False, jout
 
+
+    def subsystem_list_listner(self, nqn_name: str) -> (bool, dict()):
+        """
+        Method to add list listner
+        Parameters:
+            nqn_name (str) : Subsystem name
+        """
+        try:
+            self.subsystem_listeners = {}
+            cmd = f"list-listener --subnqn {nqn_name}"
+
+            cli_rsp, jout = self.run_cli_command(cmd, command_type="subsystem")
+            if cli_rsp == False:
+                raise Exception("CLI Error")
+
+            self.subsystem_listeners[nqn_name] = jout["data"]["listenerlist"]
+
+            return cli_rsp, jout
+        except Exception as e:
+            logger.error(f"Subsystem list listner command failed due to {e}")
+            return False, jout
+
+
+    def subsyste_remove_listner(self, nqn_name: str, mellanox_interface: str,
+                         port: str, transport: str = "TCP") -> (bool, dict()):
+        """
+        Method to add nvmf listner
+        Parameters:
+            nqn_name (str) : Subsystem name
+            mellanox_interface
+        """
+        try:
+
+            cmd = f"remove-listener --subnqn {nqn_name} --trtype {transport}"
+            cmd = f"{cmd} --traddr {mellanox_interface} --trsvcid {port}"
+
+            cli_rsp, jout = self.run_cli_command(cmd, command_type="subsystem")
+            if cli_rsp == False:
+                raise Exception("CLI Error")
+
+            return cli_rsp, jout
+        except Exception as e:
+            logger.error(f"Subsystem remove listner command failed due to {e}")
+            return False, jout
+
     def subsystem_create_transport(self, buf_cache_size: str = 64,
                                    num_shared_buf: str = 4096,
                                    transport_type: str = "TCP"
