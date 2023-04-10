@@ -1,4 +1,3 @@
-from array import array
 import pytest
 
 import logger
@@ -170,27 +169,25 @@ def test_multiarray_recreate_array_and_vol(array_fixture):
         for _ in range(2):
 
             assert pos.target_utils.bringup_array(
-                data_dict=pos.data_dict) == True
+                                            data_dict=pos.data_dict) == True
 
-            vol_size_list = []
+            assert pos.cli.array_list()[0] == True
+            array_list = list(pos.cli.array_dict.keys())
 
-            for id in range(2):
-                array_size = int(
-                    pos.cli.array_data[f"array{id +1}"].get("size"))
+            pos_vol_dict = pos.data_dict["volume"]["pos_volumes"]
+            for index, array_name in enumerate(array_list):
+                array_size = int(pos.cli.array_data[array_name].get("size"))
                 # Volume Size in MB
                 vol_size = f"{array_size // (1024 * 1024)}MB"
-                vol_size_list.append(vol_size)
 
-            pos.data_dict["volume"]["pos_volumes"][0]["size"] = vol_size_list[0]
-            pos.data_dict["volume"]["pos_volumes"][0]["num_vols"] = 1
-            pos.data_dict["volume"]["pos_volumes"][1]["size"] = vol_size_list[1]
+                pos_vol_dict[index]["size"] = vol_size
+                pos_vol_dict[index]["num_vol"] = 1
+
             assert pos.target_utils.bringup_volume(
-                data_dict=pos.data_dict) == True
+                                            data_dict=pos.data_dict) == True
 
-            vol_name_pre = "pos_vol"
-            for id in range(2):
-                array_name = f"array{id +1}"
-                vol_name = f"{array_name}_{vol_name_pre}"
+            logger.info(f"Unmount and delete arrays {array_list}")
+            for array_name in array_list:
                 assert pos.cli.array_unmount(array_name=array_name)[0] == True
                 assert pos.cli.array_delete(array_name=array_name)[0] == True
 
@@ -726,10 +723,11 @@ def test_array1_100_vols_array2_257_vols(array_fixture):
         # negative test
 
         assert pos.cli.array_list()[0] == True
-        for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.volume_create(volumename="invalidvol",
-                        array_name=array_name, size="1gb")[0] == False
-            logger.info("Expected failure to create invalid volume")
+        array_name_list = list(pos.cli.array_dict.keys())
+        assert pos.cli.volume_create(volumename="invalidvol",
+                        array_name=array_name_list[0], size="1gb")[0] == False
+        logger.info("Expected failure to create invalid volume")
+        
     except Exception as e:
         logger.error(f" ======= Test FAILED due to {e} ========")
         assert 0

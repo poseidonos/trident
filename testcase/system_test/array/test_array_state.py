@@ -14,7 +14,7 @@ def test_stop_arrray_state(array_fixture, num_drives):
     try:
         pos = array_fixture
         pos.data_dict["array"]["num_array"] = 1
-        pos.data_dict["array"]["pos_array"][0]["raid_type"] = "RADI5"
+        pos.data_dict["array"]["pos_array"][0]["raid_type"] = "RAID5"
         pos.data_dict["array"]["pos_array"][0]["data_device"] = 4
         pos.data_dict["array"]["pos_array"][0]["spare_device"] = 1
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
@@ -35,11 +35,11 @@ def test_stop_arrray_state(array_fixture, num_drives):
         elif (num_drives == 2):
             # Array should be in fault or degraded state as 2 disks are removed
             assert array_state in ["STOP", "BUSY"]
-            assert array_situation == ["FAULT", "DEGRADED"]
+            assert array_situation in ["FAULT", "DEGRADED"]
         elif (num_drives == 1):
             # Array should be in Rebuilding or Normal State
             assert array_state in ["BUSY", "NORMAL"]
-            assert array_situation == ["REBUILDING", "NORMAL"]
+            assert array_situation in ["REBUILDING", "NORMAL"]
         else:
             # Set state
             pass

@@ -55,6 +55,10 @@ def test_wt_multi_array_QOS_FIO(
         pos.data_dict["array"]["pos_array"][1]["spare_device"] = 0
         pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 256
         pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = 256
+        pos.data_dict["volume"]["pos_volumes"][0]["qos"]["maxiops"] = 10
+        pos.data_dict["volume"]["pos_volumes"][1]["qos"]["maxiops"] = 10
+        pos.data_dict["volume"]["pos_volumes"][0]["qos"]["maxbw"] = 10
+        pos.data_dict["volume"]["pos_volumes"][1]["qos"]["maxbw"] = 10
         assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
         assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
@@ -64,7 +68,7 @@ def test_wt_multi_array_QOS_FIO(
         fio_cmd = f"fio --name=write --ioengine=libaio --rw=write --iodepth=64 \
                     --bs=128k --time_based --runtime=5 --direct=1 --size=256"
 
-        nr_dev = 8
+        nr_dev = 128
         for i in range(256 // nr_dev):
 
             nvme_dev_list = pos.client.nvme_list_out[i * nr_dev : (i + 1) * nr_dev]

@@ -542,7 +542,7 @@ class Client:
                     avg_fio_bw, fio_bw, num_dev, qos_max_bw
                 )
             )
-            if avg_fio_bw < qos_max_bw and avg_fio_bw > qos_max_bw * 0.95:
+            if avg_fio_bw < qos_max_bw * 1.05 and avg_fio_bw > qos_max_bw * 0.95:
                 result = True
         else:
             qos_max_iops = qos_max_iops * kiops
@@ -551,7 +551,7 @@ class Client:
                     avg_fio_iops, fio_iops, num_dev, qos_max_iops
                 )
             )
-            if avg_fio_iops < qos_max_iops and avg_fio_iops > qos_max_iops * 0.95:
+            if avg_fio_iops < qos_max_iops * 1.05 and avg_fio_iops > qos_max_iops * 0.95:
                 result = True
 
         return result

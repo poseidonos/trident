@@ -227,32 +227,29 @@ def test_volume_create_gt_max_array_capacity(volume_fixture):
 
 
 @pytest.mark.regression
-def test_array_create_with_invalid_uram(system_fixture):
+def test_array_create_with_invalid_uram(array_fixture):
     """The pupose of testcase is to create an array with invalid uram"""
 
     logger.info(
         "================ Test : test_array_create_with_invalid_uram ================="
     )
     try:
-        pos = system_fixture
-        assert pos.cli.array_list()[0] == True
-        array_name = list(pos.cli.array_dict.keys())[0]
+        pos = array_fixture
         assert pos.cli.device_scan()[0] == True
         assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
         data_disk_list = [system_disks.pop(0) for i in range(4)]
 
-        status = pos.cli.array_create(array_name="invalid_" + array_name,
+        status = pos.cli.array_create(array_name="invalid_array",
                         write_buffer="uram-invalid", data=data_disk_list, 
                         spare=[], raid_type="RAID5")
         assert status[0] == False
-        event_name = status[1]['output']['Response']['result']['status']['eventName']
-        logger.info(f"Expected failure for array create due to {event_name}")
+        #event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info("Expected failure for array create with invalid uram")
         
         logger.info("=============== TEST ENDs ================")
-
     except Exception as e:
-        logger.info(f" Test Script failed due to {e}")
+        logger.info(f"Test Script failed due to {e}")
         pos.exit_handler(expected=False)
 
 

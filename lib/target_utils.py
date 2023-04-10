@@ -778,6 +778,7 @@ class TargetUtils:
         try:
             self.static_dict = data_dict
             if self.static_dict["volume"]["phase"] == "true":
+                logger.info(f"volume data dict : {data_dict['volume']['pos_volumes']}")
                 assert self.cli.array_list()[0] == True
                 if len(list(self.cli.array_dict.keys())) == 2:
                     volumes = self.static_dict["volume"]["pos_volumes"]
@@ -789,7 +790,8 @@ class TargetUtils:
                     old_vols = self.cli.vols
                     assert self.create_volume_multiple(array_name, 
                             vol["num_vol"], vol_name=vol["vol_name_pre"],
-                            size=vol["size"]) == True
+                            size=vol["size"], bw=vol["qos"]["maxbw"],
+                               maxiops=vol["qos"]["maxiops"]) == True
 
                     if vol["mount"]["phase"]:
                         assert self.cli.volume_list(array_name)[0] == True

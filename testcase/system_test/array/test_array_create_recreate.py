@@ -136,8 +136,8 @@ def test_create_volume_with_invalid_name(array_fixture):
         status = pos.cli.volume_create(volumename=invalid_volume_name,
                                      size='1gb',array_name=array)
         assert status[0] == False
-        event_name = status[1]['output']['Response']['result']['status']['eventName']
-        logger.info(f"Expected failure for volume creation due to {event_name}")
+        #event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info("Expected failure for volume creation")
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
         pos.exit_handler(expected=False)
