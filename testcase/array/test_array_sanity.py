@@ -28,8 +28,9 @@ raid = {
 def array_ops(pos):
     arrayname = "array1"
     assert pos.cli.array_info(array_name=arrayname)[0] == True
-    if pos.data_dict["array"]["pos_array"][0]["raid_type"] not in ["RAID0", "no-raid"]:
-        disklist = [random.choice(pos.cli.dev_type["SSD"])]
+    array_data = pos.cli.array_data[array_name]
+    if array_data["data_raid"].lower() not in ["raid0", "no-raid"]:
+        disklist = [random.choice(array_data["data_list"])]
         assert pos.target_utils.device_hot_remove(disklist) == True
         # assert pos.cli.array_unmount(array_name=arrayname)[0] == False
         # assert pos.cli.array_delete(array_name=array)[0] == False
