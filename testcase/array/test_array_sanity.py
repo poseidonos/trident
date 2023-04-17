@@ -26,15 +26,17 @@ raid = {
 
 
 def array_ops(pos):
-    arrayname = "array1"
+    arrayname = pos.data_dict["array"]["pos_array"][0]["array_name"]
     assert pos.cli.array_info(array_name=arrayname)[0] == True
-    array_data = pos.cli.array_data[array_name]
+    array_data = pos.cli.array_data[arrayname]
     if array_data["data_raid"].lower() not in ["raid0", "no-raid"]:
         disklist = [random.choice(array_data["data_list"])]
         assert pos.target_utils.device_hot_remove(disklist) == True
-        # assert pos.cli.array_unmount(array_name=arrayname)[0] == False
-        # assert pos.cli.array_delete(array_name=array)[0] == False
-        assert pos.target_utils.array_rebuild_wait(array_name=arrayname) == True
+
+        if(len(array_data["spare_list"]) > 0):
+            assert pos.cli.array_unmount(array_name=arrayname)[0] == False
+            assert pos.cli.array_delete(array_name=arrayname)[0] == False
+            assert pos.target_utils.array_rebuild_wait(array_name=arrayname) == True
 
     assert pos.cli.device_scan()[0] == True
     assert pos.cli.array_list()[0] == True
