@@ -1098,7 +1098,7 @@ class PosCLI:
                 raise Exception("CLI Error")
 
             out = jout["output"]["Response"]
-            self.transport_list = []
+            self.transports = []
             data = jout.get("data", None)
             if data == None:
                 logger.info("No transport present in the system")
@@ -1115,7 +1115,7 @@ class PosCLI:
                 max_io_size = transport['maxIoSize']
                 max_io_unit = transport['ioUnitSize']
 
-                self.transport_list.append({
+                self.transports.append({
                     "tr_type" : tr_type,
                     "q_depth" : q_depth,
                     "max_ioq" : max_ioq,
@@ -1124,7 +1124,7 @@ class PosCLI:
                     "max_io_unit" : max_io_unit
                 })
 
-            self.num_transport = len(self.transport_list)
+            self.num_transport = len(self.transports)
             return cli_rsp, jout
         except Exception as e:
             logger.error(f"Transport list command failed due to {e}")
