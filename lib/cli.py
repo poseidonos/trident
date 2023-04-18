@@ -1632,9 +1632,9 @@ class PosCLI:
             return False, jout
 
 
-    def subsystem_list_listner(self, nqn_name: str) -> (bool, dict()):
+    def subsystem_list_listener(self, nqn_name: str) -> (bool, dict()):
         """
-        Method to add list listner
+        Method to add list listener
         Parameters:
             nqn_name (str) : Subsystem name
         """
@@ -1646,18 +1646,22 @@ class PosCLI:
             if cli_rsp == False:
                 raise Exception("CLI Error")
 
-            self.subsystem_listeners[nqn_name] = jout["data"]["listenerlist"]
+            if jout["data"] is None:
+                logger.info("No listener is present in the config")
+                self.subsystem_listeners[nqn_name] = []
+            else:
+                self.subsystem_listeners[nqn_name] = jout["data"]["listenerlist"]
 
             return cli_rsp, jout
         except Exception as e:
-            logger.error(f"Subsystem list listner command failed due to {e}")
+            logger.error(f"Subsystem list listener command failed due to {e}")
             return False, jout
 
 
-    def subsyste_remove_listner(self, nqn_name: str, mellanox_interface: str,
+    def subsystem_remove_listener(self, nqn_name: str, mellanox_interface: str,
                          port: str, transport: str = "TCP") -> (bool, dict()):
         """
-        Method to add nvmf listner
+        Method to add nvmf listener
         Parameters:
             nqn_name (str) : Subsystem name
             mellanox_interface
@@ -1673,7 +1677,7 @@ class PosCLI:
 
             return cli_rsp, jout
         except Exception as e:
-            logger.error(f"Subsystem remove listner command failed due to {e}")
+            logger.error(f"Subsystem remove listener command failed due to {e}")
             return False, jout
 
     def subsystem_create_transport(self, buf_cache_size: str = 64,
