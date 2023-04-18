@@ -189,7 +189,7 @@ def subsystem_module(target, client, data_set, config_dict, action, phase=None):
         def disconnect(basename):
             nqn_name = data_set.get_subsystem(basename)
             logger.info("Disonnecting nqn {}".format(nqn_name))
-            assert client.nvme_disconnect(nqn=nqn_name) == True
+            assert client.nvme_disconnect(nqn=[nqn_name]) == True
             data_set.set_subsystem_state(basename=basename, state="disconnect")
 
         def get_name(basename):
