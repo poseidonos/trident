@@ -128,12 +128,12 @@ class _Array():
                 self.device["data"] = [
                     dev
                     for dev in self.cli.array_data[self.name]["data_list"]
-                    if "[REMOVED]" not in dev
+                    if (dev != "" and "[REMOVED]" not in dev)
                 ]
                 self.device["spare"] = [
                     dev
                     for dev in self.cli.array_data[self.name]["spare_list"]
-                    if "[REMOVED]" not in dev
+                    if (dev != "" and "[REMOVED]" not in dev)
                 ]
 
             else:

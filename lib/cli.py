@@ -688,9 +688,6 @@ class PosCLI:
                 uniqueId = array_data['uniqueId']
                 for dev in array_data["devicelist"]:
                     if dev["type"] == "DATA":
-                        if(dev["name"] == ""):
-                            logger.info("Data disk is removed.")
-                            continue
                         data_dev.append(dev["name"])
                     elif dev["type"] == "SPARE":
                         spare_dev.append(dev["name"])
@@ -699,8 +696,11 @@ class PosCLI:
                     else:
                         logger.error("Disk type is unknown")
                                     
-                self.normal_data_disks = list(
-                        [dev for dev in data_dev if "REMOVED" not in dev])
+                self.normal_data_disks = []
+                for dev in data_dev:
+                    if dev != "" and "REMOVED" not in dev:
+                        self.normal_data_disks.append(dev)
+
                 self.array_data[array_name] = {
                     "state": array_state,
                     "size": array_size,
