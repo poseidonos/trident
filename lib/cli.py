@@ -688,6 +688,9 @@ class PosCLI:
                 uniqueId = array_data['uniqueId']
                 for dev in array_data["devicelist"]:
                     if dev["type"] == "DATA":
+                        if(dev["name"] == ""):
+                            logger.info("Data disk is removed.")
+                            continue
                         data_dev.append(dev["name"])
                     elif dev["type"] == "SPARE":
                         spare_dev.append(dev["name"])
