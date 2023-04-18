@@ -146,7 +146,7 @@ class TargetUtils:
                 logger.info(f"PCIe address {pci_addr} of given device {dev}")
 
                 command = f"echo 1 > /sys/bus/pci/devices/{pci_addr}/remove"
-                logger.info("Executing hot plug command {command}")
+                logger.info(f"Executing hot plug command {command}")
                 self.ssh_obj.execute(command)
 
                 for i  in range(10):
@@ -1079,6 +1079,9 @@ class TargetUtils:
                 logger.info(f"{buffer_dev}")
                 self.backup_data["buffer_dev"][uram_name] = buffer_dev
 
+            assert self.cli.transport_list()[0] == True
+            self.backup_data["transport_list"] = self.cli.transports
+
             assert self.get_subsystems_list() == True
             self.backup_data["subsystem"] = copy.deepcopy(self.subsystem_data)
 
@@ -1216,6 +1219,68 @@ class TargetUtils:
             logger.error(f"Failed to do POR due to {e}")
             return False
 
+    def _verify_buffer_dev(self):
+        try:
+            assert self.cli.device_list()[0] == True
+            err_list = []
+            dev_list = []
+            for uram_name in self.backup_data["buffer_dev"].keys():
+                if (uram_name not in self.cli.system_buffer_devs 
+                    or uram_name not in self.cli.array_buffer_devs):
+                    err_list.append(uram_name)
+                else:
+                    dev_list.append(uram_name)
+
+            if dev_list:
+                logger.info(f"Buffer devices {dev_list} is created")
+
+            if err_list:
+                logger.error(f"Buffer devices {err_list} is not created")
+                return False
+        except Exception as e:
+            logger.error("verify buffer dev after auto recovery Failed")
+            return False
+
+            
+
+    def por_recovery(self, verify=True):
+        try:
+            logger.info("Verify system auto recovery after Power-on")
+            # Start The POS system
+            assert self.cli.pos_start()[0] == True
+
+            # Verify the URAM device
+            assert self._verify_buffer_dev() == True
+
+            # Verify the Transport and subsystem
+            assert self.cli.transport_list()[0] == True
+            self.backup_data["transport_list"] = self.cli.transport_list
+
+            # Create subsystem and Add listner
+            assert self.cli.subsystem_create_transport()[0] == True
+
+            logger.info(f"{self.backup_data}")
+            subsystems = self.backup_data["subsystem"]
+            logger.info(f"{subsystems}")
+            for ss_nqn, subsystem_data in subsystems.items():
+                ns_count = subsystem_data["ns_count"]
+                model = subsystem_data["model_number"]
+                serial = subsystem_data["serial_number"]
+                assert self.cli.subsystem_create(ss_nqn, ns_count=ns_count,
+                        serial_number=serial, model_name=model)[0] == True
+                
+                for listner_data in subsystem_data["transport"]:
+                    transport = listner_data["transport_type"]
+                    port = listner_data["transport_port"]
+                    ip_addr = listner_data["transport_ip"]
+
+                    assert self.cli.subsystem_add_listner(nqn_name=ss_nqn,
+                            mellanox_interface=ip_addr, port=port)[0] == True
+            return True
+        except Exception as e:
+            logger.error(f"Failed to do POR due to {e}")
+            return False
+
     def _por_mount_array_volume(self):
         try:
             mounted_arrays = self.backup_data["mounted_array"]
@@ -1240,7 +1305,8 @@ class TargetUtils:
             logger.error(f"Failed to mount array and volume due to {e}")
             return False
 
-    def npor(self, mount_post_npor: bool =True) -> bool:
+    def npor(self, mount_post_npor: bool = True, 
+             auto_recovery: bool = False) -> bool:
         """
         Method to perform NPOR
         Returns:
@@ -1261,7 +1327,8 @@ class TargetUtils:
             return False
 
     def spor(self, uram_backup: bool = False, pos_as_service = None,
-            write_through: bool = False, mount_post_npor: bool = True) -> bool:
+            write_through: bool = False, mount_post_npor: bool = True,
+            auto_recovery: bool = False) -> bool:
         """
         Method to spor
         uram_backup : If true, run script to take uram backup
