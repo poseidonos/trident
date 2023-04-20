@@ -443,6 +443,7 @@ def test_multiarray_with_invalid_uram(array_fixture):
         uram_names = ["uram57", "uram58"]
         # Buffer device must be equal to or greater than 128MB * number of data devices + 512MB.
         buff_size = 1310720  # 768 MB  (1310720 * 512 Block Size)
+        buff_size = 1048576  # 512 MB  (1048576 * 512 Block Size)
 
         for id in range(2):
             assert (
@@ -599,7 +600,7 @@ def test_multiarray_unmount_array_effect(array_fixture):
         # Unmount second array and Check the array state
         assert pos.cli.array_unmount(array_name=array2_name)[0] == True
 
-        assert pos.cli.array_info(array_name=array2_name)[0] == True
+        assert pos.cli.array_info(array_name=array1_name)[0] == True
         assert pos.cli.array_data[array1_name].get("state") == "NORMAL"
 
         assert pos.cli.array_info(array_name=array2_name)[0] == True
