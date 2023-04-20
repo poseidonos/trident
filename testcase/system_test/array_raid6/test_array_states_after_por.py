@@ -49,9 +49,9 @@ def test_post_por_array_state(array_fixture, array1_num_drive, array2_num_drive,
         for i,array in enumerate(array_names):
             assert pos.cli.array_info(array_name=array)[0] == True
             data_list = pos.cli.array_data[array]["data_list"]
-
-            assert pos.target_utils.device_hot_remove(data_list[:num_drive[i]]) == True
-            assert pos.target_utils.array_rebuild_wait(array_name=array)
+            for disk in data_list[:num_drive[i]]:
+                assert pos.target_utils.device_hot_remove([disk]) == True
+                assert pos.target_utils.array_rebuild_wait(array_name=array)
             assert pos.cli.array_info(array)[0] == True
             array_status = pos.cli.array_data[array]
             logger.info(array_status["state"])
