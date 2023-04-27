@@ -194,7 +194,7 @@ def test_overwrite_live_io_spor(array_fixture, test_id):
         assert pos.client.fio_generic_runner(block_io_devs,
                      fio_user_data=fio_cmd, IO_mode=io_mode)[0] == True
         
-        for array_name in (array1_name, array2_name):
+        for array_name in array_names:
             assert pos.cli.volume_list(array_name=array_name)[0] == True
             for vol_name, vol_data in pos.cli.vol_dict.items():
                 logger.info(f"Volume: {vol_name} ({vol_data['filled']}%)")

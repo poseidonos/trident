@@ -102,10 +102,19 @@ class Client:
         }
         self.connection_data.append(connection)
 
+    def _remove_connection_info(self, nqn_name):
+        """
+        Method to remove the nvme connect info
+        """
+        connection_list = self.connection_data[:]
+        for connection in connection_list:
+            if connection["nqn"] == nqn_name:
+                self.connection_data.remove(connection)
+        logger.info(f"Removed connection info of {nqn_name}")
+
     def _get_connections_list(self):
         return self.connection_data
         
-
     def _get_connected_nqns(self):
         return self.nqn_list
 
@@ -839,6 +848,8 @@ class Client:
             for nqn_name in nqn_list:
                 logger.info(f"Disconnecting Subsystem {nqn_name}")
                 self._del_nqn_name(nqn_name)
+                self._remove_connection_info(nqn_name)
+
                 cmd = f"nvme disconnect -n {nqn_name}"
                 out = self.ssh_obj.execute(cmd)
                 res = " ".join(out)
@@ -875,7 +886,7 @@ class Client:
             logger.info("Start first level of recovery...")
 
             # Store old nqn list and disconnect them
-            connection_list = self._get_connections_list()
+            connection_list = self._get_connections_list()[:]
             nvme_nqn_list = []
             for connection in connection_list:
                 nvme_nqn_list.append(connection["nqn"])
