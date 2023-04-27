@@ -17,6 +17,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
     target=None, client=None, phase=None, data_set=None, Time=None
 ):
     try:
+        lock_status = None
         if (
             target == None
             or client == None
@@ -32,6 +33,8 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
 
         phase_time = Time
         start_time = time.time()
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
 
         assert (
             libcore.subsystem_module(
@@ -44,7 +47,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
             )
             == True
         )
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+        
         assert (
             libcore.volume_module(
                 target=target,
@@ -65,7 +68,7 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
+
         assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
@@ -78,6 +81,8 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
             )
             == True
         )
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
 
         time.sleep(5)
 
@@ -88,14 +93,16 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
         current_time = time.time()
 
         while True:
-            logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+            lock_status = target.cli.lock.acquire()
+            logger.info(f"Lock status : acquire {lock_status}")
 
             assert target.cli.array_info(target.cli.array_name)[0] == True
             num_data_disks = len(
                 target.cli.array_data[target.cli.array_name]["data_list"]
             )
             stripe_size_for_writing = num_data_disks * 256 * 1024
-            logger.info("Lock status : release {}".format(target.cli.lock.release()))
+            lock_status = target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
 
             fio_size = stripe_size_for_writing
             pattern_data = target.cli.helper.generate_pattern(8)
@@ -135,8 +142,8 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                 )[0]
                 == True
             )
-
-            logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+            lock_status = target.cli.lock.acquire()
+            logger.info(f"Lock status : acquire {lock_status}")
             assert target.cli.device_list()[0] == True
             logger.info("System Disks {}".format(target.cli.system_disks))
 
@@ -161,7 +168,8 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                     dev_name, target.cli.NVMe_BDF[dev_name]["addr"]
                 )
             )
-            logger.info("Lock status : release {}".format(target.cli.lock.release()))
+            lock_status = target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
 
             dev_name_list = []
             dev_name_list.append(dev_name)
@@ -185,14 +193,16 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
 
             assert target.target_utils.pci_rescan() == True
 
-            logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+            lock_status = target.cli.lock.acquire()
+            logger.info(f"Lock status : acquire {lock_status}")
             for index in range(2):
                 assert target.cli.device_list()[0] == True
-                system_disks = target.cli.system_disks
-                normal_disks = target.cli.normal_data_disks
+
                 assert (
                     target.cli.array_info(array_name=target.cli.array_name)[0] == True
                 )
+                system_disks = target.cli.system_disks
+                normal_disks = target.cli.normal_data_disks
                 data_disks = target.cli.array_data[target.cli.array_name]["data_list"]
                 spare_disks = target.cli.array_data[target.cli.array_name]["spare_list"]
 
@@ -227,7 +237,8 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                 ):
                     break
                 time.sleep(2)
-            logger.info("Lock status : release {}".format(target.cli.lock.release()))
+            lock_status = target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
 
             assert (
                 client.fio_generic_runner(
@@ -252,6 +263,9 @@ def test_system_sanity_detach_attach_device_iteration_io_verify(
                 break
 
     except Exception as e:
+        if lock_status:
+            target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
         logger.error("Failed due to {}".format(e))
         logger.error(
             "Failed test case name : {}".format(sys._getframe().f_code.co_name)

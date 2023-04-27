@@ -2056,7 +2056,8 @@ class Cli(LinuxCLI, PosCLI):
                 res, jout = self.pos_service_start()
             else:
                 res, jout = self.system_start()
-
+            
+            time.sleep(30) # Wait for 30 second
             if res and verify:
                 start_time = time.time()
                 run_end_time = start_time + timeout
