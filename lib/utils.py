@@ -1008,7 +1008,9 @@ class Client:
         """
         try:
             for dev in dev_list:
-                cmd = "nvme flush {} -n 0x1".format(dev)
+                rep = lambda x : f"{x.group(1)} -n {x.group(2)}"
+                cmd = re.sub(r"(/dev/nvme\d+)n(\d)+", rep, dev)
+                cmd = f"nvme flush {cmd}"
                 out = self.ssh_obj.execute(cmd)
                 logger.info(out)
                 out1 = "".join(out)

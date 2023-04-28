@@ -16,6 +16,7 @@ def test_io_sanity_iteration_io_verify_random_pattern(
     target=None, client=None, phase=None, data_set=None, Time=None
 ):
     try:
+        lock_status = None
         if (
             target == None
             or client == None
@@ -30,6 +31,8 @@ def test_io_sanity_iteration_io_verify_random_pattern(
         phase_time = Time
         start_time = time.time()
 
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -41,7 +44,7 @@ def test_io_sanity_iteration_io_verify_random_pattern(
             )
             == True
         )
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+
         assert (
             libcore.volume_module(
                 target=target,
@@ -62,7 +65,7 @@ def test_io_sanity_iteration_io_verify_random_pattern(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
+
         assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
@@ -75,6 +78,9 @@ def test_io_sanity_iteration_io_verify_random_pattern(
             )
             == True
         )
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
+
         time.sleep(5)
         model_name = test_dict["phase"][0]["volume"]["create"]["basename"]
         assert client.nvme_list(model_name) == True
@@ -136,6 +142,9 @@ def test_io_sanity_iteration_io_verify_random_pattern(
                 break
 
     except Exception as e:
+        if lock_status:
+            target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
         logger.error("Failed due to {}".format(e))
         logger.error(
             "Failed test case name : {}".format(sys._getframe().f_code.co_name)
@@ -148,6 +157,7 @@ def test_io_sanity_set_get_threashold_io_gc(
     target=None, client=None, phase=None, data_set=None, Time=None
 ):
     try:
+        lock_status = None
         if (
             target == None
             or client == None
@@ -162,6 +172,8 @@ def test_io_sanity_set_get_threashold_io_gc(
         phase_time = Time
         start_time = time.time()
 
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -173,7 +185,6 @@ def test_io_sanity_set_get_threashold_io_gc(
             )
             == True
         )
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
         assert (
             libcore.volume_module(
                 target=target,
@@ -194,7 +205,6 @@ def test_io_sanity_set_get_threashold_io_gc(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
         assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
@@ -207,6 +217,8 @@ def test_io_sanity_set_get_threashold_io_gc(
             )
             == True
         )
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
 
         time.sleep(5)
 
@@ -217,7 +229,8 @@ def test_io_sanity_set_get_threashold_io_gc(
         current_time = time.time()
 
         while True:
-            logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+            lock_status = target.cli.lock.acquire()
+            logger.info(f"Lock status : acquire {lock_status}")
             assert (
                 target.cli.wbt_get_gc_status(array_name=target.cli.array_name)[0]
                 == True
@@ -258,12 +271,20 @@ def test_io_sanity_set_get_threashold_io_gc(
                 target.cli.array_data[target.cli.array_name]["data_list"]
             )
             stripe_size_for_writing = num_data_disks * 256 * 1024
-            logger.info("Lock status : release {}".format(target.cli.lock.release()))
+            lock_status = target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
+
 
             fio_size = stripe_size_for_writing
-            logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+
+            lock_status = target.cli.lock.acquire()
+            logger.info(f"Lock status : acquire {lock_status}")
+
             pattern_data = target.cli.helper.generate_pattern(8)
-            logger.info("Lock status : release {}".format(target.cli.lock.release()))
+
+            lock_status = target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
+            
             pattern_data = "0x{}".format(pattern_data)
             bs = test_dict["phase"][phase]["io"]["fio"]["bs"]
             iod = test_dict["phase"][phase]["io"]["fio"]["iodepth"]
@@ -311,7 +332,8 @@ def test_io_sanity_set_get_threashold_io_gc(
             if running_time >= phase_time:
                 break
 
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
         assert (
             libcore.volume_module(
                 target=target,
@@ -322,8 +344,12 @@ def test_io_sanity_set_get_threashold_io_gc(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
     except Exception as e:
+        if lock_status:
+            target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
         logger.error("Failed due to {}".format(e))
         logger.error(
             "Failed test case name : {}".format(sys._getframe().f_code.co_name)

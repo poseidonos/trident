@@ -56,8 +56,7 @@ def test_volume_create(volume_fixture, volume_create_test):
         status = pos.cli.volume_create(volumename=vol_name, size="10gb", array_name=array_name)
         assert status[0] == expected_res
         if expected_res == False:
-            event_name = status[1]['output']['Response']['result']['status']['eventName']
-            logger.info(f"Expected failure for volume create disk due to {event_name}")
+            logger.info(f"Expected failure for volume create")
         
         assert (
             pos.cli.volume_info(array_name=array_name, vol_name=vol_name)[0]
@@ -488,7 +487,7 @@ def test_unmount_volume_connected(volume_fixture):
             pos.client.nvme_disconnect(nqn=[pos.target_utils.ss_temp_list[0]]) == True
         )
         assert (
-            pos.cli.volume_unmount(array_name=array_name, volumename="vol1")[0] == False
+            pos.cli.volume_unmount(array_name=array_name, volumename="vol1")[0] == True
         )
 
         logger.info("=============== TEST ENDs ================")

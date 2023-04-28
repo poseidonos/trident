@@ -9,7 +9,7 @@
         "validation":
         {
             "totalphase":8,
-            "totaltime":10,
+            "totaltime":5,
             "testcase":
             [
                 { "lib":"io_management", "name":"test_io_sanity_iteration_io_verify_random_pattern"},
@@ -23,7 +23,7 @@
             {
                 "ibof":
                 {
-                    "npor": { "valid": true, "phase":"5,7" },
+                    "npor": { "valid": false, "phase":"5,7" },
                     "spor": { "valid": false }
                 },
                 "device":

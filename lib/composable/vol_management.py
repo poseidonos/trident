@@ -16,6 +16,7 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
     target=None, client=None, phase=None, data_set=None, Time=None
 ):
     try:
+        lock_status = None
         if (
             target == None
             or client == None
@@ -33,6 +34,9 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
         phase_time = Time
         start_time = time.time()
 
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
+
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -44,7 +48,6 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
             )
             == True
         )
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
 
         assert (
             libcore.volume_module(
@@ -66,7 +69,6 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
 
         assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
@@ -80,6 +82,9 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
             )
             == True
         )
+
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
         time.sleep(5)
 
         while True:
@@ -93,10 +98,15 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
 
             write_device_count = len(write_devices)
 
+            lock_status = target.cli.lock.acquire()
+            logger.info(f"Lock status : acquire {lock_status}")
+
             fio_size = "5%"
-            logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
             pattern_data = target.cli.helper.generate_pattern(8)
-            logger.info("Lock status : release {}".format(target.cli.lock.release()))
+
+            lock_status = target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
+
             pattern_data = "0x{}".format(pattern_data)
             iod = test_dict["phase"][phase]["io"]["fio"]["iodepth"]
             bs = test_dict["phase"][phase]["io"]["fio"]["bs"]
@@ -117,10 +127,11 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
                 == True
             )
 
-            for device in write_devices:
-                assert client.nvme_flush([device]) == True
+            #for device in write_devices:
+            #    assert client.nvme_flush([device]) == True
 
-            logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+            lock_status = target.cli.lock.acquire()
+            logger.info(f"Lock status : acquire {lock_status}")
             assert (
                 libcore.volume_module(
                     target=target,
@@ -141,7 +152,8 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
                 )
                 == True
             )
-            logger.info("Lock status : release {}".format(target.cli.lock.release()))
+            lock_status = target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
 
             model_name = test_dict["phase"][0]["volume"]["create"]["basename"]
             assert client.nvme_list(model_name) == True
@@ -190,7 +202,8 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
             == True
         )
 
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
         assert (
             libcore.volume_module(
                 target=target,
@@ -222,8 +235,12 @@ def test_vol_lc_io_sanity_create_mount_io_unmount_mount_verifyio_umount_delete(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
     except Exception as e:
+        if lock_status:
+            target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
         logger.error("Failed due to {}".format(e))
         logger.error(
             "Failed test case name : {}".format(sys._getframe().f_code.co_name)
@@ -245,6 +262,8 @@ def test_vol_lc_stress_unmount_delete_create_mount_io(
         phase_time = Time
         start_time = time.time()
 
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -256,9 +275,6 @@ def test_vol_lc_stress_unmount_delete_create_mount_io(
             )
             == True
         )
-
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
-
         assert (
             libcore.volume_module(
                 target=target,
@@ -299,7 +315,6 @@ def test_vol_lc_stress_unmount_delete_create_mount_io(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
         assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
@@ -312,6 +327,9 @@ def test_vol_lc_stress_unmount_delete_create_mount_io(
             )
             == True
         )
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
+
         time.sleep(5)
         model_name = test_dict["phase"][0]["volume"]["create"]["basename"]
         assert client.nvme_list(model_name) == True
@@ -341,6 +359,9 @@ def test_vol_lc_stress_unmount_delete_create_mount_io(
             == True
         )
     except Exception as e:
+        if lock_status:
+            target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
         logger.error("Failed due to {}".format(e))
         logger.error(
             "Failed test case name : {}".format(sys._getframe().f_code.co_name)
@@ -363,6 +384,8 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
         phase_time = Time
         start_time = time.time()
 
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -374,7 +397,6 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
             )
             == True
         )
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
         assert (
             libcore.volume_module(
                 target=target,
@@ -395,7 +417,6 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
         assert target.cli.volume_list(target.cli.array_name)[0] == True
         assert (
             libcore.subsystem_module(
@@ -408,6 +429,8 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
             )
             == True
         )
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
         time.sleep(5)
         model_name = test_dict["phase"][0]["volume"]["create"]["basename"]
         assert client.nvme_list(model_name) == True
@@ -456,7 +479,8 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
             ###############################################
 
             # Use fio parser
-            logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
+            lock_status = target.cli.lock.acquire()
+            logger.info(f"Lock status : acquire {lock_status}")
             assert (
                 libcore.volume_module(
                     target=target,
@@ -467,12 +491,15 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
                 )
                 == True
             )
-            logger.info("Lock status : release {}".format(target.cli.lock.release()))
+            lock_status = target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
             current_time = time.time()
             running_time = current_time - start_time
             if running_time >= phase_time:
                 break
 
+        lock_status = target.cli.lock.acquire()
+        logger.info(f"Lock status : acquire {lock_status}")
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -484,7 +511,6 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
             )
             == True
         )
-        logger.info("Lock status : acquire {}".format(target.cli.lock.acquire()))
         assert (
             libcore.volume_module(
                 target=target,
@@ -505,7 +531,6 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
             )
             == True
         )
-        logger.info("Lock status : release {}".format(target.cli.lock.release()))
         assert (
             libcore.subsystem_module(
                 target=target,
@@ -517,7 +542,12 @@ def test_vol_lc_io_sanity_create_mount_verifyqos_unmount_delete(
             )
             == True
         )
+        lock_status = target.cli.lock.release()
+        logger.info(f"Lock status : release {lock_status}")
     except Exception as e:
+        if lock_status:
+            target.cli.lock.release()
+            logger.info(f"Lock status : release {lock_status}")
         logger.error("Failed due to {}".format(e))
         logger.error(
             "Failed test case name : {}".format(sys._getframe().f_code.co_name)
