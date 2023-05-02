@@ -105,7 +105,7 @@ def test_crud_listner_negative_ops(system_fixture):
         ip_addr = pos.target_utils.helper.ip_addr[0]
         subsystem = pos.target_utils.ss_temp_list.pop(0)
 
-        ip_invalid = "10.0.255.256"
+        ip_invalid = "127.0.255.256"
         ss_invalid = subsystem + "_invalid"
         port_invalid = "-1"
         exp = lambda exp: "{}".format(int(exp.groups()[0]) + 1)
