@@ -849,7 +849,6 @@ class Client:
                 logger.info(f"Disconnecting Subsystem {nqn_name}")
                 self._del_nqn_name(nqn_name)
                 self._remove_connection_info(nqn_name)
-
                 cmd = f"nvme disconnect -n {nqn_name}"
                 out = self.ssh_obj.execute(cmd)
                 res = " ".join(out)
