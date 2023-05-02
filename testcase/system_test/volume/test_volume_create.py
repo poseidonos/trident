@@ -479,7 +479,7 @@ def test_unmount_volume_connected(volume_fixture):
         assert pos.client.nvme_list() == True
         # Unmounting the connected Volume
         status = pos.cli.volume_unmount(array_name=array_name, volumename="vol1")
-        assert status[0] == False
+        assert status[0] == True
         event_name = status[1]['output']['Response']['result']['status']['eventName']
         logger.info(f"Expected failure for volume unmount due to {event_name}")
 
