@@ -1219,7 +1219,7 @@ class TargetUtils:
             logger.error(f"Failed to do POR due to {e}")
             return False
 
-    def _verify_buffer_dev(self):
+    def verify_buffer_dev(self):
         try:
             assert self.cli.device_list()[0] == True
             err_list = []
@@ -1237,46 +1237,48 @@ class TargetUtils:
             if err_list:
                 logger.error(f"Buffer devices {err_list} is not created")
                 return False
+
+            return True
         except Exception as e:
             logger.error("verify buffer dev after auto recovery Failed")
             return False
 
-            
+    def verify_subsystems(self):
+        try:
+            assert self.get_subsystems_list() == True
 
-    def por_recovery(self, verify=True):
+            for ss_name, ss_data in self.backup_data["subsystem"].items():
+                assert ss_name in self.ss_temp_list
+                nvmf_ss = self.cli.nvmf_subsystem[ss_name]
+                assert ss_data["nqn_name"] == nvmf_ss["nqn"]
+                assert ss_data["ns_count"] == nvmf_ss["maxNamespaces"]
+                assert ss_data["model_number"] == nvmf_ss["modelNumber"]
+                assert ss_data["serial_number"] == nvmf_ss["serialNumber"]
+
+                nvmf_ss_listener = nvmf_ss.get("listenAddresses", [])
+                assert len(ss_data["transport"]) == len(nvmf_ss_listener)
+
+                return True
+        except Exception as e:
+            logger.error("verify subsystem info after auto recovery Failed")
+            return False     
+
+    def por_recovery(self, restore_verify=True):
         try:
             logger.info("Verify system auto recovery after Power-on")
             # Start The POS system
             assert self.cli.pos_start()[0] == True
 
-            # Verify the URAM device
-            assert self._verify_buffer_dev() == True
+            if restore_verify:
+                # Verify the URAM device
+                assert self.verify_buffer_dev() == True
 
-            # Verify the Transport and subsystem
-            assert self.cli.transport_list()[0] == True
-            self.backup_data["transport_list"] = self.cli.transport_list
+                # Verify the Transport and subsystem
+                assert self.cli.transport_list()[0] == True
+                self.backup_data["transport_list"] = self.cli.transport_list
 
-            # Create subsystem and Add listner
-            assert self.cli.subsystem_create_transport()[0] == True
-
-            logger.info(f"{self.backup_data}")
-            subsystems = self.backup_data["subsystem"]
-            logger.info(f"{subsystems}")
-            for ss_nqn, subsystem_data in subsystems.items():
-                ns_count = subsystem_data["ns_count"]
-                model = subsystem_data["model_number"]
-                serial = subsystem_data["serial_number"]
-                assert self.cli.subsystem_create(ss_nqn, ns_count=ns_count,
-                        serial_number=serial, model_name=model)[0] == True
-                
-                for listner_data in subsystem_data["transport"]:
-                    transport = listner_data["transport_type"]
-                    port = listner_data["transport_port"]
-                    ip_addr = listner_data["transport_ip"]
-
-                    assert self.cli.subsystem_add_listner(nqn_name=ss_nqn,
-                            mellanox_interface=ip_addr, port=port)[0] == True
-            return True
+                # Verify subsystem and listeners
+                assert self.verify_subsystems() == True
         except Exception as e:
             logger.error(f"Failed to do POR due to {e}")
             return False
@@ -1306,7 +1308,7 @@ class TargetUtils:
             return False
 
     def npor(self, mount_post_npor: bool = True, 
-             auto_recovery: bool = False) -> bool:
+             save_restore=False, restore_verify=True) -> bool:
         """
         Method to perform NPOR
         Returns:
@@ -1316,9 +1318,12 @@ class TargetUtils:
             logger.info("Start NPOR operation...")
             assert self._por_backup() == True
             assert self._do_por(por_type = 'npor') == True
-            assert self._por_bringup() == True
-            if mount_post_npor: 
-                assert self._por_mount_array_volume() == True
+            if save_restore:
+                assert self.por_recovery(restore_verify=restore_verify) == True
+            else:
+                assert self._por_bringup() == True
+                if mount_post_npor: 
+                    assert self._por_mount_array_volume() == True
             return True
             logger.info("NPOR operation completed successfully.")
         except Exception as e:
@@ -1328,7 +1333,7 @@ class TargetUtils:
 
     def spor(self, uram_backup: bool = False, pos_as_service = None,
             write_through: bool = False, mount_post_npor: bool = True,
-            auto_recovery: bool = False) -> bool:
+            save_restore=False, restore_verify=True) -> bool:
         """
         Method to spor
         uram_backup : If true, run script to take uram backup
@@ -1345,9 +1350,12 @@ class TargetUtils:
             assert self._do_por(por_type = 'spor', 
                                 pos_as_service=pos_as_service,
                                 force_uram_backup=uram_backup) == True
-            assert self._por_bringup() == True
-            if mount_post_npor: 
-                assert self._por_mount_array_volume() == True
+            if save_restore:
+                assert self.por_recovery(restore_verify=restore_verify) == True
+            else:
+                assert self._por_bringup() == True
+                if mount_post_npor: 
+                    assert self._por_mount_array_volume() == True
 
             logger.info("SPOR operation completed successfully.")
             return True
@@ -1356,13 +1364,16 @@ class TargetUtils:
             traceback.print_exc()
             return False
 
-    def reboot_with_backup(self):
+    def reboot_with_backup(self, save_restore=False, restore_verify=True):
         '''Method to reboot and bring up ther arrays and volumes'''
         try:
             assert self._por_backup() == True
             assert self.reboot_and_reconnect() == True
-            assert self._por_bringup() == True
-            assert self._por_mount_array_volume() == True
+            if save_restore:
+                assert self.por_recovery(restore_verify=restore_verify) == True
+            else:
+                assert self._por_bringup() == True
+                assert self._por_mount_array_volume() == True
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")
