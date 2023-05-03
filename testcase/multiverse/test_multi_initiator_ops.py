@@ -37,15 +37,15 @@ def teardown_module():
 
 def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
     try:
-        if pos.client_cnt < 4:
+        if pos.client_cnt < 1:
             logger.info(
-                "Skipping Test as number of Initiators do not match the TC requirement"
-            )
-            logger.info(
-                "Initiators expected: 6, Actual Initiators: {}".format(pos.client_cnt)
+                "Skipping Test as Minimum one Initiator requirement did not match"
             )
             pytest.skip("Test config not met")
 
+        logger.info(
+            f"Max Initiators Supported: 6, Current Initiators: {pos.client_cnt}"
+        )
         data_dict["system"]["phase"] = "true"
         data_dict["device"]["phase"] = "true"
         data_dict["array"]["num_array"] = 1
