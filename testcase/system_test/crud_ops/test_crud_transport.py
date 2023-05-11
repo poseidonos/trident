@@ -27,10 +27,10 @@ def test_crud_transport_ops(system_fixture):
         # Read - List Transport
         assert pos.cli.transport_list()[0] == True
 
-        logger.info("Num of Transport : {pos.cli.num_transport}")
+        logger.info(f"Num of Transport : {pos.cli.num_transport}")
         assert pos.cli.num_transport == 1
 
-        for transport in pos.cli.transport_list:
+        for transport in pos.cli.transports:
             logger.info(f"tr_type : {transport['tr_type']}, " 
                         f"q_depth: {transport['q_depth']}")
     except Exception as e:

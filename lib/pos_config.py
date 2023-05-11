@@ -185,7 +185,7 @@ class POS_Config:
             else:
                 logger.info("Disable POS Save Restore")
 
-        self.file_data["save_restore"]["enable"] = auto_start
+        self.file_data["save_restore"]["enable"] = enable
         if update_now:
             self.file_modified = True
             return self.update_config()

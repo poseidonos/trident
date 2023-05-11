@@ -1225,8 +1225,9 @@ class TargetUtils:
             err_list = []
             dev_list = []
             for uram_name in self.backup_data["buffer_dev"].keys():
+                logger.info(f"Buffer Dev : {uram_name}")
                 if (uram_name not in self.cli.system_buffer_devs 
-                    or uram_name not in self.cli.array_buffer_devs):
+                    and uram_name not in self.cli.array_buffer_devs):
                     err_list.append(uram_name)
                 else:
                     dev_list.append(uram_name)
@@ -1238,9 +1239,10 @@ class TargetUtils:
                 logger.error(f"Buffer devices {err_list} is not created")
                 return False
 
+            logger.info(f"Buffer dev varification after auto recovery completed")
             return True
         except Exception as e:
-            logger.error("verify buffer dev after auto recovery Failed")
+            logger.error(f"Buffer dev varification after auto recovery failed due to {e}")
             return False
 
     def verify_subsystems(self):
@@ -1248,19 +1250,20 @@ class TargetUtils:
             assert self.get_subsystems_list() == True
 
             for ss_name, ss_data in self.backup_data["subsystem"].items():
-                assert ss_name in self.ss_temp_list
-                nvmf_ss = self.cli.nvmf_subsystem[ss_name]
-                assert ss_data["nqn_name"] == nvmf_ss["nqn"]
-                assert ss_data["ns_count"] == nvmf_ss["maxNamespaces"]
-                assert ss_data["model_number"] == nvmf_ss["modelNumber"]
-                assert ss_data["serial_number"] == nvmf_ss["serialNumber"]
+                assert ss_name in self.subsystem_data.keys()
+                nvmf_ss = self.subsystem_data[ss_name]
+                assert ss_data["nqn_name"] ==  nvmf_ss["nqn_name"]
+                assert ss_data["ns_count"] == nvmf_ss["ns_count"]
+                assert ss_data["model_number"] == nvmf_ss["model_number"]
+                assert ss_data["serial_number"] == nvmf_ss["serial_number"]
 
-                nvmf_ss_listener = nvmf_ss.get("listenAddresses", [])
+                nvmf_ss_listener = nvmf_ss.get("transport", [])
                 assert len(ss_data["transport"]) == len(nvmf_ss_listener)
 
-                return True
+            logger.info(f"subsystem varification after auto recovery completed")
+            return True
         except Exception as e:
-            logger.error("verify subsystem info after auto recovery Failed")
+            logger.error(f"subsystem varification after auto recovery failed due to {e}")
             return False     
 
     def por_recovery(self, restore_verify=True):
@@ -1279,8 +1282,13 @@ class TargetUtils:
 
                 # Verify subsystem and listeners
                 assert self.verify_subsystems() == True
+            
+                logger.info(f"Varification after auto recovery completed")
+
+            logger.info(f"POR recovery completed successfully")
+            return True
         except Exception as e:
-            logger.error(f"Failed to do POR due to {e}")
+            logger.error(f"Failed to do POR auto recovery due to {e}")
             return False
 
     def _por_mount_array_volume(self):
@@ -1475,6 +1483,21 @@ class TargetUtils:
                     logger.warning("ZIP is not installed in system. Skipped logs copy")
                 else:
                     logger.info(f"POS log files copied {out}.")
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+    def remove_restore_file(self, file="/etc/pos/restore.json"):
+        """
+        Method to remove the restore json file
+        """
+        try:
+            # Zip all core files
+            logger.info("Remove old restore.json if any")
+            cmd = f"rm -f {file}"
+            out = self.ssh_obj.execute(cmd)
+            logger.info(f"Removed file {file} {out}.")
             return True
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
