@@ -35,6 +35,7 @@ import array
 from datetime import datetime
 import time
 import re
+import os.path
 import traceback
 import helper
 import logger
@@ -1333,6 +1334,55 @@ class TargetUtils:
         assert self.ssh_obj.reconnect_after_reboot() == True
         return True
 
+    def report_log(self,progress):
+        '''Method to get the latest updates in report.log'''
+        try:
+            #verify report.log present in /var/log/pos path
+            path = '/var/log/pos/report.log'
+            if os.path.exists(path):
+                #verify array mount command progress in report.log
+                if progress == "array_mount":
+                    mnt_cmd = "tail -n 10 /var/log/pos/report.log | grep -F 'ARRAY_MOUNT_PROGRESS, [100]'"
+                    mnt_out = self.ssh_obj.execute(mnt_cmd)
+                    if not mnt_out:
+                        logger.error("Failed to execute '{}'".format(mnt_cmd))
+                        return False
+                    else:
+                        out_mnt_cmd = "".join(mnt_out)
+                        return out_mnt_cmd
+                #verify array unmount command progress in report.log
+                elif progress == "array_unmount":
+                    unmnt_cmd = "tail -n 10 /var/log/pos/report.log | grep -F 'ARRAY_UNMOUNT_PROGRESS, [100]'"
+                    unmnt_out = self.ssh_obj.execute(unmnt_cmd)
+                    if not unmnt_out:
+                        logger.error("Failed to execute '{}'".format(unmnt_cmd))
+                        return False
+                    else:
+                        out_unmnt_cmd = "".join(unmnt_out)
+                        return out_unmnt_cmd
+                #verify volume mount command progress in report.log
+                elif progress == "volume_mount":
+                    vol_mnt_cmd = "tail -n 10 /var/log/pos/report.log | grep -F 'Mount Sequence In Progress(6/6)'"
+                    vol_mnt_out = self.ssh_obj.execute(vol_mnt_cmd)
+                    if not vol_mnt_out:
+                        logger.error("Failed to execute '{}'".format(vol_mnt_cmd))
+                        return False
+                    else:
+                        out_vol_mnt_cmd = "".join(vol_mnt_out)
+                        return out_vol_mnt_cmd
+                #verify volume unmount command progress in report.log
+                elif progress == "volume_unmount":
+                    vol_unmnt_cmd = "tail -n 10 /var/log/pos/report.log | grep -F 'Unmount Sequence In Progress(6/6)'"
+                    vol_unmnt_out = self.ssh_obj.execute(vol_unmnt_cmd)
+                    if not vol_unmnt_out:
+                        logger.error("Failed to execute '{}'".format(vol_unmnt_cmd))
+                        return False
+                    else:
+                        out_vol_unmnt_cmd = "".join(vol_unmnt_out)
+                        return out_vol_unmnt_cmd
+        except Exception as e:
+            logger.error(e)
+            return False
 
     ##TODO update pos path
     def dump_core(self):
