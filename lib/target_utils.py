@@ -146,7 +146,7 @@ class TargetUtils:
                 logger.info(f"PCIe address {pci_addr} of given device {dev}")
 
                 command = f"echo 1 > /sys/bus/pci/devices/{pci_addr}/remove"
-                logger.info("Executing hot plug command {command}")
+                logger.info(f"Executing hot plug command {command}")
                 self.ssh_obj.execute(command)
 
                 for i  in range(10):
@@ -1079,6 +1079,9 @@ class TargetUtils:
                 logger.info(f"{buffer_dev}")
                 self.backup_data["buffer_dev"][uram_name] = buffer_dev
 
+            assert self.cli.transport_list()[0] == True
+            self.backup_data["transport_list"] = self.cli.transports
+
             assert self.get_subsystems_list() == True
             self.backup_data["subsystem"] = copy.deepcopy(self.subsystem_data)
 
@@ -1216,6 +1219,78 @@ class TargetUtils:
             logger.error(f"Failed to do POR due to {e}")
             return False
 
+    def verify_buffer_dev(self):
+        try:
+            assert self.cli.device_list()[0] == True
+            err_list = []
+            dev_list = []
+            for uram_name in self.backup_data["buffer_dev"].keys():
+                logger.info(f"Buffer Dev : {uram_name}")
+                if (uram_name not in self.cli.system_buffer_devs 
+                    and uram_name not in self.cli.array_buffer_devs):
+                    err_list.append(uram_name)
+                else:
+                    dev_list.append(uram_name)
+
+            if dev_list:
+                logger.info(f"Buffer devices {dev_list} is created")
+
+            if err_list:
+                logger.error(f"Buffer devices {err_list} is not created")
+                return False
+
+            logger.info(f"Buffer dev varification after auto recovery completed")
+            return True
+        except Exception as e:
+            logger.error(f"Buffer dev varification after auto recovery failed due to {e}")
+            return False
+
+    def verify_subsystems(self):
+        try:
+            assert self.get_subsystems_list() == True
+
+            for ss_name, ss_data in self.backup_data["subsystem"].items():
+                assert ss_name in self.subsystem_data.keys()
+                nvmf_ss = self.subsystem_data[ss_name]
+                assert ss_data["nqn_name"] ==  nvmf_ss["nqn_name"]
+                assert ss_data["ns_count"] == nvmf_ss["ns_count"]
+                assert ss_data["model_number"] == nvmf_ss["model_number"]
+                assert ss_data["serial_number"] == nvmf_ss["serial_number"]
+
+                nvmf_ss_listener = nvmf_ss.get("transport", [])
+                assert len(ss_data["transport"]) == len(nvmf_ss_listener)
+
+            logger.info(f"subsystem varification after auto recovery completed")
+            return True
+        except Exception as e:
+            logger.error(f"subsystem varification after auto recovery failed due to {e}")
+            return False     
+
+    def por_recovery(self, restore_verify=True):
+        try:
+            logger.info("Verify system auto recovery after Power-on")
+            # Start The POS system
+            assert self.cli.pos_start()[0] == True
+
+            if restore_verify:
+                # Verify the URAM device
+                assert self.verify_buffer_dev() == True
+
+                # Verify the Transport and subsystem
+                assert self.cli.transport_list()[0] == True
+                self.backup_data["transport_list"] = self.cli.transport_list
+
+                # Verify subsystem and listeners
+                assert self.verify_subsystems() == True
+            
+                logger.info(f"Varification after auto recovery completed")
+
+            logger.info(f"POR recovery completed successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to do POR auto recovery due to {e}")
+            return False
+
     def _por_mount_array_volume(self):
         try:
             mounted_arrays = self.backup_data["mounted_array"]
@@ -1240,7 +1315,8 @@ class TargetUtils:
             logger.error(f"Failed to mount array and volume due to {e}")
             return False
 
-    def npor(self, mount_post_npor: bool =True) -> bool:
+    def npor(self, mount_post_npor: bool = True, 
+             save_restore=False, restore_verify=True) -> bool:
         """
         Method to perform NPOR
         Returns:
@@ -1250,9 +1326,12 @@ class TargetUtils:
             logger.info("Start NPOR operation...")
             assert self._por_backup() == True
             assert self._do_por(por_type = 'npor') == True
-            assert self._por_bringup() == True
-            if mount_post_npor: 
-                assert self._por_mount_array_volume() == True
+            if save_restore:
+                assert self.por_recovery(restore_verify=restore_verify) == True
+            else:
+                assert self._por_bringup() == True
+                if mount_post_npor: 
+                    assert self._por_mount_array_volume() == True
             return True
             logger.info("NPOR operation completed successfully.")
         except Exception as e:
@@ -1261,7 +1340,8 @@ class TargetUtils:
             return False
 
     def spor(self, uram_backup: bool = False, pos_as_service = None,
-            write_through: bool = False, mount_post_npor: bool = True) -> bool:
+            write_through: bool = False, mount_post_npor: bool = True,
+            save_restore=False, restore_verify=True) -> bool:
         """
         Method to spor
         uram_backup : If true, run script to take uram backup
@@ -1278,9 +1358,12 @@ class TargetUtils:
             assert self._do_por(por_type = 'spor', 
                                 pos_as_service=pos_as_service,
                                 force_uram_backup=uram_backup) == True
-            assert self._por_bringup() == True
-            if mount_post_npor: 
-                assert self._por_mount_array_volume() == True
+            if save_restore:
+                assert self.por_recovery(restore_verify=restore_verify) == True
+            else:
+                assert self._por_bringup() == True
+                if mount_post_npor: 
+                    assert self._por_mount_array_volume() == True
 
             logger.info("SPOR operation completed successfully.")
             return True
@@ -1289,13 +1372,16 @@ class TargetUtils:
             traceback.print_exc()
             return False
 
-    def reboot_with_backup(self):
+    def reboot_with_backup(self, save_restore=False, restore_verify=True):
         '''Method to reboot and bring up ther arrays and volumes'''
         try:
             assert self._por_backup() == True
             assert self.reboot_and_reconnect() == True
-            assert self._por_bringup() == True
-            assert self._por_mount_array_volume() == True
+            if save_restore:
+                assert self.por_recovery(restore_verify=restore_verify) == True
+            else:
+                assert self._por_bringup() == True
+                assert self._por_mount_array_volume() == True
             return True
         except Exception as e:
             logger.error(f"SPOR failed due to {e}")
@@ -1397,6 +1483,21 @@ class TargetUtils:
                     logger.warning("ZIP is not installed in system. Skipped logs copy")
                 else:
                     logger.info(f"POS log files copied {out}.")
+            return True
+        except Exception as e:
+            logger.error("Command Execution failed because of {}".format(e))
+            return False
+
+    def remove_restore_file(self, file="/etc/pos/restore.json"):
+        """
+        Method to remove the restore json file
+        """
+        try:
+            # Zip all core files
+            logger.info("Remove old restore.json if any")
+            cmd = f"rm -f {file}"
+            out = self.ssh_obj.execute(cmd)
+            logger.info(f"Removed file {file} {out}.")
             return True
         except Exception as e:
             logger.error("Command Execution failed because of {}".format(e))
