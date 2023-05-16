@@ -3,6 +3,7 @@ from common_libs import *
 import logger
 logger = logger.get_logger(__name__)
 
+@pytest.mark.sanity
 def test_cmd_prgrs_sanity(array_fixture):
     '''
     the purpose of the test is to verify 
