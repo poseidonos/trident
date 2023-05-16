@@ -3,6 +3,7 @@ import logger
 
 logger = logger.get_logger(__name__)
 
+@pytest.mark.sanity
 def test_array_uuid(array_fixture):
     '''
         the purpose of the test is to list array uuid
@@ -71,7 +72,7 @@ def test_multi_array_uuid(array_fixture):
         pos.exit_handler(expected=False)
 
 
-
+@pytest.mark.sanity
 def test_volume_uuid(volume_fixture):
     '''
         the purpose of the test is to list volume uuid

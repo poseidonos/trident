@@ -3,6 +3,7 @@ import logger
 
 logger = logger.get_logger(__name__)
 
+@pytest.mark.sanity
 def test_volume_uuid_of_two_array(volume_fixture):
     '''
         the purpose of the test is to verify uuid of an volume
