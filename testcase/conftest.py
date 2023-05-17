@@ -69,27 +69,9 @@ def trident_test_init():
         return False
     return True
 
-
-def pos_cce_init():
-    try:
-        if trident_config_data["code_coverage"]["enable"] == True:
-            logger.debug("Init POS code coverage extraction...")
-            global cc
-            cce_config_file = trident_config_data["code_coverage"]["config_file"]
-            cc = CodeCoverage(cce_config_file)
-            assert cc.target_init() == True
-            assert cc.databse_init() == True
-        else:
-            logger.debug("POS code coverage extraction is not enable")
-    except Exception as e:
-        logger.error(f"Failed to Init code coverage extraction due to {e}")
-        return False
-    return True
-
 def make_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
-
 
 def copy_dir(source_item):
     path_list = source_item.split("/")
@@ -103,22 +85,6 @@ def copy_dir(source_item):
             if os.path.isfile(full_file_name):
                 shutil.copy(full_file_name, Full_destination_item)
 
-
-def get_code_coverage_data(jira_id):
-    if not cc.get_code_coverage(jira_id):
-        logger.error("Failed to get the code coverage")
-        return False
-    
-    if not cc.parse_coverage_report(jira_id):
-        logger.error("Failed to parser the code coverage report")
-        return False
-
-    if not cc.save_coverage_report(jira_id):
-        logger.error("Failed to save the code coverage report")
-        return False
-
-    return True
-
  ######################################  Pytest Functions #####################
 
 def pytest_sessionstart(session):
@@ -129,7 +95,6 @@ def pytest_sessionstart(session):
     logger.info(f"Test Session Start Time : {start_time}")
     
     assert trident_test_init() == True
-    assert pos_cce_init() == True
 
 @pytest.hookimpl(tryfirst=False, hookwrapper=True)
 def pytest_runtest_protocol(item, nextitem):
@@ -171,12 +136,6 @@ def pytest_runtest_protocol(item, nextitem):
     )
 
     pos.cli.clean_cli_history()
-
-    if (trident_config_data["code_coverage"]["enable"] == True
-        and trident_config_data["code_coverage"]["scope"] == "function"):
-        if issuekey == "No mapping found":
-            issuekey = "No_Mapping"
-        get_code_coverage_data(issuekey)
 
 def pytest_runtest_logreport(report):
     log_status = "======================== Test Status : {} ========================"
@@ -223,12 +182,6 @@ def pytest_sessionfinish(session):
             pos._clearall_objects()
     except NameError:
         return "Exiting"
-    
-    if (trident_config_data["code_coverage"]["enable"] == True
-        and trident_config_data["code_coverage"]["scope"] == "session"):
-
-        issuekey = trident_config_data["issue_key"]
-        get_code_coverage_data(issuekey)
 
     logger.info("\n")
 
