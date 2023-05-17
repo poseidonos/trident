@@ -1,9 +1,0 @@
-{
-    "runtime" : 10,
-    "fio_user_data" : "fio  --size=10% --ioengine=libaio --rw={} --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern={} --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --name=pos0 ",
-    "pattern" : "0x0c60df8108c141f6",
-    "fio_runtime" : "60"
-
-
-
-}
