@@ -1,0 +1,41 @@
+{
+    "enable": "false",
+    "num_test_device": 2,
+    "test_devices": [
+        {
+            "dev_name": "nvme0",
+            "ns_config": [
+                {
+                    "num_namespace": 1,
+                    "ns_size": "20GiB",
+                    "attach": "true"
+                },
+                {
+                    "num_namespace": 1,
+                    "ns_size": "100GiB",
+                    "attach": "true"
+                }
+            ]
+        },
+        {
+            "dev_name": "nvme1",
+            "ns_config": [
+                {
+                    "num_namespace": 1,
+                    "ns_size": "19GiB",
+                    "attach": "true"
+                },
+                {
+                    "num_namespace": 1,
+                    "ns_size": "20GiB",
+                    "attach": "true"
+                }
+            ]
+        }
+    ],
+    "recovery": {
+        "magic_number": "9877",
+        "file_name": "target_hetero_setup.pickle",
+        "dir_name": "/root/"
+    }
+}

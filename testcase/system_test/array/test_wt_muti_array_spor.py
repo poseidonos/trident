@@ -1,0 +1,88 @@
+import pytest
+from array_test_common import *
+import logger
+
+logger = logger.get_logger(__name__)
+
+
+array1 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
+array2 = [("NORAID", 1), ("RAID0", 2), ("RAID5", 3), ("RAID10", 4)]
+
+
+@pytest.mark.regression
+@pytest.mark.parametrize("array2", array2)
+@pytest.mark.parametrize("array1", array1)
+def test_wt_multi_array_FIO_SPOR_NPOR(array_fixture, array1, array2):
+    """
+    Test Multi-Array in all RAID combination with WT/WB mount.
+    1. Run Write Block IO for an hour.
+    2. Trigger SPOR
+    3. Trigger NPOR
+    """
+    logger.info(
+        " ==================== Test : test_wt_multi_array_FIO_SPOR_NPOR ================== "
+    )
+    try:
+        pos = array_fixture
+        pos_array = pos.data_dict["array"]["pos_array"]
+        array1_name = pos_array[0]["array_name"]
+        array2_name = pos_array[1]["array_name"]
+
+        array_raid_disk = (array1, array2)
+        writeback = [False, True]
+
+        array_list = []
+        for index, array_name in enumerate((array1_name, array2_name)):
+            array_list.append(
+                {
+                    "array_name": array_name,
+                    "buffer_dev": f"uram{index}",
+                    "raid_type": array_raid_disk[index][0],
+                    "nr_data_drives": array_raid_disk[index][1],
+                    "write_back": writeback[index],
+                }
+            )
+
+        assert wt_test_multi_array_setup(pos, array_list) == True
+
+        for index, array_name in enumerate((array1_name, array2_name)):
+            assert pos.cli.array_info(array_name=array_name)[0] == True
+            array_size = int(pos.cli.array_data[array_name].get("size"))
+            vol_size = f"{array_size // (1024 * 1024)}mb"  # Volume Size in MB
+
+            assert pos.target_utils.create_volume_multiple(array_name, 1,
+                                        "pos_vol", size=vol_size) == True
+
+            assert pos.target_utils.get_subsystems_list() == True
+            assert pos.cli.volume_list(array_name=array_name)[0] == True
+            ss_temp_list = pos.target_utils.ss_temp_list
+            ss_list = [ss for ss in ss_temp_list if array_name in ss]
+            assert pos.target_utils.mount_volume_multiple(array_name=array_name,
+                                volume_list=pos.cli.vols, nqn=ss_list[0]) == True
+
+        ip_addr = pos.target_utils.helper.ip_addr[0]
+        for ss in pos.target_utils.ss_temp_list:
+            assert pos.client.nvme_connect(ss, ip_addr, "1158") == True
+
+        assert pos.client.nvme_list() == True
+        nvme_devs = pos.client.nvme_list_out
+
+        # Run File IO and Block IO Parallely
+        fio_cmd = f"fio --name=random_write --ioengine=libaio --rw=randwrite \
+            --iodepth=64 --direct=1 --bs=128k --time_based --runtime=3600"
+
+        assert pos.client.fio_generic_runner(nvme_devs,
+                                             fio_user_data=fio_cmd)[0] == True
+
+        # Perfrom SPOR
+        assert pos.target_utils.spor() == True
+
+        # Perform NPOR
+        assert pos.target_utils.npor() == True
+
+        logger.info(
+            " ============================= Test ENDs ======================================"
+        )
+    except Exception as e:
+        logger.error(f"Test script failed due to {e}")
+        pos.exit_handler(expected=False)
