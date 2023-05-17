@@ -39,7 +39,6 @@ import traceback
 import helper
 import logger
 from cli import Cli
-from hetero_setup import TargetHeteroSetup
 import copy
 import pytest
 logger = logger.get_logger(__name__)
@@ -65,7 +64,6 @@ class TargetUtils:
         self.cli = cli_obj
         # self.array = array_name
         self.helper = helper.Helper(ssh_obj, pos_as_service= self.pos_as_service)
-        self.hetero_setup = TargetHeteroSetup(ssh_obj, pos_as_service=self.pos_as_service)
         self.udev_rule = False
         self.total_required = 0
         assert self.helper.get_mellanox_interface_ip()[0] == True
