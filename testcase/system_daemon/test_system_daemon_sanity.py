@@ -22,7 +22,7 @@ def test_pos_start_after_reboot(system_fixture):
 
         assert pos.target_utils.reboot_and_reconnect() == True
 
-        # Wait for 2 minutes 
+        # Wait for 3 minutes 
         logger.info("Wait for 3 minutes after system start")
         time.sleep(180)
 
