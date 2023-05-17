@@ -4,21 +4,29 @@ import traceback
 import logger
 logger = logger.get_logger(__name__)
 
+@pytest.fixture(scope="function")
+def save_restore_fixture(system_fixture):
+    pos = system_fixture
+    assert pos.pos_conf.save_restore(enable=True, update_now=True) == True
+    assert pos.target_utils.remove_restore_file() == True
+    assert pos.target_utils.pos_bring_up() == True
+
+    yield pos
+
+    assert pos.pos_conf.save_restore(enable=False, update_now=True) == True
+ 
 
 @pytest.mark.sanity
-def test_save_restore_spor(system_fixture):
+def test_save_restore_spor(save_restore_fixture):
     """
-    The purpose of this test case is to Create and mount one array, then
-    create and mount 1 volume. Do SPOR and verify pos save restore feature
+    The purpose of this test case is to Create and mount arrays, then
+    create and mount volumes. Do SPOR and verify pos save restore feature
     """
     logger.info(
         " ================ Test : test_array_save_restore_spor ============="
     )
     try:
-        pos = system_fixture
-        assert pos.pos_conf.save_restore(enable=True, update_now=True) == True
-        assert pos.target_utils.remove_restore_file() == True
-        assert pos.target_utils.pos_bring_up() == True
+        pos = save_restore_fixture
         assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             array_data = pos.cli.array_dict[array_name]
@@ -39,19 +47,16 @@ def test_save_restore_spor(system_fixture):
 
 
 @pytest.mark.sanity
-def test_save_restore_spor_clean_bringup(system_fixture):
+def test_save_restore_spor_clean_bringup(save_restore_fixture):
     """
-    The purpose of this test case is to Create and mount one array, then create 
-    and mount 1 volume. Do SPOR, delete restore json and then bringup POS.
+    The purpose of this test case is to Create and mount arrays, then create 
+    and mount volumes. Do SPOR, delete restore json and then bringup POS.
     """
     logger.info(
         " ================ Test : test_save_restore_spor_clean_bringup ============="
     )
     try:
-        pos = system_fixture
-        assert pos.pos_conf.save_restore(enable=True, update_now=True) == True
-        assert pos.target_utils.remove_restore_file() == True
-        assert pos.target_utils.pos_bring_up() == True
+        pos = save_restore_fixture
         assert pos.cli.array_list()[0] == True
         for array_name in pos.cli.array_dict.keys():
             array_data = pos.cli.array_dict[array_name]

@@ -1266,11 +1266,14 @@ class TargetUtils:
             logger.error(f"subsystem varification after auto recovery failed due to {e}")
             return False     
 
-    def por_recovery(self, restore_verify=True):
+    def por_recovery(self, restore_verify=True, wait_time=120):
         try:
             logger.info("Verify system auto recovery after Power-on")
             # Start The POS system
             assert self.cli.pos_start()[0] == True
+
+            logger.info(f"Wait {wait_time} seconds after pos start")
+            time.sleep(wait_time)
 
             if restore_verify:
                 # Verify the URAM device
