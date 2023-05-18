@@ -18,9 +18,6 @@ from _pytest.runner import runtestprotocol
 import logger as logging
 logger = logging.get_logger(__name__)
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../utils")))
-from cce_tool import CodeCoverage 
-
 global pos, method_name #,i trident_config_data, static_dict, config_dict, mapping_dict
 
 

@@ -646,6 +646,7 @@ class PosCLI:
             cmd = f"delete -a {array_name} --force"
             cli_rsp, jout = self.run_cli_command(cmd, command_type="array")
             if cli_rsp == False:
+                raise Exception("CLI Error")
 
             return cli_rsp, jout
         except Exception as e:
