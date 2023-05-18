@@ -75,6 +75,9 @@ def test_crud_array_ops_all_raids(array_fixture):
                                                 array_name=array_name)[0] == True
                 assert pos.target_utils.array_rebuild_wait(array_name=array_name) == True
 
+                # 30 sec sleep after rebuild
+                time.sleep(30)
+
             # Update and Delete Operation
             assert array_unmount_and_delete(pos) == True
         logger.info(
