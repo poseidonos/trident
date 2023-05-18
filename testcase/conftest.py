@@ -9,12 +9,14 @@ from datetime import datetime
 from requests import session
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../lib")))
-import logger as logging
+
 from tags import EnvTags
-logger = logging.get_logger(__name__)
 from pos import POS
 from utils import Client
 from _pytest.runner import runtestprotocol
+
+import logger as logging
+logger = logging.get_logger(__name__)
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../utils")))
 from cce_tool import CodeCoverage 
@@ -379,3 +381,4 @@ def tags_info(target_ip, method, start_time, driver, issuekey):
         value.move_to_end("IP", last=False)
         logger.info("Test Config :" + str(dict(value)))
     logger.info("################### End Tag - System Info #####################")
+

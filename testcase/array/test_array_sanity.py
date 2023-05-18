@@ -171,7 +171,6 @@ def test_Create_Array_alldrives(array_fixture):
                     data=pos.cli.dev_type["SSD"],
                     write_buffer=pos.data_dict["device"]["uram"][0]["uram_name"],
                     raid_type="RAID5", spare=[])[0] == True
-
     except Exception as e:
         logger.error("Test case failed due to {e}")
         assert 0

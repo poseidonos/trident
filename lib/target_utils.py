@@ -1146,6 +1146,13 @@ class TargetUtils:
         except Exception as e:
             logger.error(f"Failed to do POR preparation due to {e}")
             return False
+        else:
+            for array in array_list:
+                assert self.cli.mount_array(array_name=array)[0] == True
+                assert self.cli.list_volume(array_name=array)[0] == True
+                if len(self.cli.vols) == 0:
+                    logger.info("No volumes found")
+        return True
 
     def _do_por(self, por_type: str = 'spor', pos_as_service = True,
                 wbt_flush: bool = False, force_uram_backup: bool = False):
@@ -1482,7 +1489,6 @@ class TargetUtils:
             logger.error(e)
             return False
 
-    ##TODO update pos path
     def dump_core(self):
         """
         Method to collect core dump by giving different options depending on

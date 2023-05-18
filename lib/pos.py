@@ -148,6 +148,11 @@ class POS:
                 obj.close()
         return True
 
+    def _clearall_objects(self):
+        if len(self.obj_list) > 0:
+            for obj in self.obj_list:
+                obj.close()
+        return True
     def _json_reader(self, json_file: str, abs_path=False) -> dict:
         """reads json file from /testcase/config_files
 
@@ -218,11 +223,23 @@ class POS:
             self.pos_conf.restore_config()
 
             if hetero_setup and not is_pos_running:
-                if not self.target_utils.hetero_setup.reset():
-                    raise Exception("Failed to reset the target state")
+                pass
 
             if expected == False:
                 assert 0
         except Exception as e:
             logger.error(e)
+            logger.info(
+                "------------------------------------------ CLI HISTORY ------------------------------------------"
+            )
+            for cli_cmd in self.cli.cli_history:
+                logger.info(cli_cmd)
+
+            logger.info(
+                "-------------------------------------------------------------------------------------------------------"
+            )
+            # time.sleep(10000)
+            # self.cli.core_dump()
+            #self.cli.stop_system(grace_shutdown=False)
+            
             assert 0

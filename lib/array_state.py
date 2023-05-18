@@ -766,7 +766,6 @@ class _Array():
 
         if len(array_list) == 0:
             assert self.cli.device_list()[0] == True
-
             bdf = self.cli.NVMe_BDF[random.choice(self.cli.system_disks)]["addr"]
             dev_name = "".join(
                 [

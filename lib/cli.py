@@ -190,12 +190,12 @@ class PosCLI:
         """
 
         try:
+            
             retry_cnt = 1
             cmd = f"{self.cli_path} {command_type} {command} --json-res"
 
             if timeout > 0:
                 cmd = f"{cmd} --timeout={timeout}"
-
             start_time = time.time()
             run_end_time = start_time + 120        # Wait for 2 minutes
 
@@ -646,7 +646,6 @@ class PosCLI:
             cmd = f"delete -a {array_name} --force"
             cli_rsp, jout = self.run_cli_command(cmd, command_type="array")
             if cli_rsp == False:
-                raise Exception("CLI Error")
 
             return cli_rsp, jout
         except Exception as e:
@@ -1206,6 +1205,18 @@ class PosCLI:
         except Exception as e:
             logger.error(f"Telemetry set property command failed due to {e}")
             return False, jout
+    def get_property(self) -> (bool, dict()):
+        try:
+            cmd = "get-property"
+            cli_error, jout = self.run_cli_command(cmd, command_type="telemetry")
+            if cli_error == True:
+                return True, jout
+            else:
+                raise Exception("CLI Error")
+        except Exception as e:
+            logger.error("failed due to {}".format(e))
+            return False, jout
+
 
     ################################### QOS ##################################
     def qos_create_volume_policy(self, volumename: str, arrayname: str,

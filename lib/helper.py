@@ -720,10 +720,8 @@ class Helper:
         logger.info(f"Selected data device: {selected_devices['data_dev_list']}")
 
         if spare_dev_select != None:
-            # Select the spare device of any and mix/differnt size
-            res, device_list = self._get_remaining_disks(
-                device_size_dict, spare_dev_select
-            )
+           # Select the spare device of any and mix/differnt size
+            res, device_list = self._get_remaining_disks(device_size_dict, spare_dev_select)
             if not res:
                 return False, selected_devices
             selected_devices["spare_dev_list"].extend(device_list)

@@ -74,6 +74,7 @@ class Client:
     def __init__(self, ssh_obj, client_cleanup: bool = True):
         
         self.ssh_obj = ssh_obj
+        self.helper = helper.Helper(ssh_obj)
         self.client_clean = client_cleanup
         self.helper = helper.Helper(ssh_obj)
         self.nqn_list = []
@@ -522,6 +523,7 @@ class Client:
         iops: iops
         clat: nsec
         """
+        logger.info("am here")
         cmd = f"cat {self.fio_out_json}"
         str_out = self.ssh_obj.execute(cmd)
         printout = "".join(str_out)
@@ -968,7 +970,7 @@ class Client:
                 return False
         except Exception as e:
             logger.error("command execution failed with exception {} ".format(e))
-
+            logger.warn("Reboot the machine if error Presists") 
             return False
         return True
 
