@@ -262,6 +262,7 @@ class SSHclient(object):
         )
         if exit_code != expected_exit_code:
             error = stderr.readlines(), "exit code: {}".format(exit_code)
+            logger.error(f"Stderr : {error} Stdout : {stdoutlines}")
             return error
 
         return stdoutlines
@@ -315,6 +316,32 @@ class SSHclient(object):
             raise ExecuteError("success responses not found in stdout")
 
         return stdoutlines
+
+    def reconnect_after_reboot(self,timeout=180):
+        # out = self.execute(command="reboot")
+        sleep(30)
+        count = 0
+        new_ssh = None
+        while True:
+            node_status = None
+            try:
+                self.ssh = connect(
+                    self.hostname,
+                    self.username,
+                    self.password,
+                    10,
+                    set_missing_host_key_policy=True,
+                )
+            except Exception as e:
+                logger.info("node is still down {}".format(e))
+                sleep(60)
+                logger.info("waiting 60 seconds node to come  up ")
+            count = count + 60
+            node_status = self.get_node_status()
+            logger.info(node_status)
+            if node_status == True:
+                break
+        return True
 
     def file_transfer(self, src, destination, move_to_local="yes"):
         """

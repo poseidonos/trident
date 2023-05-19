@@ -22,14 +22,17 @@ def test_noraid_array_disk_replace(array_fixture):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 0, "WT", False) == True
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         array_name = pos.data_dict['array']["pos_array"][0]["array_name"]
-        assert pos.cli.info_array(array_name=array_name)[0] == True
-        data_disk_list = pos.cli.array_info[array_name]["data_list"]
+        assert pos.cli.array_info(array_name=array_name)[0] == True
+        data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
-        assert pos.cli.replace_drive_array(data_disk_list[0], array_name)[0] == False
+        status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array replace disk due to {event_name}")
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -58,12 +61,12 @@ def test_no_spare_array_disk_replace(array_fixture, raid_type):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 0, "WT", False) == True
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_random(pos, array_list=array_list,
@@ -72,15 +75,17 @@ def test_no_spare_array_disk_replace(array_fixture, raid_type):
         assert vol_connect_and_run_random_io(pos, subs_list, size='10g') ==  True
 
         for array_name in array_list:
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            data_disk_list = pos.cli.array_info[array_name]["data_list"]
+            assert pos.cli.array_info(array_name=array_name)[0] == True
+            data_disk_list = pos.cli.array_data[array_name]["data_list"]
 
         # The command is expected to fail.
-        status = pos.cli.replace_drive_array(data_disk_list[0], array_name)
+        status = pos.cli.array_replace_disk(data_disk_list[0], array_name)
         assert status[0] == False
-
-        if raid_type =="RAID0":
-           assert status[1]['output']['Response']['result']['status']['eventName'] == "REPLACE_DEV_UNSUPPORTED_RAID_TYPE"
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array replace disk due to {event_name}")
+        if raid_type == "RAID0":
+            assert status[1]['output']['Response']['result']['status'][
+                       'eventName'] == "REPLACE_DEV_UNSUPPORTED_RAID_TYPE"
 
         logger.info(
             " ============================= Test ENDs ======================================"
@@ -116,12 +121,12 @@ def test_array_data_disk_replace(array_fixture, test_param):
         assert single_array_data_setup(pos.data_dict, raid_type, 
                                        data_disk, 2, mount_type, auto_create) == True
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert pos.target_utils.get_subsystems_list() == True
         subs_list = pos.target_utils.ss_temp_list
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert volume_create_and_mount_multiple(pos, num_vols, 

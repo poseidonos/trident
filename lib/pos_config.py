@@ -172,6 +172,26 @@ class POS_Config:
 
         return True
 
+    def save_restore(self, enable: bool = True, update_now: bool = False) -> bool:
+        save_restore = self.file_data["save_restore"]["enable"]
+        if enable:
+            if save_restore == True:
+                logger.info("POS Save Restore is already enabled.")
+            else:
+                logger.info("Enable POS Save Restore")
+        else:
+            if save_restore == False:
+                logger.info("POS Save Restore is already disabled.")
+            else:
+                logger.info("Disable POS Save Restore")
+
+        self.file_data["save_restore"]["enable"] = enable
+        if update_now:
+            self.file_modified = True
+            return self.update_config()
+
+        return True
+
 
 if __name__ == "__main__":
     pass

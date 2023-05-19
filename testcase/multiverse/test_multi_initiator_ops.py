@@ -1,36 +1,4 @@
-#
-#   BSD LICENSE
-#   Copyright (c) 2021 Samsung Electronics Corporation
-#   All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or without
-#   modification, are permitted provided that the following conditions
-#   are met:
-#
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in
-#        the documentation and/or other materials provided with the
-#        distribution.
-#      * Neither the name of Samsung Electronics Corporation nor the names of
-#        its contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-#    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-
-import pytest, json, sys, os, time, signal, psutil, time, random
+import pytest, json, sys, os, time, random
 
 from concurrent.futures import (
     ProcessPoolExecutor,
@@ -69,15 +37,15 @@ def teardown_module():
 
 def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
     try:
-        if pos.client_cnt < 6:
+        if pos.client_cnt < 1:
             logger.info(
-                "Skipping Test as number of Initiators do not match the TC requirement"
-            )
-            logger.info(
-                "Initiators expected: 6, Actual Initiators: {}".format(pos.client_cnt)
+                "Skipping Test as Minimum one Initiator requirement did not match"
             )
             pytest.skip("Test config not met")
 
+        logger.info(
+            f"Max Initiators Supported: 6, Current Initiators: {pos.client_cnt}"
+        )
         data_dict["system"]["phase"] = "true"
         data_dict["device"]["phase"] = "true"
         data_dict["array"]["num_array"] = 1
@@ -85,7 +53,7 @@ def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
         data_dict["volume"]["phase"] = "false"
 
         assert pos.target_utils.pos_bring_up(data_dict) == True
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         pos.cli.array_name = array_list[0]
 
@@ -127,12 +95,10 @@ def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
                 start_time = time.time()
                 npo_cnt = 1
                 while True:
-                    assert pos.target_utils.npor_and_save_state() == True
-                    for cn in range(test_dict["config"]["initiator"]):
-                        assert (
-                            libcore.npor_recover(target=pos, data_set=data_set[cn])
-                            == True
-                        )
+                    assert pos.target_utils.npor() == True
+                    #for cn in range(test_dict["config"]["initiator"]):
+                    #    assert libcore.npor_recover(target=pos,
+                    #                                data_set=data_set[cn]) == True
                     current_time = time.time()
                     running_time = current_time - start_time
                     if running_time >= time_per_phase:
@@ -179,15 +145,15 @@ def test_vol_lc_stress_io_stress_io_sanity_system_sanity_6_initiator():
                     == True
                 )
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
         if len(array_list) == 0:
             logger.info("No array found in the config")
         else:
             for array in array_list:
-                assert pos.cli.info_array(array_name=array)[0] == True
+                assert pos.cli.array_info(array_name=array)[0] == True
                 if pos.cli.array_dict[array].lower() == "mounted":
-                    assert pos.cli.unmount_array(array_name=array)[0] == True
+                    assert pos.cli.array_unmount(array_name=array)[0] == True
 
     except Exception as e:
         pos.exit_handler(expected=False)

@@ -60,7 +60,7 @@ class Helper:
 
     """helper methods for target and initiator"""
 
-    def __init__(self, ssh_obj,pos_as_service = "true"):
+    def __init__(self, ssh_obj, pos_as_service = True):
         self.ssh_obj = ssh_obj
         self.cli_history = []
         self.sys_memory_list = []
@@ -68,25 +68,26 @@ class Helper:
         self.pos_as_service = pos_as_service
 
     def json_reader(self, json_file: str) -> dict:
-        """reads json file from /testcase/config_files
-
+        """
+        Reads json file from /testcase/config_files
         Read the config file from following location:
-        Args:
-            json_file (str) json name [No path required]
+        
+        Parameters:
+            json_file (str): json file name [No path required]
         """
         try:
             dir_path = os.path.dirname(os.path.realpath(__file__))
             logger.info(dir_path)
             json_path = f"{dir_path}/../testcase/config_files/{json_file}"
 
-            logger.info(f"reading json file {json_path}")
+            logger.info(f"Reading json file {json_path}")
             with open(f"{json_path}") as f:
                 json_out = json.load(f)
             f.close()
             self.static_dict = json_out
             return True, json_out
         except OSError as e:
-            logger.error(f" failed to read {json_file} due to {e}")
+            logger.error(f"Failed to read {json_file} due to {e}")
             return False
         
 
@@ -272,7 +273,7 @@ class Helper:
         """method to check pos running status
         if pos is not running returns True else False
         """
-        if self.pos_as_service == "true":
+        if self.pos_as_service:
             return self.check_pos_service()
         else:
             return self.check_pos_pid()
@@ -303,15 +304,13 @@ class Helper:
 
     def get_pos_path(self):
         """method to get pos path as per service option"""
-        if self.pos_as_service == 'false':
-             
-                data_path = "topology.json"
-               
-                pos_path = self.json_reader(data_path)
-                
-                self.pos_path = pos_path[1]["login"]["paths"]["pos_path"]
-                return True
-
+        if not self.pos_as_service:
+            data_path = "topology.json"
+            pos_path = self.json_reader(data_path)[1]
+            self.pos_path = pos_path["paths"]["pos_path"]
+            return True
+        return False
+    
     def wbt_parser(self, file_name: str) -> (bool, dict()):
         """
         Method to wbt parser
@@ -599,8 +598,7 @@ class Helper:
                 parms.append(item)
         parms.sort()
         # build and return FIO cmd line
-        return ('fio' + ' ' + ' '.join(parms))
-
+        return "fio" + " " + " ".join(parms)
 
     def _get_sized_drives(elf, devices: dict) -> dict:
         """

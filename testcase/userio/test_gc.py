@@ -14,7 +14,9 @@ def test_do_gc_emptyarray(array_fixture):
     try:
         """GC is expected to fail on 100% Free array"""
         pos = array_fixture
-        assert pos.cli.wbt_do_gc()[0] == False
+        status = pos.cli.wbt_do_gc("array1")
+        assert status[0] == False
+        logger.info(f"Expected failure for do gc")
     except Exception as e:
         logger.error(e)
         pos.exit_handler()
@@ -28,6 +30,14 @@ def test_gcMaxvol(array_fixture, raid_type, nr_data_drives):
     """Trigger garbage collection with longevity of I/O"""
     try:
         pos = array_fixture
+
+        assert pos.cli.device_list()[0] == True
+        system_disks = pos.cli.system_disks
+        if (nr_data_drives * 2) > len(system_disks):
+            logger.warning("Insufficient system disks to test array create")
+            pytest.skip("Required disk condition is not met")
+
+        array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
         pos.data_dict["array"]["pos_array"][0]["raid_type"] = raid_type
         pos.data_dict["array"]["pos_array"][1]["raid_type"] = raid_type
         pos.data_dict["array"]["pos_array"][0]["write_back"] = random.choice(
@@ -43,11 +53,11 @@ def test_gcMaxvol(array_fixture, raid_type, nr_data_drives):
         pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = 256
         pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = 256
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-        assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
         run_io(pos)
-        pos.cli.wbt_do_gc()
-        pos.cli.wbt_get_gc_status()
+        pos.cli.wbt_do_gc(array_name=array_name)
+        pos.cli.wbt_get_gc_status(array_name=array_name)
         
 
         logger.info(

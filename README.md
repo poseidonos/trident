@@ -44,5 +44,5 @@ Please refer docs/UserGuide.md for details
 Please refer docs/UserGuide.md for details
 
 # Notes
-Trident currently supports 0.12.x version of Poseidon OS
+Trident currently supports 1.0.x version of Poseidon OS
 

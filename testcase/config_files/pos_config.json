@@ -1,6 +1,7 @@
 {
     "system": {
-        "phase": "true"
+        "phase": "true",
+	"pos_as_service": "false"
     },
     "device": {
         "phase": "true",

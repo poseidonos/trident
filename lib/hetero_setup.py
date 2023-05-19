@@ -813,7 +813,7 @@ if __name__ == "__main__":
     pos = POS()
 
     tgt_setup_file = "hetero_setup.json"
-    conf_dir = "/root/nehal/trident/testcase/config_files/"
+    conf_dir = "../testcase/config_files/"
 
     data_path = f"{conf_dir}{tgt_setup_file}"
     tgt_conf_data = pos._json_reader(data_path, abs_path=True)[1]

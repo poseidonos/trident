@@ -9,7 +9,6 @@ from common_libs import *
 # sys.path.insert(0, '/root/poseidon/ibot')
 import logger as logger
 
-from pos import POS
 from array_state import _Array as array
 
 logger = logger.get_logger(__name__)
@@ -20,12 +19,10 @@ with open("{}/config.json".format(dir_path)) as f:
 
 
 def pos_setup(pos, num_array, list_array_obj, data_dict):
-    
-    
     data_dict["array"]["num_array"] = 2 if num_array == 2 else 1
-    assert pos.target_utils.bringupArray(data_dict = data_dict) == True
-    assert pos.target_utils.bringupVolume(data_dict = data_dict) == True
-    assert pos.cli.list_array()[0] == True
+    assert pos.target_utils.bringup_array(data_dict = data_dict) == True
+    assert pos.target_utils.bringup_volume(data_dict = data_dict) == True
+    assert pos.cli.array_list()[0] == True
     assert pos.target_utils.get_subsystems_list() == True
 
     array_list = list(pos.cli.array_dict.keys())
@@ -42,9 +39,9 @@ def pos_setup(pos, num_array, list_array_obj, data_dict):
 
 
 @pytest.mark.parametrize("num_array", [1, 2])
-def test_array_states(array_fixture,num_array):
+def test_array_states(array_fixture, num_array):
     try:
-        fio_command = "fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=100% --name=pos0 "
+        fio_command = "fio --ioengine=libaio --rw=write --bs=16384 --iodepth=256 --direct=0  --numjobs=1 --verify=pattern --verify_pattern=0x0c60df8108c141f6 --do_verify=1 --verify_dump=1 --verify_fatal=1 --group_reporting --log_offset=1 --size=5% --name=pos0 "
         pos = array_fixture
         list_array_obj = []
         # step ::0 : variable initialization
@@ -118,6 +115,7 @@ def test_array_states(array_fixture,num_array):
 
         pos.exit_handler(expected=True)
     except Exception as e:
+        logger.error(f"Test script failed due to {e}")
         if len(list_array_obj) > 0:
             for array_obj in list_array_obj:
                 assert array_obj.cmd_history(exit=False) == True

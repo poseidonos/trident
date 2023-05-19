@@ -18,7 +18,7 @@ def test_create_raid6_array(array_fixture, array_mount):
     )
     pos = array_fixture
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
         array_disks = [(4, 0), (4, 1), (4, 2), (8, 2), (16, 2), (3, 0), (2, 2)]
@@ -33,7 +33,7 @@ def test_create_raid6_array(array_fixture, array_mount):
             assert single_array_data_setup(pos.data_dict, "RAID6", data_disk,
                                 spare_disk, array_mount, auto_create) == True
 
-            assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == exp_res
+            assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == exp_res
 
             if exp_res:
                 assert array_unmount_and_delete(pos) == True
@@ -53,11 +53,11 @@ def test_auto_create_raid6_array(array_fixture, array_mount):
     Verification: POS CLI - Create Array Mount Array and List Array command.
     """
     logger.info(
-        f" ==================== Test : test_create_raid6_array[{array_mount}] ================== "
+        f" ==================== Test : test_auto_create_raid6_array[{array_mount}] ================== "
     )
     pos = array_fixture
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         system_disks = pos.cli.system_disks
 
         array_disks = [(4, 0), (4, 1), (4, 2), (3, 2), (2, 2)]
@@ -72,11 +72,11 @@ def test_auto_create_raid6_array(array_fixture, array_mount):
             assert single_array_data_setup(pos.data_dict, "RAID6", data_disk,
                                 spare_disk, array_mount, auto_create) == True
 
-            assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == exp_res
+            assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == exp_res
 
             if exp_res:
                 array_name = pos.data_dict["array"]["pos_array"][0]["array_name"]
-                assert pos.cli.info_array(array_name=array_name)[0] == True
+                assert pos.cli.array_info(array_name=array_name)[0] == True
 
                 assert array_unmount_and_delete(pos) == True
         logger.info(
@@ -99,7 +99,7 @@ def test_array_cap_with_volumes(array_fixture, array_mount):
     )
     pos = array_fixture
     try:
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < RAID6_MIN_DISKS:
             pytest.skip("Less number of data disk")
 
@@ -107,9 +107,9 @@ def test_array_cap_with_volumes(array_fixture, array_mount):
         assert single_array_data_setup(pos.data_dict, "RAID6", RAID6_MIN_DISKS,
                                        0, array_mount, auto_create) == True
 
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
         array_list = list(pos.cli.array_dict.keys())
 
         assert pos.target_utils.get_subsystems_list() == True
@@ -148,13 +148,13 @@ def test_raid6_array_vols_data_integrity(array_fixture, array_mount, num_vols):
     pos = array_fixture
     try:
         num_data_disk, num_spare_disk = RAID6_MIN_DISKS, 2
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
         if len(pos.cli.system_disks) < (num_data_disk + num_spare_disk):
             pytest.skip("Less number of system disk")
 
         assert single_array_data_setup(pos.data_dict, "RAID6", num_data_disk,
                                     num_spare_disk, array_mount, False) == True
-        assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
+        assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
 
         assert volume_create_and_mount_multiple(pos, num_vols) == True
 
