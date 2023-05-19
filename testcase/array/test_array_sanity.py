@@ -26,46 +26,53 @@ raid = {
 
 
 def array_ops(pos):
-    arrayname = "array1"
-    assert pos.cli.info_array(array_name=arrayname)[0] == True
-    if pos.data_dict["array"]["pos_array"][0]["raid_type"] not in ["RAID0", "no-raid"]:
-        disklist = [random.choice(pos.cli.dev_type["SSD"])]
+    arrayname = pos.data_dict["array"]["pos_array"][0]["array_name"]
+    assert pos.cli.array_info(array_name=arrayname)[0] == True
+    array_data = pos.cli.array_data[arrayname]
+    if array_data["data_raid"].lower() not in ["raid0", "no-raid"]:
+        disklist = [random.choice(array_data["data_list"])]
         assert pos.target_utils.device_hot_remove(disklist) == True
-        # assert pos.cli.unmount_array(array_name=arrayname)[0] == False
-        # assert pos.cli.delete_array(array_name=array)[0] == False
-        assert pos.target_utils.array_rebuild_wait(array_name=arrayname) == True
 
-    assert pos.cli.scan_device()[0] == True
-    assert pos.cli.info_array(array_name=arrayname)[0] == True
+        if(len(array_data["spare_list"]) > 0):
+            assert pos.cli.array_unmount(array_name=arrayname)[0] == False
+            assert pos.cli.array_delete(array_name=arrayname)[0] == False
+            assert pos.target_utils.array_rebuild_wait(array_name=arrayname) == True
 
-    assert pos.cli.unmount_array(array_name=arrayname)[0] == True
-    assert pos.cli.delete_array(array_name=arrayname)[0] == True
-    assert pos.cli.unmount_array(array_name="array2")[0] == True
-    assert pos.cli.delete_array(array_name="array2")[0] == True
-    assert pos.cli.list_array()[0] == True
-    # assert pos.cli.stop_telemetry()[0] == True
+    assert pos.cli.device_scan()[0] == True
+    assert pos.cli.array_list()[0] == True
+    for array_name in list(pos.cli.array_dict.keys()):
+        assert pos.cli.array_info(array_name=array_name)[0] == True
+        if pos.cli.array_dict[array_name].lower() == "mounted":
+            assert pos.cli.array_unmount(array_name=array_name)[0] == True
+
+        assert pos.cli.array_delete(array_name=array_name)[0] == True
+    assert pos.cli.array_list()[0] == True
     return True
 
 
 def negative_tests(pos):
-    assert pos.cli.list_device()[0] == True
-    assert (
-        pos.cli.autocreate_array(
-            array_name="array2",
-            num_data=raid[pos.data_dict["array"]["pos_array"][0]["raid_type"]]["data"],
-            num_spare=raid[pos.data_dict["array"]["pos_array"][0]["raid_type"]][
-                "spare"
-            ],
-            buffer_name=pos.cli.dev_type["NVRAM"][1],
-            raid=random.choice(list(raid.keys())),
-        )[0]
-        == False
-    )
+    assert pos.cli.device_list()[0] == True
+    array_raid = pos.data_dict["array"]["pos_array"][0]["raid_type"]
+    status = pos.cli.array_autocreate(array_name="array2",
+                    num_data=raid[array_raid]["data"],
+                    num_spare=raid[array_raid]["spare"],
+                    buffer_name=pos.cli.dev_type["NVRAM"][1],
+                    raid_type=random.choice(list(raid.keys())))
+    assert status[0] == False
+    #event_name = status[1]['output']['Response']['result']['status']['eventName']
+    logger.info(f"Expected failure for autocreate array")
+
 
     for array in ["array1", "array2"]:
         writechoice = random.choice([True, False])
-        assert pos.cli.mount_array(array_name=array, write_back=writechoice)[0] == False
-        assert pos.cli.delete_array(array_name=array)[0] == False
+        status = pos.cli.array_mount(array_name=array, write_back=writechoice)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array mount due to {event_name}")
+        status = pos.cli.array_delete(array_name=array)
+        assert status[0] == False
+        event_name = status[1]['output']['Response']['result']['status']['eventName']
+        logger.info(f"Expected failure for array delete due to {event_name}")
     return True
 
 
@@ -76,76 +83,59 @@ def test_SanityArray(array_fixture):
         run_time = int(config_dict["test_ArraySanity"]["runtime"])
         end_time = start_time + (60 * run_time)
         logger.info("RunTime is {} minutes".format(run_time))
+        counter = 0
         while True:
-
+            counter += 1
+            logger.info(f"Iteration {counter} Started")
             pos = array_fixture
+            pos_array = pos.data_dict["array"]["pos_array"]
 
-            pos.data_dict["array"]["pos_array"][0]["raid_type"] = random.choice(
-                list(raid.keys())
-            )
-            pos.data_dict["array"]["pos_array"][1]["raid_type"] = random.choice(
-                list(raid.keys())
-            )
-            pos.data_dict["array"]["pos_array"][0]["write_back"] = random.choice(
-                [True, False]
-            )
-            pos.data_dict["array"]["pos_array"][1]["write_back"] = random.choice(
-                [True, False]
-            )
-            pos.data_dict["array"]["pos_array"][0]["data_device"] = raid[
-                pos.data_dict["array"]["pos_array"][0]["raid_type"]
-            ]["data"]
-            pos.data_dict["array"]["pos_array"][1]["data_device"] = raid[
-                pos.data_dict["array"]["pos_array"][1]["raid_type"]
-            ]["data"]
-            pos.data_dict["array"]["pos_array"][0]["spare_device"] = raid[
-                pos.data_dict["array"]["pos_array"][0]["raid_type"]
-            ]["spare"]
-            pos.data_dict["array"]["pos_array"][1]["spare_device"] = raid[
-                pos.data_dict["array"]["pos_array"][1]["raid_type"]
-            ]["spare"]
-            pos.data_dict["volume"]["pos_volumes"][0]["num_vol"] = random.randint(
-                1, 256
-            )
-            pos.data_dict["volume"]["pos_volumes"][1]["num_vol"] = random.randint(
-                1, 256
-            )
+            array1_raid = random.choice(list(raid.keys()))
+            array2_raid = random.choice(list(raid.keys()))
+                
+            pos_array[0]["raid_type"] = array1_raid
+            pos_array[1]["raid_type"] = array2_raid
+
+            pos_array[0]["write_back"] = random.choice([True, False])
+            pos_array[1]["write_back"] = random.choice([True, False])
+
+            pos_array[0]["data_device"] = raid[array1_raid]["data"]
+            pos_array[1]["data_device"] = raid[array2_raid]["data"]
+
+            pos_array[0]["spare_device"] = raid[array1_raid]["spare"]
+            pos_array[1]["spare_device"] = raid[array2_raid]["spare"]
+
+            pos_volume = pos.data_dict["volume"]["pos_volumes"]
+            pos_volume[0]["num_vol"] = random.randint(1, 256)
+            pos_volume[1]["num_vol"] = random.randint(1, 256)
+
             por = random.choice([True])
             logger.info(pos.data_dict)
-            assert pos.target_utils.bringupArray(data_dict=pos.data_dict) == True
-            assert pos.target_utils.bringupVolume(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringup_array(data_dict=pos.data_dict) == True
+            assert pos.target_utils.bringup_volume(data_dict=pos.data_dict) == True
             run_io(pos)
-            assert pos.cli.list_array()[0] == True
+            assert pos.cli.array_list()[0] == True
             array_name = list(pos.cli.array_dict.keys())[0]
-            assert pos.cli.info_array(array_name=array_name)[0] == True
-            if pos.data_dict["array"]["pos_array"][0]["raid_type"] not in [
-                "RAID0",
-                "no-raid",
-            ]:
-                assert (
-                    pos.cli.addspare_array(
-                        array_name=array_name,
-                        device_name=pos.cli.array_info["array1"]["data_list"][0],
-                    )[0]
-                    == False
-                )
-                assert pos.cli.list_device()[0] == True
-                assert (
-                    pos.cli.addspare_array(
-                        array_name=array_name, device_name=pos.cli.system_disks[0]
-                    )[0]
-                    == True
-                )
+            assert pos.cli.array_info(array_name=array_name)[0] == True
+            if pos_array[0]["raid_type"] not in ["RAID0", "no-raid"]:
+                spare_disk_name = pos.cli.array_data["array1"]["data_list"][0]
+                status = pos.cli.array_addspare(array_name=array_name,
+                                    device_name=spare_disk_name)
+                assert status[0] == False
+                event_name = status[1]['output']['Response']['result']['status']['eventName']
+                logger.info(f"Expected failure for add spare due to {event_name}")
+                assert pos.cli.device_list()[0] == True
+                assert pos.cli.array_addspare(array_name=array_name, 
+                            device_name=pos.cli.system_disks[0])[0] == True
 
             ## Create3rd array/ duplicate array
-
             negative_tests(pos)
             if por == True:
                 logger.info("Performing SPOR")
-                pos.target_utils.Spor()
+                pos.target_utils.spor()
             else:
                 logger.info("Performing NPOR")
-                pos.target_utils.Npor()
+                pos.target_utils.npor()
 
             array_ops(pos)
             if time.time() > end_time:
@@ -156,10 +146,10 @@ def test_SanityArray(array_fixture):
                 f"Remaining time for the test to be completed is {str(time_left)} minutes"
             )
             time.sleep(2)
-
+            logger.info(f"Iteration {counter} Completed ")
     except Exception as e:
-
-        assert 0
+        logger.error(f"Test failed due to {e}")
+        pos.exit_handler(expected=False)
 
 
 @pytest.mark.sanity
@@ -167,7 +157,7 @@ def test_Create_Array_alldrives(array_fixture):
     try:
         pos = array_fixture
 
-        assert pos.cli.list_device()[0] == True
+        assert pos.cli.device_list()[0] == True
 
         # Minimum Required Uram = Num Of Disk * 128MB + 512MB
         # Uram size in calculated in MB
@@ -176,12 +166,11 @@ def test_Create_Array_alldrives(array_fixture):
         if ((len(pos.cli.dev_type["SSD"]) * 128 + 512) < uram_size):
             pytest.skip("Minimum uram size requirement is not met")
 
-        assert pos.cli.create_array(
+        assert pos.cli.array_create(
                     array_name=pos.data_dict["array"]["pos_array"][0]["array_name"],
                     data=pos.cli.dev_type["SSD"],
                     write_buffer=pos.data_dict["device"]["uram"][0]["uram_name"],
                     raid_type="RAID5", spare=[])[0] == True
-
     except Exception as e:
         logger.error("Test case failed due to {e}")
         assert 0

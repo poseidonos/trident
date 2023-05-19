@@ -43,7 +43,7 @@ def test_hetero_degraded_array_create_delete_vols(array_fixture):
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
-            data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+            data_dev_list =  pos.cli.array_data[array_name]["data_list"]
             remove_drives = data_dev_list[:1]
             assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       
@@ -51,10 +51,10 @@ def test_hetero_degraded_array_create_delete_vols(array_fixture):
         for array_name in pos.cli.array_dict.keys():
             vol_size = "1G"
             vol_name = f"{array_name}_pos_vol"
-            assert pos.cli.create_volume(vol_name, vol_size, 
+            assert pos.cli.volume_create(vol_name, vol_size, 
                                         array_name=array_name)[0] == True
             
-            assert pos.cli.delete_volume(vol_name, array_name)[0] == True
+            assert pos.cli.volume_delete(vol_name, array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -81,16 +81,16 @@ def test_hetero_degraded_array_unmount(array_fixture):
 
         # Hot Remove Disk
         for array_name in pos.cli.array_dict.keys():
-            data_dev_list =  pos.cli.array_info[array_name]["data_list"]
+            data_dev_list =  pos.cli.array_data[array_name]["data_list"]
             remove_drives = data_dev_list[:1]
             assert pos.target_utils.device_hot_remove(device_list=remove_drives)
       
         # Unmount the degraded array
-        assert pos.cli.unmount_array(array_name=array_name)[0] == True
+        assert pos.cli.array_unmount(array_name=array_name)[0] == True
 
         # Get the array info for both array
         for array_name in pos.cli.array_dict.keys():
-            assert pos.cli.info_array(array_name=array_name)[0] == True
+            assert pos.cli.array_info(array_name=array_name)[0] == True
 
     except Exception as e:
         logger.error(f"Test script failed due to {e}")
@@ -108,10 +108,10 @@ def array_create_and_list(pos):
         for array_index in range(2):
             data_disk_req = {'mix': 2, 'any': 1}
             assert create_hetero_array(pos, "RAID5", data_disk_req, 
-                                       array_index=array_index, mount_array="WT", 
-                                       info_array=True) == True
+                                       array_index=array_index, array_mount="WT", 
+                                       array_info=True) == True
  
-        assert pos.cli.list_array()[0] == True
+        assert pos.cli.array_list()[0] == True
     except Exception as e:
         logger.error(f"Array create and list failed due to {e}")
         traceback.print_exc()

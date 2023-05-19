@@ -44,6 +44,7 @@ from sys import exit
 import logger
 import pathlib
 import inspect
+from copy import deepcopy
 from threadable_node import threaded
 
 logger = logger.get_logger(__name__)
@@ -83,8 +84,16 @@ class POS:
             self.data_dict = self._json_reader(data_path, abs_path=True)[1]
         else:
             self.data_dict = self._json_reader(data_path)[1]
+
+        self.data_dict_bkp = deepcopy(self.data_dict)
+
         self.config_dict = self._json_reader(config_path)[1]
-        self.pos_AsService = self._json_reader(trident_config)[1]["pos_as_a_service"]["enable"]
+        self.trident_config = self._json_reader(trident_config)[1]
+        self.pos_as_service = self.trident_config["pos_as_a_service"]["enable"]
+
+        self.client_fio_conf = self.trident_config["forced_fio_config"]
+
+        logger.info(f"Installed POS as Service : {self.pos_as_service}")
        
         self.target_ssh_obj = SSHclient(
             self.config_dict["login"]["target"]["server"][0]["ip"],
@@ -92,45 +101,52 @@ class POS:
             self.config_dict["login"]["target"]["server"][0]["password"],
         )
         self.obj_list.append(self.target_ssh_obj)
-        self.cli = Cli(
-            self.target_ssh_obj,
-            data_dict=self.data_dict,pos_as_service= self.pos_AsService
-            
-        )
-        self.target_utils = TargetUtils(
-            self.target_ssh_obj,
-            self.cli,
-            self.data_dict,
-            pos_as_service=self.pos_AsService
-            
-        )
+        pos_path = None
+        if not self.pos_as_service:
+            pos_path = self.config_dict["paths"]["pos_path"]
+
+        self.cli = Cli(self.target_ssh_obj, data_dict=self.data_dict,
+                       pos_as_service=self.pos_as_service,
+                       pos_source_path=pos_path)
+
+        self.target_utils = TargetUtils(self.target_ssh_obj, self.cli,
+                                        self.data_dict,
+                                        pos_as_service=self.pos_as_service)
          
         self.pos_conf = POS_Config(self.target_ssh_obj)
         self.pos_conf.load_config()
-        self.prometheus = Prometheus(self.target_ssh_obj, self.data_dict)
+        if self.pos_as_service:
+            self.prometheus = Prometheus(self.target_ssh_obj, self.data_dict)
 
         self.client_cnt = self.config_dict["login"]["initiator"]["number"]
         if self.client_cnt >= 1 and self.client_cnt < Max_Client_Cnt:
-            for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):
+            for client_cnt in range(self.client_cnt):
                 self.create_client_objects(client_cnt)
-                
         else:
             assert 0
-        
-    def create_client_objects(self,client_cnt):
-        ip = self.config_dict["login"]["initiator"]["client"][client_cnt]["ip"]
-        username = self.config_dict["login"]["initiator"]["client"][client_cnt][
-                    "username"
-                ]
-        password = self.config_dict["login"]["initiator"]["client"][client_cnt][
-                    "password"
-                ]
-        client_obj = SSHclient(ip, username, password)
-        self.obj_list.append(client_obj)
-        self.client_handle.append(Client(client_obj))
-        if self.client_cnt == 1:
+
+        self.collect_pos_core = False # Don't collect core after test fail
+
+    def create_client_objects(self, client_cnt):
+        client_list = self.config_dict["login"]["initiator"]["client"]
+        ip = client_list[client_cnt]["ip"]
+        username = client_list[client_cnt]["username"]
+        password = client_list[client_cnt]["password"]
+        client_ssh_obj = SSHclient(ip, username, password)
+        self.obj_list.append(client_ssh_obj)
+        client_obj = Client(client_ssh_obj)
+        client_obj.set_fio_runtime(self.client_fio_conf)
+
+        self.client_handle.append(client_obj)
+
+        if self.client_cnt >= 1:
             self.client = self.client_handle[0]
         
+    def _clearall_objects(self):
+        if len(self.obj_list) > 0:
+            for obj in self.obj_list:
+                obj.close()
+        return True
 
     def _clearall_objects(self):
         if len(self.obj_list) > 0:
@@ -160,35 +176,58 @@ class POS:
             logger.error(f" failed to read {json_file} due to {e}")
             exit()
 
-    def exit_handler(self, expected=False, hetero_setup=False):
-        """method to exit out of a test script as per the the result"""
+    def set_core_collection(self, collect_pos_core: bool = False):
+        """ Method is to eable core collection on test failure """
+        self.collect_pos_core = collect_pos_core
 
+    def collect_core(self, is_pos_running: bool):
+        """ Method to collect pos log and core dump """ 
         try:
+            if is_pos_running:
+                assert self.target_utils.dump_core() == True
+            return True
+        except Exception as e:
+            logger.error("Failed to collect core data due to {e}")
+            return False
 
+    def exit_handler(self, expected=False, hetero_setup=False, dump_cli=True):
+        """ Method to exit out of a test script as per the the result """
+        try:
             assert self.target_utils.helper.check_system_memory() == True
-            for client_cnt in range(self.config_dict["login"]["initiator"]["number"]):
-                if self.client_handle[client_cnt].ctrlr_list()[1] is not None:
-                    assert self.target_utils.get_subsystems_list() == True
-                    assert (
-                        self.client_handle[client_cnt].nvme_disconnect(
-                            self.target_utils.ss_temp_list
-                        )
-                        == True
-                    )
-            if expected == False:
-                raise Exception(" Test case failed ! Creating core dump and clean up")
+        
+            if dump_cli:
+                self.cli.dump_cli_history(clean=True)
+
+            is_pos_running = False
             if self.target_utils.helper.check_pos_exit() == False:
-                self.cli.stop_system(grace_shutdown=True)
-            self.pos_conf.restore_config()
+                is_pos_running = True
+            
+            # POS Client Cleanup
+            for client in self.client_handle:
+                assert client.reset(pos_run_status=is_pos_running) == True
+
+            # If system stat is not expected and core collection in enable
+            if expected == False and is_pos_running == True:
+                logger.error("Test case failed!")
+                if self.collect_pos_core:
+                    logger.error("Creating core dump")
+                    assert self.target_utils.dump_core() == True
+                else:
+                    logger.error("System clean up")
+                    self.cli.pos_stop(grace_shutdown=False)
+            if expected == True and is_pos_running == True:
+                logger.error("System clean up")
+                self.cli.pos_stop(grace_shutdown=False)
 
             # Reset the target to previous state
+            self.pos_conf.restore_config()
 
-            if hetero_setup:
-                if not self.target_utils.hetero_setup.reset():
-                    raise Exception("Failed to reset the target state")
+            if hetero_setup and not is_pos_running:
+                pass
 
+            if expected == False:
+                assert 0
         except Exception as e:
-
             logger.error(e)
             logger.info(
                 "------------------------------------------ CLI HISTORY ------------------------------------------"

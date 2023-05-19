@@ -1,16 +1,28 @@
 {
     "elk_log_stage": {
-        "enable": "true"
+        "enable": true
     },
     "copy_pos_log": {
-        "test_fail": "true",
-        "test_pass": "false" 
+        "test_fail": true,
+        "test_pass": false
     },
     "dump_pos_core": {
-        "enable": "false"
+        "enable": false
     },
-    "pos_as_a_service" : {
-        "enable" : "false"
+    "telemetry_logs": {
+        "start": true,
+        "upload": false
+    },
+    "pos_as_a_service": {
+        "enable" : true
+    },
+    "forced_fio_config": {
+        "enable" : false,
+        "fio_config" : {
+            "size_based" : true,
+            "max_size" : "10G",
+            "time_based" : true,
+            "max_runtime" : 120
+        }
     }
-
 }
